@@ -1,0 +1,15 @@
+<style>
+  html,body,iframe{margin:0;padding:0;border:none;width:100%;height:100%;}
+</style>
+<iframe id="iframe"></iframe>
+<script>
+  (function () {
+    iframe.src = "/api?request_type=print&" + document.location.search.substr(1);
+    iframe.onload = event => {
+      if (iframe.contentWindow.document.body.innerHTML && iframe.contentWindow.document.body.innerHTML[0] === '<') {
+        iframe.contentWindow.print();
+      }
+      setTimeout(arguments.callee, 10000);
+    }
+  })()
+</script>

@@ -1,0 +1,59 @@
+{
+	"manifest_version": 2,
+	"minimum_chrome_version": "28",
+	"name": "Aliconnect Word",
+	"short_name": "A Word",
+	"description": "Aliconnect Word APP",
+	"display": "fullscreen",
+	"background_color": "#000",
+	"start_url": ".",
+	"scope": "/",
+	"version": "1",
+	"permissions": [ ],
+	"gcm_sender_id": "71562645621",
+	"app": {
+		"background": {
+			"scripts": [ "background.js" ]
+		}
+	},
+	"icons": [
+		{
+			"128": "/image/icon/icon-128x128.png"
+		},
+		{
+			"src": "/image/icon/icon-48x48.png",
+			"sizes": "48x48",
+			"type": "image/png"
+		},
+		{
+			"src": "/image/icon/icon-72x72.png",
+			"sizes": "72x72",
+			"type": "image/png"
+		},
+		{
+			"src": "/image/icon/icon-96x96.png",
+			"sizes": "96x96",
+			"type": "image/png"
+		},
+		{
+			"src": "/image/icon/icon-144x144.png",
+			"sizes": "144x144",
+			"type": "image/png"
+		},
+		{
+			"src": "/image/icon/icon-168x168.png",
+			"sizes": "168x168",
+			"type": "image/png"
+		},
+		{
+			"src": "/image/icon/icon-192x192.png",
+			"sizes": "192x192",
+			"type": "image/png"
+		},
+		{
+			"src": "/img/icon/icon-192x192.png",
+			"sizes": "512x512",
+			"type": "image/png"
+		}
+	]
+}

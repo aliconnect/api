@@ -1,0 +1,522 @@
+# English
+# Words
+clean: Cleanup
+print: Print
+undo: Undo
+redo: Redo
+removeFormat: Remove format
+bold: Bold
+italic: Italic
+underline: Underline
+strikeThrough: Strike through
+justifyleft: Justify left
+justifycenter: Justify center
+justifyright: Justify right
+insertorderedlist: Ordered list
+insertunorderedlist: Unordered list
+blockquote: Quote
+indent: Indent
+outdent: Outdent
+hyperlink: Hyperlink
+cut: Cut
+copy: Copy
+paste: Paste
+
+Title: Title
+Subject: Subject
+Summary: Summary
+Chapter: Chapter
+Start: Start
+End: End
+Finish: Finish
+State: State
+To: To
+Partof: Part of
+Draft: Draft
+Concept: Concept
+Published: Published
+Start date: Start date
+End date: End date
+Finish date: Finish date
+Publish date: Publish date
+Keywords: Keywords
+Introduction: Introduction
+Page text: Page text
+Product: Product
+Manufacturer: Manufacturer
+Brand: Brand
+Product group: Product group
+Tag: Tag
+Tag name: Tag name
+Supplier: Supplier
+Order code: Order code
+Barcode: Barcode
+Package: Package
+Package unit: Package unit
+Package quantity: Package quantity
+Package length: Package length
+Package width: Package width
+Package height: Package height
+Package weight: Package weight
+Catalog price: Catalog price
+Purchase: Purchase
+Purchase discount: Purchase discount
+Purchase price: Purchase price
+Order quantity: Order quantity
+GrainSize: Grain size
+Holes: Holes
+
+onstock: Tomorrow (max %d pices)
+notonstock: Day after tomorrow
+
+green: Green
+
+Show webpage: Show webpage
+Sales: Sales
+Sales discount: Sales discount
+Sales margin: Sales margin
+Sales price: Sales price
+Customer discount: Customer discount
+FAT: FAT
+Fixed cost price: Fixed cost price
+Start of stock: Start of stock
+Stock: Stock
+Stock location: Stock location
+Stock minimum: Stock minimum
+Color: Color
+Name: Name
+Model: Model
+Type: Type
+Serie: Serie
+Version: Version
+Shape: Shape
+Material: Materiaal
+Quality: Quality
+Purpose: Purpose
+Unit: Unit
+Content: Content
+Content unit: Content unit
+Remark: Remark
+Dimensions: Dimensions
+Length: Length
+Width: Width
+Height: Height
+Weight: Gewicht
+EAN: EAN
+Consumption: Consumption
+PowerKVA: PowerKVA
+Fuse: Fuse
+Power connection: Power connection
+Air: Air
+Air connection: Air connection
+Dewpoint: Dewpoint
+Water: Water
+Water connection: Water connection
+Position: Position
+Position X: Position X
+Position Y: Position Y
+Position Z: Position Z
+Rotation X-axis: Rotation X-axis
+Rotation Y-axis: Rotation Y-axis
+Rotation Z-axis: Rotation Z-axis
+Research: Research
+Design: Design
+Draft: Draft
+Concept: Concept
+Final: Final
+Published: Published
+Sales: Sales
+Ordered: Besteld
+Build: Gebouwd
+Deleted: Verwijderd
+Deprecated: Verouderd
+Replaced: Vervangen
+Aborted: Beeindigd
+Stopped: Gestopt
+Idle: Klaar om te starten
+Running: In bedrijf
+Complete: Gereed
+Suspending: Naar stilstand
+Suspended: In stilstand
+Unsuspending: Uit stilstand
+Holding: Naar wachtstand
+Held: In wachtsand
+Unholding: Uit wachtsand
+Aborting: Afgebroken
+Stopping: Bezig te stoppen
+Clearing: Opstarten
+Resetting: Herzetten
+Starting: Startende
+Completing: Afronden
+News: Nieuwsbericht
+Account discount: alleen voor u
+
+
+Header 1: Kop 1
+Header 2: Kop 2
+Header 3: Kop 3
+Header 4: Kop 4
+Header 5: Kop 5
+Header 6: Kop 6
+Paragraph: Alinea
+Preformated: Geen opmaak
+
+
+Very small: Heel klein
+A bit small: Klein
+Normal: Normaal
+Medium-large: Midelmatig groot
+Big: Groot
+Very big: Heel groot
+Maximum: Maximaal
+
+black: Zwart
+red: Rood
+orange: Orange
+yellow: Geel
+green: Groen
+blue: Blauw
+whit: Wit
+
+Email address: E-mailadres
+Password: Wachtwoord
+Login: Aanmelden
+Logout: Afmelden
+Next: Volgende
+Cancel: Annuleren
+Allow: Toestaan
+Back: Terug
+Deny: Weigeren
+Messages: Berichten
+name: Naam
+email: E-mailadres
+
+Developers: Ontwikkelaars
+KeyName: Zoekcode
+CompanyName: Organisatie naam
+Description: Omschrijving
+BusinessAddressStreet: Vestigingsadres
+BusinessAddressPostalCode: Postcode
+BusinessAddressCity: Plaats
+BusinessContact: Contactpersoon
+BusinessExtra: Aanvulling
+OtherAddressStreet: Postadres
+OtherAddressCity: Plaats
+OtherContact: Contactpersoon
+OtherExtra: Aanvulling
+Country: Land
+State: Provincy
+Township: Gemeente
+Locality: Plaats
+Sublocality: Wijk
+PostalCodePrefix: Potcode prefix
+BusinessPhones1: Telefoon
+MobilePhones1: Mobiel
+CompanyFax: Fax
+DebNR: Debiteur nr
+DebName: Debiteur naam
+
+# Login
+
+No account?: Geen account?
+Create account now: Nu een account aanmaken.
+No access to your account?: Heeft u geen toegang tot uw account?
+Create account now: Maak nu een account
+
+# createaccount
+Create account: Account aanmaken
+Enter email address: Voer hier uw email adres in.
+
+Authentication mail subject: Beveiligingscode voor uw aanmelding op aliconnect.nl
+Authentication mail title: Beveiligingscode
+Authentication mail content: Dit bericht is bestemt voor de eigenaar van %s.
+  Om veiligheidredenen sturen wij u geen link.
+  Zorg dat u aangemeld bent op de website https://login.aliconnect.nl.
+  Uw beveiligingscode is %s
+
+New location mail subject: Inlog activiteit op een onbekende locatie
+New location mail title: Er is ingelogt op een onbekende locatie
+New location mail content: Er is met uw account ingelogt op een onbekende locatie.
+  Indien dit door u is gedaan hoeft u geen actie te ondernemen.
+  Is dit niet het geval dan is deze actie wellicht uitgevoerd door een onbekende.
+  Wij adviseren u direct uw wachtwoord aan te passen op https://login.aliconnect.nl.
+
+Authentication sms subject: Aliconnect
+Authentication sms content: Uw beveiligingscode is %s
+
+Keep logged-in: Aangemeld blijven
+Show password: Toon wachtwoord
+No password: Geen wachtwoord of wachtwoord vergeten
+Other signin methods: Andere manieren om u aan te melden
+Email unknown: Het email adres %s is niet bekend.
+
+
+Error Password invalid: Incorrect wachtwoord.
+Error no access: Er gaat iets niet goed. U heeft geen toegang.
+
+Login options: Aanmeldingsopties
+Use access token: Een beveiligings token gebruiken
+Use authentication app: Een aanvraag goedkeuren in de Aliconnect Authenticator-app
+Login mobile phone: Aanmelden op mijn mobiel
+Login with password: Aanmelden met gebruikersnaam en wachtwoord
+
+
+Set password: Je wachtwoord invoeren
+Set password description: Voer een veilig wachtwoord in. Deze is belangrijk want hij geeft toegang tot al jouw data en die van de organisatie waarvoor je werkt. Wij adviseren een lang wachtwoord.
+
+Get mobile number: Uw mobiele telefoonummer
+Get mobile number description: Wij vragen u om uw mobiele nummer.
+  Dit nummer wordt alleen gebruikt voor het verifieren van uw inlog acties.
+Your mobile number: Uw mobiele nummer (31612345678)
+
+Error safetycode invalid: De ingevoerde beveiligingscode is onjuist.
+Error safetycode timout: Uw beveiliginsgcode is verlopen. Vraag een nieuwe code aan.
+
+requestNewPasswordByEmail: Aanvragen van een nieuw wachtwoord
+requestNewPasswordByEmailDescription: Voer uw email adres in en u ontvangt een mail met een beveiligingscode voor het instellen van een nieuw wachtwoord.
+
+getEmailCode: Invoeren email beveiligingscode
+
+Enter password: Wachtwoord invoeren
+Resend: Opniew verzenden
+
+Enter your mobile code: Invoeren beveiligingscode
+Enter your mobile code description: Voer hieronder de beveiligingscode in welke u heeft ontvangen op uw mobiel.
+
+newitem: Nieuw item toevoegen op deze locatie
+Email in use: '%s is al een Aliconnect-account. Gebruik een ander e-mailadres.'
+Email send to verify email address: Er is een email verzonden aan %s met een beveiligingscode. Bekijk de email in uw inbox of spam en voor de 5 cijferige beveiligingscode hieronder in.
+Enter code here: Voer hier uw beveiligingscode in
+
+My_account_profile: Mijn account gegevens
+My_contact_profile: Mijn contact gegevens
+Account_management: Account beheer
+Delete_account: Mijn account verwijderen
+Change_password: Wachtwoord wijzigen
+Change_mobile: Mobiel nummer wijzigen
+Add_email_address: Email adress toevoegen
+Change_login_account: Inloggen met een ander account
+Login_on_microsoft_account: Inloggen op je microsoft account
+Logout from this site: Afmelden op dit domein
+Logout from Aliconnect: Afmelden op aliconnect
+No_access_to_your_account: Geen toegang tot uw account
+Your_received_code: Uw ontvangen code
+Create_random_password: Genereer wachtwoord
+Keep_loggedin: Aangemeld blijven
+Select_login_option: Een methode voor aanmelden kiezen
+
+Logout_now: '%s afmelden op dit systeem'
+Create_account: Account aanmaken
+Sample_email: iemand@voorbeeld.nl
+Repeat_password: Herhaal wachtwoord
+Your_name: Uw volledige naam
+Create_domain: Domein aanmaken
+Domain_name: Domein naam
+
+
+
+# Messages START
+
+prompt_login_title: Aanmelden
+# prompt_login_description: Scan de code met de camera van je telefoon of de Aliconnect authenticatie app
+prompt_login_description: ~
+
+prompt_login_password_title: Wachtwoord invoeren
+prompt_login_password_description: ~
+
+set_password_title: Wachtwoord instellen
+set_password_description: Voer een veilig wachtwoord in. Deze is belangrijk want hij geeft toegang tot al jouw data en die van de organisatie waarvoor je werkt. Wij adviseren een lang wachtwoord.
+
+
+
+prompt_create_account_title: Account aanmaken
+prompt_create_account_description: U gaat een account aanmaken bij Aliconnect.
+  Aliconnect beschermd uw data zodat alleen u bepaald wat ermee gebeurd.
+  Meer informatie vindt u in de <a href="#">algemene voorwaarden</a> waarmee u tevens akkoord gaat bij het aanmaken van een account.
+  Wij vragen u om uw naam, email en mobiele telefoonnummer welke alleen gebruikt worden om uw account te beschermen.
+
+prompt_login_mse_title: Aanmelden met Microsoft account
+prompt_login_mse_description: U gaat u aanmelden met uw Microsoft account.
+  Hierbij vragen wij u om toestemming tot uw gegevens.
+  Voor een optimale werking van de Aliconnect applicaties benodigen wij onderstaande toestemming.
+  U kunt deze wijzigen. Bij verder wordt u doorgeleid naar Microsoft om u aan te melden.
+
+prompt_accept_title: Accepteer toegang tot uw gegevens
+prompt_accept_description: De applicatie %s wil toegang tot de volgende gegevens. %s
+prompt_login_options_title: Meer aanmeld opties
+prompt_login_options_description: ~
+
+prompt_account_options_title: Meer account beheer
+prompt_account_options_description: ~
+
+login_title: Aanmelden
+login_description: ~
+
+new_location_title: Inlog activiteit op een onbekende locatie
+new_location_content: Er is met %s op uw account ingelogt op een onbekende locatie.
+  Indien dit door u is gedaan hoeft u geen actie te ondernemen.
+  Is dit niet het geval dan is deze actie wellicht uitgevoerd door een onbekende.
+  Wij adviseren u direct uw wachtwoord aan te passen op https://login.aliconnect.nl.
+
+set_password_title: Uw wachtword is aangepast
+set_password_content: Wij informeren u dat uw wachtwoord is aangepast.
+  Indien dit niet door u is gedaan dan adviseren wij u zo snel mogelijk contact met ons op te nemen.
+
+set_scope_title: Toegang tot gegevens aangepast
+set_scope_content: U heeft toegang gegeven
+  aan %s tot de volgende gegevens %s
+
+# authenticationSms: Aliconnect
+# authenticationSmsContent: Uw beveiligingscode is %s
+
+authenticationMail: Beveiligingscode
+authenticationMailContent: Beveiligingscode voor uw aanmelding op aliconnect.nl
+
+# prompt_get_code: Invoeren beveiligingscode
+# prompt_get_code_description: Er is een beveiligingscode naar uw email verstuurd.
+#   Deze code is nodig om te controleren of het email adres echt van u is.
+#   U kunt de code hieronder invullen.
+
+email_code_title: Mail beveiligingscode
+# email_code_description: Er wordt een bericht verstuurd naar uw email adres.
+email_code_description: Er is een beveiligingscode naar uw email verstuurd.
+  Deze code is nodig om te controleren of het email adres echt van u is.
+  U kunt de code hieronder invullen
+email_code_content: Uw beveiligingscode is %s.
+  Dit bericht is bestemt voor de eigenaar van %s.
+  Om veiligheidredenen sturen wij u geen link.
+  Zorg dat u aangemeld bent op de website https://login.aliconnect.nl.
+
+sms_code_title: SMS beveiligingscode
+sms_code_description: Er is een beveiligingscode naar uw mobiel verstuurd.
+  Deze code is nodig om te controleren of het mobile telefoonnummer echt van u is.
+  U kunt de code hieronder invullen
+sms_code_subject: Aliconnect
+sms_code_content: Uw beveiligingscode is %s
+
+current_phone_number_title: Uw huidige mobiele telefoonummer
+current_phone_number_description: Wij vragen u om uw huidige nummer.
+  Dit nummer zal eerste verwijderd worden van uw account.
+
+phone_number_title: Uw mobiele telefoonummer
+phone_number_description: Wij vragen u om uw mobiele telefoonummer.
+  Dit nummer wordt alleen gebruikt om uw account te verifieren.
+
+# prompt_get_email_code: Invoeren email beveiligingscode
+# prompt_get_email_code_description: Er is een beveiligingscode naar uw email verstuurd.
+#   Deze code is nodig om te controleren of het email adres echt van u is.
+#   U kunt de code hieronder invullen.
+
+
+delete_account_title: Uw account is verwijderd
+delete_account_content: Hierbij laten we u weten dat uw account succevol is verwijderd.
+
+prompt_set_phone_number_title: Opgeven mobiel telefoonnummer
+prompt_set_phone_number_description: Dit nummer wordt alleen gebruikt voor het verifieren van u als gebruiker.
+
+
+corona_registratie_welkom_title: Welkom op de Corona contact registratie app
+corona_registratie_not_loggedin: Om gebruik te maken van deze app moet u zich eenmalig registreren bij Aliconnect met uw email en mobiele nummer.
+  Aliconnect biedt beschermde opslag van persoonlijke gegevens waar alleen u toegang tot heeft en waarvan u kunt bepalen wat u wel niet met anderen deelt.
+corona_registratie_code_intro: Om de Corona regelgeving na te komen dienen wij uw gegevens te registreren.
+  Scan onderstaande code met de camera van uw smart phone en voer uw gegevens in. Wij ontvangen deze dan per mail.
+
+corona_registratie: Corona registratie
+corona_registratie_content: 'Er is een corona bezoek geregistreerd. <br> %s'
+corona_registratie_intro: U kunt een locatie QR code aanmaken en deze uitprinten
+  en op een locatie leggen of nu gebruiken om met andere aanwezigen te registreren.
+  Laat iedereen de code scannen en zijn gegevens invoeren.
+  Registratie is vrijwillig en alle registraties zijn van u persoonlijk en voor niemand anders inzichtelijk.
+  U kunt deze registratie delen met de GGD voor een contact onderzoek als dit nodig is.
+  Registraties worden automatisch na 14 dagen verwijderd.
+corona_registratie_gebruiken: Wilt u de Corona app zelf gebruiken, dat kan.
+  Ga naar https://login.aliconnect.nl/corona en meld u aan op https://login.aliconnect.nl.
+  Daarna krijgt u toegang tot uw registraties en kunt u zelf code aanmaken.
+corona_registratie_welkom: Wij heten u van harte welkom.
+  Wij willen al onze gasten een veilig en gastvrij verblijf bieden.
+  Wilt u daarom deze checklist voor ons invullen?
+  In verband met de wet en regelgeving vragen wij u tevens om uw email en telefoonnummer zodat u geinformeerd kan worden bij een mogelijke corona besmetting.
+  Deze gegevens worden slechts 14 dagen bewaarde en nergens anders voor gebruikt.
+  Graag per huishouden deze gegevens invoeren.
+
+# get_sms_code_title: Invoeren SMS beveiligingscode
+# get_sms_code_description: Er is een beveiligingscode naar uw mobiel verstuurd. U kunt de code hieronder invullen.
+
+
+label_method: Actie
+label_preferred_username: Uw voor en achternaam
+label_accountname: Uw email of mobiele nummer (31612345678)
+label_phone_number: Uw mobiele nummer (31612345678)
+label_current_phone_number: Uw huidge mobiele nummer (31612345678)
+label_code: Voer hier uw beveiligingscode in
+label_cancel: Annuleren
+label_next: Volgende
+label_resend: Opnieuw verzenden
+label_password: Wachtwoord invoeren
+label_password2: Wachtwoord herhalen
+label_fullname: Uw voor- en achternaam
+label_create: Aanmaken
+label_code: Code
+label_date: Datum
+label_arrival: Aankomst
+label_departure: Vertrek
+label_location: Locatie
+label_organisation: Organisatie
+label_table: Tafel
+label_email: Mail adres
+label_phone_number: Telefoonnummer
+label_has_sneeze: Ik heb in de afgelopen 24 uur last gehad van Niezen?
+label_has_cough: Ik heb in de afgelopen 24 uur last gehad van Hoesten?
+label_has_fever: Ik heb in de afgelopen 24 uur last gehad van Koorts > 38?
+label_has_stuffiness: Ik heb in de afgelopen 24 uur last gehad van Benauwdheid?
+label_has_housemate: Ik heb op dit moment een huisgenoot met koorts en/of benauwdheidsklachten?
+label_has_corona_virus: Ik heb het corona virus gehad
+label_has_corona_virus_last_week: Dit is in de afgelopen 7 dagen vastgesteld door het lab?
+label_has_corona_virus_date: Datum van vaststelling corona virus?
+label_household_count: Aantal huishoudens waaruit het gezelschap bestaat
+label_share_GGD: Ik geef toestemming voor het uitsluitend delen van deze contactgegevens met de GGD
+  op hun verzoek voor bron- en contactonderzoek. Deze gegevens worden na 14 dagen vernietigd.
+
+newAccount: Nieuw account
+
+account_created_title: Aliconnect account aangemaakt
+account_created_content: Om gebruik te maken van onze webapplicatie is er voor u een Aliconnect account aangemaakt.
+ U zult zich aan moeten melden op https://login.aliconnect.nl.
+ Tijdens deze aanmelding kunt u een wachtwoord instellen.
+
+accountNotExists: Account bestaat niet
+accountNotExistsContent: Toelichting Account bestaat niet.
+
+domainAccountNotExists: Account bestaat niet
+domainAccountNotExistsContent: Account bestaat niet toelichting
+
+domainAccountDeleted: '%s account verwijderd'
+domainAccountDeletedContent: Het account is verwijderd.
+
+contactCreated: '%s account aangemaakt'
+contactCreatedContent: Om gebruik te maken van onze webapplicatie is er voor u een account aangemaakt op het domein %s.aliconnect.nl.
+
+scopeGranted: Toegang tot gegevens ingesteld
+scopeGrantedContent: Ik heb de toegang tot gegevens aangepast. Uw toegang is geconfigureerd als %s.
+
+accountModified: Uitnodiging voor het gebruik van onze webapplicatie
+accountModifiedContent: Hierbij nodig ik u uit om gebruik te maken van onze webapplicatie.
+  Ik heb u toegang verleent tot de nodige informatie.
+
+
+# ???
+
+
+requestNewPasswordByEmail: Aanvragen van een nieuw wachtwoord
+requestNewPasswordByEmailDescription: Voer uw email adres in en u ontvangt een mail met een beveiligingscode voor het instellen van een nieuw wachtwoord.
+
+getEmailCode: Invoeren email beveiligingscode
+
+
+
+
+
+
+
+
+# Next

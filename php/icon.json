@@ -1,0 +1,299 @@
+{
+  "General": {
+    "camera": "f100",
+    "switchcamera": "f102",
+    "msg": "f08e",
+    "aliconnect": "f000"
+  },
+  "Menu": {
+    "menu": "f05c",
+    "tools": "f01a",
+    "config": "f019",
+    "help": "f02e",
+    "print": "f0ad",
+    "printmenu": "f11f",
+    "printdoc": "f11f",
+
+    "login": "f25b",
+    "logout": "f25c",
+
+    "network": "f1cf"
+  },
+  "Edit": {
+    "undo": "f023",
+    "redo": "f024",
+
+    "cut": "f00f",
+    "copy": "f00e",
+    "paste": "f011"
+  },
+  "Rich text editor": {
+    "clean": "f162",
+
+    "bold": "f030",
+    "italic": "f031",
+    "underline": "f02f",
+    "strikeThrough": "f236",
+
+    "fontsize": "f1db",
+    "fontname": "f4b1",
+    "switchMode": "f035",
+    "switchMode": "f545",
+    "removeFormat": "f037",
+
+    "insertorderedlist": "f0ff",
+    "insertunorderedlist": "f066",
+
+    "justifyleft": "f06b",
+    "justifycenter": "f06a",
+    "justifyright": "f069",
+    "justifyfull": "f4f2",
+
+    "indent": "f062",
+    "outdent": "f061",
+
+    "superscript": "f238",
+    "subscript": "f239",
+
+    "blockquote": "f4a4",
+    "code": "f237",
+    "hyperlink": "f015",
+    "unlink": "f22b",
+
+    "forecolor": "f036",
+    "backcolor": "f15f"
+  },
+  "View": {
+    "view": "f0d4",
+    "dark": "f333",
+    "history": "f07b",
+
+    "pin": "f09f",
+    "unpin": "f0a1",
+
+    "slide": "f1ab"
+
+  },
+  "Listview": {
+    "cols": "f0c8",
+    "grid": "f0c8",
+    "rows": "f05e",
+    "table": "f06b",
+
+    "ganth": "f39d",
+    "chart": "f226",
+    "model": "f1cf",
+    "maps": "f093",
+    "model3d": "f0fe",
+    "model2d": "f0fd",
+    "show3d": "f0fe"
+
+  },
+  "Data": {
+    "search": "f018",
+
+    "filter": "f012",
+    "refresh": "f082",
+
+    "sort": "f322",
+    "sorta": "f333",
+    "add": "f025",
+
+    "data": "f123",
+    "datareadonly": "f124",
+    "dataprivate": "f125",
+
+    "checked": "f06c",
+    "box": "f071",
+    "boxchecked": "f06f",
+
+    "image": "f014",
+    "attach": "f013",
+    "hyperlink": "f015",
+    "link": "f015",
+    "attribute": "f0fa",
+    "device": "f173",
+
+    "close": "f021",
+    "popout": "f152",
+    "popin": "f151",
+    "public": "f108",
+    "trash": "f233",
+    "share": "f12b",
+
+    "fdit": "f00b",
+    "fditfile": "f00b",
+    "del": "f00d",
+    "fav": "f002",
+    "favchecked": "f001"
+  },
+  "Messaging": {
+    "mail": "f0b4",
+    "mail_read": "f0b5",
+    "mail_forward": "f0b6",
+    "mail_reply": "f0b7",
+    "mail_replyall": "f0b8",
+    "mailimport": "f27f",
+
+    "send": "f08b",
+    "sendchecked": "f08c",
+    "sendhover": "f08c"
+  },
+  "Object oriented": {
+    "clone": "f14d",
+    "revert": "f14d",
+    "showInherited": "f14a",
+    "derived": "f14c",
+    "typical": "f153",
+    "source": "f14b",
+    "inherit": "f14c"
+  },
+  "Navigation": {
+    "up": "f01c",
+    "down": "f01d",
+    "arrowLeft": "f03f",
+    "arrowRight": "f040",
+    "back": "f01e",
+    "previous": "f01e",
+    "prior": "f01e",
+    "next": "f01f"
+  },
+  "Tasks": {
+    "task": "f010",
+    "taskboard": "f011",
+
+    "flag": "f095",
+    "flagcheck": "f095",
+
+    "calendar": "f0e4",
+    "today": "f0e5",
+    "day": "f0e6",
+    "week": "f0e2",
+    "workweek": "f0e7",
+    "month": "f0e4",
+
+
+
+    "clock": "f13b",
+    "clockfinsih": "f13c",
+    "done": "f140",
+    "onoff": "f13b",
+    "overdue": "f13e",
+
+    "start": "f017"
+  },
+  "Security": {
+    "blockContact": "f0ef",
+    "permissions": "f0a4",
+
+    "private": "F38F",
+    "lock": "f0a2",
+    "unlock": "f0a3"
+
+  },
+  "Web": {
+    "www": "f12c",
+    "website": "f12c",
+    "webpage": "f12c"
+  },
+  "Webshop": {
+
+    "shop": "f0b0",
+    "bagAdd": "f0b1",
+    "shopbag": "f0b3",
+    "po": "f0b3",
+    "kassa": "f0ae",
+    "scanner": "f0b2",
+    "invoice": "f0af",
+
+    "product": "f0c4"
+  },
+  "Forms": {
+    "edit": "f00b",
+
+    "phone": "f112",
+    "mobile": "f112",
+
+    "alert": "f10c",
+
+    "form": "f0fa",
+    "input": "f0fa"
+  },
+  "CRM": {
+    "contact": "f0f1",
+    "contactadd": "f0f0",
+    "contactblock": "f0ef",
+    "contactstop": "f0ee",
+    "contactcard": "f0ec",
+    "contactmessage": "f0f3",
+
+    "company": "f0eb",
+    "organisation": "f0eb",
+    "group": "f0eb",
+
+    "helpPage": "f02e",
+    "contactsync": "f0e6"
+  },
+  "Files": {
+    "download": "f048",
+    "upload": "f049",
+
+    "folder": "f0d9",
+    "folderadd": "f0dc",
+    "folderrefresh": "f0de",
+    "folderupload": "f0da",
+    "folderimport": "f0db",
+
+    "document": "f11e",
+    "doc": "f11e",
+    "pdf": "f122",
+    "msword": "f248",
+    "xls": "f245",
+    "toexcel": "f245",
+
+    "file_txt": "f22c",
+    "file_pdf": "f122",
+    "file_zip": "f22d",
+    "file_doc": "f248",
+    "file_docx": "f248",
+    "file_xls": "f245",
+    "file_xlsx": "f245",
+    "file_ppt": "f247",
+    "file_pptx": "f247",
+    "file_vsd": "f24a",
+    "file_vsdx": "f24a"
+  },
+  "Schema symbols": {
+    "account": "f0ea",
+    "map": "f0d9",
+
+    "location": "f12d",
+    "fnterprise": "f0f9",
+    "site": "f0f8",
+
+    "asset": "f0c4",
+    "system": "f0cb",
+    "books": "f0d5",
+
+    "controller": "f1cd",
+    "iointerface": "f1ce",
+    "iomodule": "f1b2",
+    "io": "f29e",
+    "controlio": "f29e",
+    "controlinput": "f29a",
+    "controloutput": "f29b",
+    "signal": "f29d",
+
+    "softwarefunction": "f10e"
+  },
+  "Application": {
+    "freedraw": "f2d5",
+
+
+    "plm": "f0c6",
+    "se": "f0c6",
+    "crm": "f0ec"
+
+
+  }
+}

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:type="TaskPaneApp">
+  <Id>d097fa05-e4a4-4d22-9950-adf7fa60e6b9</Id>
+  <Version>1.0</Version>
+  <Description DefaultValue="Aliconnect web integratie"/>
+  <DisplayName DefaultValue="Aliconnect Word Proef"/>
+  <ProviderName>Alicon</ProviderName>
+  <DefaultLocale>NL-NL</DefaultLocale>
+  <Hosts>
+    <Host Name="Document"/>
+    <Host Name="Workbook"/>
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://aliconnect.nl/v1/app/word/" />
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+</OfficeApp>

@@ -1,0 +1,12 @@
+﻿{
+  "name": "Aliconnect Mobile Web Application",
+  "short_name": "Aliconnect",
+  "description": "Aliconnect user application.",
+  "display": "fullscreen",
+  "background_color": "#000",
+  "scope": "/",
+  "start_url": ".",
+  "permissions":[
+      "file://*"
+  ]
+}

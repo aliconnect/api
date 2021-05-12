@@ -1,0 +1,35 @@
+<script>
+  (function() {
+    Aim.on({
+      ready() {
+        if (document.location.hostname.includes('localhost')) {
+					// probleem properties, loop
+					// setTimeout(() =>{
+					// let docs = Aim.doc_aim();
+					// return console.error(docs);
+					// docs = [
+					// 	docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs
+					// 	,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs
+					// 	,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs
+					// 	,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs
+					// ];
+					// docs = [
+					// 	docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs
+					// 	,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs
+					// 	,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs,docs
+					// ];
+					// console.log('DOCS', docs);
+					// const docs = JSON.stringify(Aim.doc_aim());
+					let result = await Aim.url('/api/docs_save.php')
+					.input(Aim.doc_aim().json())
+					.post()
+					// .then(event => console.log('THEN', event.body))
+					;
+					// console.log('RESULT', result);
+					// }, 100)
+					return;
+				}
+      }
+    });
+  })();
+</script>

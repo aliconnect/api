@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html  style="height:100%;padding:0;margin:0;">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+</head>
+<body style="height:100%;padding:0;margin:0;">
+  <button onclick="let src=iframe.src;iframe.src='/log/?clear';iframe.onload=event=>{iframe.onload=null;iframe.src=src;};">Clear</button>
+  <iframe id="iframe" src="/log/" style="width:100%;height:90%;border:none;"></iframe>
+  <script>
+  setInterval(event => {iframe.contentWindow.location.reload()}, 3000);
+  </script>
+</body>
+</html>

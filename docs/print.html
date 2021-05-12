@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Docs</title>
+  <script src="https://www.google.com/cloudprint/client/cpgadget.js"></script>
+</head>
+<body>
+  <div id="print_button_container"></div>
+  <form action="https://www.google.com/cloudprint/submit" method="post" enctype="multipart/form-data" id="submitForm">
+  <input type="hidden" name="xsrf" value="AIp06DivKc_oNVzkiKO3au9662RkibzIvg:1385024846519"/>
+  <input type="hidden" name="printerid" value="374c3102-00ed-6329-6d63-52f78c6feab2"/>
+  <input type="hidden" name="ticket" value='{"version": "1.0", "print": {}}'/>
+  <input type="text" name="title" value="My Document"/>
+  <input type="text" name="contentType" value="application/pdf"/>
+  <input type="text" name="tag" value=""/>
+  <input type="file" name="content"/>
+  <input type="submit" value="Print"/>
+</form>
+  <script>
+    window.onload = function() {
+      var gadget = new cloudprint.Gadget();
+
+      // gadget.setPrintDocument("url", "Test Page", "https://www.google.com/landing/cloudprint/testpage.pdf");
+
+      gadget.setPrintButton(
+      cloudprint.Gadget.createDefaultPrintButton("print_button_container")); // div id to contain the button
+      // gadget.setPrintDocument("text/html", "nog wat", "<b>JA</b>");
+      gadget.setPrintDocument("url", "Test Page", "https://www.google.com/landing/cloudprint/testpage.pdf");
+
+    }
+  </script>
+</body>
+</html>
+
+
+https://www.google.com/cloudprint/addpublicprinter.html?printerid=374c3102-00ed-6329-6d63-52f78c6feab2&key=4011161940

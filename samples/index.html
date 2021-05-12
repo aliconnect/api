@@ -1,0 +1,94 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Aliconnect Samples</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <link  href="../../../../api/css/web.css" rel="stylesheet"/>
+  <link  href="../../../../api/css/icon.css" rel="stylesheet"/>
+  <script src="../../../../api/js/aim.js"></script>
+  <script src="../../../../api/js/web.js"></script>
+  <style>
+  a{flex-grow: 1;text-align: center;flex-basis: 10%;padding: 2px;margin: 2px;border:solid 1px #ccc;}
+  li>span{width: 130px;flex-shrink: 0;display: block;}
+  div.row{flex-wrap: wrap;}
+  body{padding:10px;}
+  </style>
+  <script>
+  const openWindows = new Map()
+  function popup() {
+    openWindows.set(this.target, window.open(this.href, this.target, this.getAttribute('size') || 'width=600, height=800'));
+    return false;
+  }
+  aim().on('load', event => {
+    aim(document.body).append(
+      aim('div').text('LTS TMS:'),
+      aim('div').class('row aco').append(
+        aim('a').text('OM').target('om').href("https://rws.aliconnect.nl/")
+        .onclick(popup).attr('size', 'width=1685, height=1055'),
+
+
+        aim('a').text('GUI').target('gui')
+        .href("/v1/lts/samples/tms/webroot/?--authProvider-auth-api_key=eyJ0eXAiOiJKV1QiLCJhbGciOiJzaGEyNTYifQ.eyJpc3MiOiJyd3MuYWxpY29ubmVjdC5ubCIsInNjb3BlIjoid2Vic2l0ZS5yZWFkIG5hbWUgZW1haWwiLCJzdWIiOiIyODA0MzQyIiwiYXVkIjoiMzY2NjEzNCIsImV4cCI6MTYwNTM2Mjk3MCwiaWF0IjoxNjA1Mjc2NTcwfQ.UKHp3WPoh5DtXvZBG9D3TNpLeh6v17rD1kfJSRBWqxU")
+        .onclick(popup).attr('size', 'width=1685, height=1055'),
+
+        aim('a').target('gui').text('Node GUI (localhost:9001)')
+        .href("http://localhost:9001/")
+        .onclick(popup).attr('size', 'width=1685, height=1055'),
+
+        aim('a').target('tunnel1').text('Node Tunnel')
+        .href("/v1/lts/samples/tms/node.html?--authProvider-auth-api_key=eyJ0eXAiOiJKV1QiLCJhbGciOiJzaGEyNTYifQ.eyJpc3MiOiJyd3MuYWxpY29ubmVjdC5ubCIsInNjb3BlIjoid2Vic2l0ZS5yZWFkIG5hbWUgZW1haWwiLCJzdWIiOiIyODA0MzQyIiwiYXVkIjoiMzY2NjEzNCIsImV4cCI6MTYwNTM2Mjk3MCwiaWF0IjoxNjA1Mjc2NTcwfQ.UKHp3WPoh5DtXvZBG9D3TNpLeh6v17rD1kfJSRBWqxU")
+        .onclick(popup).attr('size', 'width=600, height=400'),
+
+        aim('a').target('verkeersbuis1').text('Node Verkeersbuis 1')
+        .href("/v1/lts/samples/tms/node.html?--authProvider-auth-api_key=eyJ0eXAiOiJKV1QiLCJhbGciOiJzaGEyNTYifQ.eyJpc3MiOiJyd3MuYWxpY29ubmVjdC5ubCIsInNjb3BlIjoid2Vic2l0ZS5yZWFkIG5hbWUgZW1haWwiLCJzdWIiOiIzNDQzNzc5IiwiYXVkIjoiMzY2NjEzNCIsImV4cCI6MTYwNTk2MjM3NywiaWF0IjoxNjA1ODc1OTc3fQ.qMBsYkpK0u1n8xLgiE_bzoQSAyEb3J6jMUA978-v0fs")
+        .onclick(popup).attr('size', 'width=600, height=400'),
+
+        aim('a').target('verkeerslichten1').text('Node Verkeerslichten 1')
+        .href("/v1/lts/samples/tms/node.html?--authProvider-auth-api_key=eyJ0eXAiOiJKV1QiLCJhbGciOiJzaGEyNTYifQ.eyJpc3MiOiJyd3MuYWxpY29ubmVjdC5ubCIsInNjb3BlIjoid2Vic2l0ZS5yZWFkIG5hbWUgZW1haWwiLCJzdWIiOiIzNDQzNzg3IiwiYXVkIjoiMzY2NjEzNCIsImV4cCI6MTYwNTg2MjI1MSwiaWF0IjoxNjA1Nzc1ODUxfQ.wESRRvjvb88XzZBwjlWwn1KhBwjBTTXuPCAR6_OfQuw")
+        .onclick(popup).attr('size', 'width=600, height=400')
+      ),
+      aim('div').text('QNode DMS:'),
+      aim('div').class('row aco').append(
+        aim('a').text('OM').target('om').href("https://schiphol.aliconnect.nl/")
+        .onclick(popup).attr('size', 'width=1685, height=1055'),
+
+        aim('a')
+        .text('Schiphol Baanstation Demo GUI')
+        .href("/v1/qnode/samples/dms/webroot/?--authProvider-auth-api_key=eyJ0eXAiOiJKV1QiLCJhbGciOiJzaGEyNTYifQ.eyJpc3MiOiJzY2hpcGhvbC5hbGljb25uZWN0Lm5sIiwic2NvcGUiOiJ3ZWJzaXRlLnJlYWQgbmFtZSBlbWFpbCIsInN1YiI6IjM1NDk5ODMiLCJhdWQiOiIzNjY0MjUxIiwiZXhwIjoxNjA1Mjc1NjE0LCJpYXQiOjE2MDUxODkyMTR9.QWrHKdlit8gs6DG5EZQqbQjTx2uVn8_FPApaLSCCQEw")
+        .onclick(popup).attr('size', 'width=1685, height=1055')
+        .target('gui'),
+        aim('a')
+        .text('Schiphol Baanstation J2 GUI')
+        .href("/v1/qnode/samples/dms/webroot/?--authProvider-auth-api_key=eyJ0eXAiOiJKV1QiLCJhbGciOiJzaGEyNTYifQ.eyJpc3MiOiJzY2hpcGhvbC5hbGljb25uZWN0Lm5sIiwic2NvcGUiOiJ3ZWJzaXRlLnJlYWQgbmFtZSBlbWFpbCIsInN1YiI6IjM1NDk5ODMiLCJhdWQiOiIzNjY0MjUxIiwiZXhwIjoxNjA1Mjc1NjE0LCJpYXQiOjE2MDUxODkyMTR9.QWrHKdlit8gs6DG5EZQqbQjTx2uVn8_FPApaLSCCQEw")
+        .onclick(popup).attr('size', 'width=1685, height=1055')
+        .target('gui'),
+        aim('a')
+        .text('Schiphol Baanstation T GUI')
+        .href("/v1/qnode/samples/dms/webroot/?--authProvider-auth-api_key=eyJ0eXAiOiJKV1QiLCJhbGciOiJzaGEyNTYifQ.eyJpc3MiOiJzY2hpcGhvbC5hbGljb25uZWN0Lm5sIiwic2NvcGUiOiJ3ZWJzaXRlLnJlYWQgbmFtZSBlbWFpbCIsInN1YiI6IjM1NDk5ODMiLCJhdWQiOiIzNjY0MjUxIiwiZXhwIjoxNjA1Mjc1NjE0LCJpYXQiOjE2MDUxODkyMTR9.QWrHKdlit8gs6DG5EZQqbQjTx2uVn8_FPApaLSCCQEw")
+        .onclick(popup).attr('size', 'width=1685, height=1055')
+        .target('gui'),
+        aim('a')
+        .text('Schiphol Baanstation O GUI')
+        .href("/v1/qnode/samples/dms/webroot/?--authProvider-auth-api_key=eyJ0eXAiOiJKV1QiLCJhbGciOiJzaGEyNTYifQ.eyJpc3MiOiJzY2hpcGhvbC5hbGljb25uZWN0Lm5sIiwic2NvcGUiOiJ3ZWJzaXRlLnJlYWQgbmFtZSBlbWFpbCIsInN1YiI6IjM1NDk5ODMiLCJhdWQiOiIzNjY0MjUxIiwiZXhwIjoxNjA1Mjc1NjE0LCJpYXQiOjE2MDUxODkyMTR9.QWrHKdlit8gs6DG5EZQqbQjTx2uVn8_FPApaLSCCQEw")
+        .onclick(popup).attr('size', 'width=1685, height=1055')
+        .target('gui'),
+        aim('a')
+        .text('Schiphol Baanstation Node GUI (localhost:9000)')
+        .href("http://localhost:9000/")
+        .onclick(popup).attr('size', 'width=1685, height=1055')
+        .target('gui'),
+        aim('a')
+        .text('Schiphol Baanstation Node')
+        .href("/v1/qnode/samples/dms/node.html?--authProvider-auth-api_key=eyJ0eXAiOiJKV1QiLCJhbGciOiJzaGEyNTYifQ.eyJpc3MiOiJyd3MuYWxpY29ubmVjdC5ubCIsInNjb3BlIjoid2Vic2l0ZS5yZWFkIG5hbWUgZW1haWwiLCJzdWIiOiIyODA0MzQyIiwiYXVkIjoiMzY2NjEzNCIsImV4cCI6MTYwNTM2Mjk3MCwiaWF0IjoxNjA1Mjc2NTcwfQ.UKHp3WPoh5DtXvZBG9D3TNpLeh6v17rD1kfJSRBWqxU")
+        .onclick(popup).attr('size', 'width=600, height=400')
+        .target('dms1'),
+      ),
+      aim('button')
+      .text('close')
+      .onclick(event => openWindows.forEach(win => win.close()))
+    )
+  })
+  </script>
+</head>
+<body></body>
+</html>

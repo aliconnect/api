@@ -1,0 +1,52 @@
+{
+  "name": "node-mcp23017",
+  "version": "0.0.4",
+  "description": "Library to use the MCP23017 16bit I/O Expander with the Raspberry Pi",
+  "main": "main.js",
+  "author": {
+    "name": "Kai Henzler"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kaihenzler/node-mcp23017.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "i2c": "0.2.3"
+  },
+  "gitHead": "242b986d923c27ff97861e0cc41ec0ca21c02775",
+  "bugs": {
+    "url": "https://github.com/kaihenzler/node-mcp23017/issues"
+  },
+  "homepage": "https://github.com/kaihenzler/node-mcp23017#readme",
+  "_id": "node-mcp23017@0.0.4",
+  "_npmVersion": "6.4.1",
+  "_nodeVersion": "8.11.3",
+  "_npmUser": {
+    "name": "kaihenzler",
+    "email": "kai.henzler@gmx.de"
+  },
+  "dist": {
+    "integrity": "sha512-aAtHt82nM2iJ0AmQ5JXYuFKu0OjA3AiHFOpRPV4s243C4awZcPYVFAK01PgZS7DT8FUtkCvzt793/4wkfCappQ==",
+    "shasum": "9f1d7e870914fa76e05a8331431da76b35a3d587",
+    "tarball": "https://registry.npmjs.org/node-mcp23017/-/node-mcp23017-0.0.4.tgz",
+    "fileCount": 8,
+    "unpackedSize": 15547,
+    "npm-signature": "-----BEGIN PGP SIGNATURE-----\r\nVersion: OpenPGP.js v3.0.4\r\nComment: https://openpgpjs.org\r\n\r\nwsFcBAEBCAAQBQJbswwbCRA9TVsSAnZWagAArkwP/2kkHcq/nMtKNG7ZIs2q\nwMzQdpvQhyt5EGdbayesxaIvLwZ3c9QOleeSh448halwbZgc7RNjo/cnAO+5\neWkvjFupG99zPmNL9xghKV6l8ynzJGzmMEB5ylF++O6XoEZVQZY7XY7Cdsee\nsVPTXq9m8LRgMBgZM8sHXi/LOuGfMX6nJsh0cEzZAsn4Cyw6HV3w/92R7NeZ\nXENGkfF4QcjrdZcEIRbKTuAc+awzzc3LV2gLSm6sE+aXR1rrsHBWp80osEFR\nrsbddmtjZEIj1+BXOgjOjgSY2pNqe4iU1R+R8xxSooftY20q+e4QluiG7+Fr\nwPeSGnZaeqkBCA3cltPHTwjQYs89DpaFhtMEoK2VbNrkD1D/n9Sq4VowAvAN\nnRbzWhQAZ/QkYRD20H4xTmAEzTuaKIjcVnoYUmWagswAqr7wyI5liTYIcRb5\nkcrREFKaIuSL2LZXfGmdv0rrqUZnV+85zn5NCJGO4aYabQDyp5QmFnv+HbiX\naVZ8mK2Y33bQexA6rMbXBiwFhszlmZ9rHaSMKSB1WDrbltkBwc0zRzJuhCVg\nUre52kHx78dT1Gec8wet15pjQ2ZFjPIhyHhkGNlrz9ZdqNN9QNXC+Kyq4TEX\noyewYqYjHZ9t7E5IUXcl72+10JcgRzPEDpzVayP9tLLWQFnVy6nuI5OfSAlB\nQCEh\r\n=L18Q\r\n-----END PGP SIGNATURE-----\r\n"
+  },
+  "maintainers": [
+    {
+      "name": "kaihenzler",
+      "email": "kai.henzler@gmx.de"
+    }
+  ],
+  "directories": {},
+  "_npmOperationalInternal": {
+    "host": "s3://npm-registry-packages",
+    "tmp": "tmp/node-mcp23017_0.0.4_1538460699122_0.46581559304584097"
+  },
+  "_hasShrinkwrap": false,
+  "_shasum": "9f1d7e870914fa76e05a8331431da76b35a3d587",
+  "_from": "node-mcp23017@",
+  "_resolved": "https://registry.npmjs.org/node-mcp23017/-/node-mcp23017-0.0.4.tgz"
+}

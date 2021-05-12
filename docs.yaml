@@ -1,0 +1,1281 @@
+---
+prototype:
+  type: object
+  value:
+    PulldownElement:
+      type: method
+      code: return console.error('Aim.PulldownElement vervangen voor list element,
+        uitwerken');
+    append:
+      type: method
+      code: |-
+        if (this.selector) {
+          if (context instanceof Aim && context.elem) {
+            this.selector.append(context.elem);
+          }
+        }
+        console.log(context);
+        return this;
+    archive:
+      type: method
+      code: ""
+    async:
+      type: constructor
+      code: |-
+        const params = this.params;
+        const param = params[paramName] = params[paramName] || {};
+        if (typeof key === 'object') {
+          Object.assign(param,key);
+        } else if (value === undefined) {
+          params[paramName] = key;
+        } else {
+          param[key] = value;
+        }
+        return this;
+      constructor: true
+    attr:
+      type: method
+      code: |-
+        const args = [...arguments];
+        if (attribute instanceof Object) {
+          Object.entries(attribute).forEach(entry => arguments.callee.call(this, ...entry));
+        } else {
+          let selector = this.selector === document.body ? '_body' : this.selector.id;
+          if (args.length === 1) {
+            return this.selector.getAttribute(attribute);
+          }
+          this.selector.setAttribute(attribute, value);
+          if (selector) {
+            let attr = window.localStorage.getItem('attr');
+            attr = attr ? JSON.parse(attr) : {};
+            (attr[selector] = attr[selector] || {})[attribute] = value;
+            window.localStorage.setItem('attr', JSON.stringify(attr));
+          }
+        }
+        return this;
+    client:
+      type: method
+      code: "const auth = config.auth;\nconst authorizationUrl = config.auth.servers[0].url
+        + '/oauth';\nconst tokenUrl = auth.tokenUrl;\nconst parent = this;\nfunction
+        Client() {\n  Aim.call(this);\n}\nClient.prototype = Object.assign(Object.create(Aim.prototype),
+        {\n  addrules() {\n    if (this.web && this.web.css && this.web.css.rules)
+        {\n      for (let [name, value] of Object.entries(this.web.css.rules)) {\n
+        \       new Aim.css(name, value);\n      }\n    }\n  },\n  setUserstate(userstate)
+        {\n    clearTimeout(client.stateTimeout);\n    if (userstate === 'available')
+        {\n      client.stateTimeout = setTimeout(() => aim.setUserstate('inactive'),
+        5 * AIM.MIN_MS);\n    } else if (userstate === 'inactive') {\n      client.stateTimeout
+        = setTimeout(() => aim.setUserstate('appear_away'), 5 * AIM.MIN_MS);\n    }\n
+        \   if (client.userstate !== userstate) {\n      client.userstate = userstate;\n
+        \     aim.send({\n        sub: aim.auth.access.sub,\n        userstate: userstate,\n
+        \     });\n    }\n  },\n  api(path) {\n    this.url(config.api.servers[0].url
+        + path);\n    this.headers('Authorization', 'Bearer ' + auth.access_token);\n
+        \   return this;\n  },\n  get_access_token(params, callback) {\n    const
+        config = this.config;\n    if (params) {\n      if (!callback) {\n        callback
+        = event => {\n          if (!event.body.access_token) {\n            console.error('RESPONSE
+        CODE', event.body, Aim.cookie);\n            return alert('NO ACCESS CODE');\n
+        \         }\n          Aim.cookie = {\n            id_token: event.body.id_token,\n
+        \           access_token: event.body.access_token,\n            refresh_token:
+        event.body.refresh_token,\n          };\n          Aim.his( document.location.href.replace(/code=(.*)(\\&|$)/,
+        ''));\n          Aim.reload();\n        };\n      }\n      new Aim.Client('https:\n
+        \       grant_type: 'authorization_code',\n        code: params.code, \n        client_id:
+        Aim.config.aim.client_id, \n        access_type: 'offline', \n      }).then(callback);\n
+        \     return;\n    }\n    const time = new Date().getTime() / 1000;\n    Aim.auth.access_token
+        = '';\n    if (Aim.get && Aim.get.access_token) {\n      Aim.auth.access_token
+        = Aim.get.access_token;\n    } else if (Aim.config.aim.headers && Aim.config.aim.headers.Authorization)
+        {\n      Aim.auth.access_token = Aim.config.aim.headers.Authorization.split('
+        ')[1];\n    } else if ((typeof document !== 'undefined') && Aim.cookie) {\n
+        \     Aim.auth.access_token = Aim.cookie.access_token;\n    }\n    Aim.auth.access
+        = {};\n    Aim.config.aim.headers = {};\n    if (Aim.auth.access_token) {\n
+        \     const access = JSON.parse(atob(Aim.auth.access_token.split('.')[1]));\n
+        \     const expires_in = Math.round(access.exp - time);\n      if (1 || access.exp
+        - time > 0) {\n        Aim.auth.access = access;\n        Aim.config.aim.headers
+        = {\n          Authorization: 'Bearer ' + Aim.auth.access_token,\n        };\n
+        \     }\n      if (typeof document !== 'undefined') {\n        if (Aim.cookie.refresh_token)
+        {\n          clearTimeout(Aim.auth.refreshTokenTimeout);\n          Aim.auth.refreshTokenTimeout
+        = setTimeout(Aim.auth.refreshToken, (expires_in - 2) * 1000);\n        }\n
+        \     }\n    }\n    return Aim.auth.access_token;\n  },\n  getHeader() {\n
+        \   let access_token = Aim.auth.get_access_token();\n    return access_token
+        ? { Authorization: 'Bearer ' + access_token } : {};\n  },\n  init() {\n    if
+        (Aim.get && Aim.get.code) {\n      return Aim.auth.get_access_token(Aim.get);\n
+        \   }\n    Aim.auth.get_access_token();\n    Aim.auth.id = (Aim.auth.id_token
+        = Aim.cookie.id_token) ? JSON.parse(atob(Aim.auth.id_token.split('.')[1]))
+        : null;\n    if (Aim.auth.id_token) {\n      Aim.auth.name = Aim.auth.id.name
+        || Aim.auth.id.email || Aim.auth.id.sub;\n      Aim.auth.username = Aim.auth.id.preferred_username
+        || Aim.auth.name;\n      Aim.auth.trackLocalSession();\n      Aim.auth.trackSession();\n
+        \   }\n    Aim.WebsocketClient.login();\n  },\n  trackSession() {\n    if
+        (arguments.callee.httpRequest) return;\n    clearTimeout(arguments.callee.timeout);\n
+        \   window.removeEventListener('focus', arguments.callee);\n    window.addEventListener('focus',
+        arguments.callee);\n    arguments.callee.timeout = setTimeout(arguments.callee,
+        TRACK_SESSION_TIME);\n    arguments.callee.httpRequest = Aim().url(authorizationUrl)\n
+        \   .query('request_type', 'check_access_token')\n    .headers('Authorization',
+        'Bearer ' + auth.id_token)\n    .get()\n    .then(event => {\n      console.warn('trackSession',
+        event.target);\n      arguments.callee.httpRequest = null;\n      if (event.target.status
+        !== 200) {\n        window.removeEventListener('focus', arguments.callee);\n
+        \     }\n    });\n  },\n  trackLocalSession() {\n    clearTimeout(arguments.callee.timeout);\n
+        \   const cookie = Aim.cookie;\n    if (!cookie.id_token && auth.id_token
+        > '') {\n      return this.logout();\n    } else if (cookie.id_token > ''
+        && !auth.id_token) {\n    }\n    arguments.callee.timeout = setTimeout(arguments.callee,
+        TRACK_LOCAL_SESSION_TIME);\n  },\n  refreshToken() {\n    if (this.refreshTokenHandle)
+        return;\n    this.refreshTokenHandle = new Aim.Client('https:\n      grant_type:
+        'refresh_token',\n      refresh_token: Aim.cookie.refresh_token,\n      client_id:
+        Aim.config.aim.client_id,\n    }).then(event => {\n      this.refreshTokenHandle
+        = null;\n      return;\n      Aim.cookie = {\n        access_token: event.body.access_token\n
+        \     };\n      Aim.auth.init();\n    });\n  },\n  qrcode(selector) {\n    if
+        (typeof QRCode === 'undefined') {\n      return Object.assign(document.head.createElement('script'),
+        {\n        src: 'https:\n        onload: arguments.callee.bind(this, ...arguments),\n
+        \     });\n    }\n    new QRCode(selector, {\n      text: Aim.config.aim.websocket.socket_id
+        ? 'https:\n      width: 160,\n      height: 160\n    });\n  },\n  setState(activestate)
+        {\n    if (activestate == 'focus') {\n      return;\n      ws.send({\n        value:
+        [{ id: Aim.Account.sub, values: { state: activestate } }, { id: Aim.client.account.id,
+        values: { state: activestate } }]\n      });\n    }\n  },\n  createLoginFrame(params)
+        {\n    params = Object.assign(params, {\n      response_type: 'code',\n      prompt:
+        'accept',\n      scope: 'name email',\n    });\n    let url = 'https:\n    console.debug('LOGIN',
+        url);\n    let loginElement = document.body.createElement('DIV', { style:
+        'position:fixed;margin:auto;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.5);'
+        }, [\n      ['IFRAME', { src: url, style: 'position:fixed;margin:auto;top:0;right:0;bottom:0;left:0;width:100%;height:100%;max-width:500px;max-height:500px;border:none;'
+        }]\n    ]);\n    window.addEventListener('message', event => {\n      loginElement.remove();\n
+        \     Aim.auth.getLogin();\n    }, false);\n    return;\n  },\n  ws_send_code(socket_id,
+        code) {\n    Aim.WebsocketClient.request({\n      to: {\n        sid: socket_id,\n
+        \     },\n      body: {\n        code: code,\n      },\n    });\n    window.close();\n
+        \ },\n  randompassword() {\n    a = [];\n    for (var i = 0; i < 20; i++)
+        {\n      a.push(String.fromCharCode(33 + Math.round((126-33) * Math.random())));\n
+        \   }\n    return a.join('');\n  },\n  then(callback) {\n    this.callback
+        = callback;\n  },\n  send(context) {\n    if (client.ws) {\n      client.ws.message(JSON.stringify(context));\n
+        \   }\n  },\n  logout(event) {\n    event = event || window.event;\n    if
+        (Aim.cookie.id_token) {\n      if (event.type !== 'message') {\n        new
+        Aim.WebsocketRequest({\n          to: {\n            nonce: Aim.auth.id.nonce,\n
+        \         },\n          path: '/?prompt=logout',\n        });\n      }\n    }\n
+        \   Aim.cookie = {\n      id_token: Aim.auth.id_token = null,\n      access_token:
+        Aim.auth.access_token = null,\n      refresh_token: Aim.auth.refresh_token
+        = null,\n    };\n    if (document.location.protocol === 'file:') {\n      Aim.his(
+        '#');\n      return Aim.reload();\n    }\n    let url = 'https:\n      prompt:
+        'logout',\n      redirect_uri: document.location.origin + document.location.pathname,\n
+        \   }).toString();\n    Aim.reload(url);\n  },\n  async login(params) {\n
+        \   const get = Aim.get;\n    if (get.code) {\n      return this.get_access_token(get);\n
+        \   }\n    if (auth.id_token) {\n      auth.id = JSON.parse(atob(auth.id_token.split('.')[1]));\n
+        \     auth.sub = auth.id.sub;\n      auth.name = auth.id.name || auth.id.email
+        || auth.id.sub;\n      auth.username = auth.id.preferred_username || auth.name;\n
+        \   }\n    if (auth.access_token) {\n      config.api.headers = {Authorization:
+        'Bearer ' + auth.access_token};\n      auth.access = JSON.parse(atob(auth.access_token.split('.')[1]));\n
+        \     auth.sub = auth.access.sub;\n      const oas = (await this.api('/').get()).json();\n
+        \     const user = (await this.api(`/Contact(${auth.sub})`).get()).json();\n
+        \     Object.assign(this, oas);\n    }\n    if (params) {\n      let state
+        = Math.ceil(Math.random() * 99999);\n      params = Object.assign({\n        response_type:
+        'code',\n        redirect_uri: document.location.href,\n        state: state,\n
+        \     }, params);\n      const url = Aim().url(authorizationUrl)\n      .query(params)\n
+        \     .toString();\n      if (document.location.protocol === 'file:') {\n
+        \       params.socket_id = this.ws.socket_id;\n        this.loginWindow =
+        window.open(\n          url,\n          'login',\n          `top=${10},left=${10},width=400,height=500,resizable=0,menubar=0,status=0,titlebar=0`\n
+        \       );\n      } else {\n      }\n    }\n    if (client.ws) {\n      client.ws.login();\n
+        \   }\n    return auth;\n  },\n  getItem(id) {\n    return new Promise( resolve
+        => {\n      let item = Aim.ref[id];\n      if (!item) {\n        this.api('/'+id).select('*').get().then(event
+        => resolve(event.body));\n      } else {\n        resolve(item);\n      }\n
+        \   });\n  },\n})\nconst client = new Client();\nclient.config = config;\nclient.auth
+        = auth;\nif (config.auth) {\n}\nreturn client;"
+    connect:
+      type: method
+      code: |-
+        const client = this;
+        const config = client.config = client.config || {};
+        let webSocket;
+        return new Promise( resolve => {
+          let url = null;
+          if (config.ws) {
+            url = config.ws.url || url;
+            if (config.ws.servers && config.ws.servers[0]) {
+              url = config.ws.servers[0].url || url;
+            }
+          }
+          console.log('CONNECT', config.ws, url);
+          if (!url) {
+            return resolve(null);
+          }
+          url = url.replace(/http/,'ws');
+          console.debug(...Aim.status('main', `Client connect ${url}`));
+          webSocket = client.ws = new WebSocket(url);
+          Aim.status('ws', webSocket.state = 'CONNECTING');
+          Object.assign(webSocket, {
+            messages: [],
+            requests: {},
+            handleRequest: req => {
+              if (req.method && req.method.toLowerCase() === 'patch') {
+                const [$id] = req.path.match(/\w+\(\d+\)/);
+                const item = Aim.find($id);
+                if (item) {
+                  for (let [attributeName, value] of Object.entries(req.body)) {
+                    if (item.properties[attributeName].setValue) {
+                      item.properties[attributeName].setValue(value);
+                    }
+                  }
+                }
+              } else {
+                for (var name in req) {
+                  if (typeof Aim[name] === 'function') {
+                    Aim[name].apply(this, req[name]);
+                  }
+                }
+                try {
+                  Aim.forward = req.forward;
+                  Aim().exec(req, res => {
+                    res.id = req.id;
+                  });
+                } catch (err) {
+                  console.error(err)
+                }
+                Aim.forward = null;
+                if (req.message_id && Aim.WebsocketClient.requests[req.message_id]) {
+                  Aim.WebsocketClient.requests[req.message_id](req);
+                }
+              }
+              Aim.emit('message', req);
+            },
+            login: async () => {
+              return new Promise( resolve => {
+                const auth = this.auth;
+                let headers = {};
+                if (auth.api_key) {
+                  Aim.status('ws', webSocket.state = 'Login with key');
+                  headers.api_key = auth.api_key;
+                } else if (auth.access_token) {
+                  Aim.status('ws', webSocket.state = 'Login with access');
+                  headers.Authorization = 'Bearer ' + auth.access_token;
+                } else if (auth.id_token) {
+                  headers.Authorization = 'Bearer ' + auth.id_token;
+                  Aim.status('ws', webSocket.state = 'Login with id');
+                } else {
+                  return;
+                }
+                webSocket.message(JSON.stringify({ headers: headers }));
+              });
+            },
+            message: message => {
+              webSocket.send(message);
+              if (this.wsServer && this.wsServer) {
+                this.wsServer.forEach(ws => ws.send(message))
+              }
+            },
+            onmessage: event => {
+              this.onmessage(event);
+            },
+            onopen: event => {
+              Aim.status('ws', webSocket.state = 'OPEN');
+              webSocket.send(JSON.stringify({
+                hostname: config.hostname || 'aliconnect',
+                nonce: config.nonce,
+                PHPSESSID: config.PHPSESSID,
+              }));
+              resolve(webSocket);
+            },
+            onclose: event => {
+              Aim.status('ws', webSocket.state = 'DISCONNECTED');
+              setTimeout(this.connect, 10000);
+              clearTimeout(webSocket.pingTimeout);
+            },
+            onerror: event => {
+              Aim.status('ws', webSocket.state = 'ERROR');
+            },
+          });
+          this.message = function (par) {
+            console.error('Aim.WebsocketRequest', par);
+            let message='';
+            if (par) {
+              console.error('WebsocketRequest', par);
+              message = JSON.stringify(par);
+              Aim.WebsocketClient.messages.push(message);
+            }
+            if (!Aim.WebsocketClient.conn) {
+              return Aim.WebsocketClient.connect();
+            }
+            if (Aim.WebsocketServer) {
+              Aim.WebsocketServer.clients.forEach(wsChild => wsChild.send(message));
+            }
+            if (Aim.WebsocketClient.conn.readyState !== 1) {
+              return;
+            }
+            while (message = Aim.WebsocketClient.messages.shift()) {
+              Aim.WebsocketClient.send(message);
+            }
+          }
+        });
+    connector:
+      type: method
+      code: |-
+        Object.assign(this, {
+          external(name, args, callback) {
+            let params = {to: { sid: Aim.Aliconnector.connector_id }, external:{} };
+            params.external[name] = Array.isArray(args) ? args : (args ? [args] : []);
+            Aim.Aliconnector.callback = callback;
+            wsClient.send(JSON.stringify(params));
+          },
+          reply(par) {
+            if (Aim.Aliconnector.callback) {
+              Aim.Aliconnector.callback(par);
+            }
+            Aim.Aliconnector.callback = null;
+          },
+          printurl(url) {
+            this.external('printurl', url, par => {
+              console.debug('PRINT REPLY', par);
+            });
+          },
+          hide() {
+            this.external('hide', null, par => {
+              console.debug('HIDE REPLY', par);
+            });
+          },
+          show() {
+            this.external('show', null, par => {
+              console.debug('SHOW REPLY', par);
+            });
+          },
+          filedownload(par) {
+            this.external('filedownload', "http:
+              console.debug('SHOW REPLY', par);
+            });
+          },
+          mailimport() {
+            this.external('show', null, par => {
+              console.debug('SHOW REPLY', par);
+            });
+          },
+          contactimport() {
+            this.external('show', null, par => {
+              console.debug('SHOW REPLY', par);
+            });
+          },
+        });
+    create:
+      type: method
+      code: |-
+        this.selector = this.selector.createElement(...arguments);
+        return this;
+    createElement:
+      type: method
+      code: "if (this instanceof Aim) {\n  let [selector] = this.params;\n  if (typeof
+        selector === 'string') {\n    selector = document.getElementById(selector);\n
+        \ }\n  if (!selector) {\n    selector = selector || document.body;\n  }\n
+        \ if (selector instanceof Element) {\n    return selector.createElement(...arguments);\n
+        \ }\n  return\n}\nvar par = {}, tag;\n[...arguments].forEach(arg => {\n  if
+        (typeof arg === 'function') {\n    par.res = arg;\n  } else if (Array.isArray(arg))
+        {\n    par.children = (par.children || []).concat(arg);\n  } else if (typeof
+        arg === 'object' && !(arg instanceof String)) {\n    Object.assign(par, arg);\n
+        \ } else if (!tag) {\n    tag = arg;\n  } else if (!('className' in par))
+        {\n    par.className = arg || '';\n  } else {\n    par.innerHTML = (par.innerHTML
+        || '') + String(arg || '');\n  }\n});\nif (!par.className) delete par.className;\ntag
+        = tag || par.tag || par.tagName;\nlet el = this;\nif (tag) {\n  try {\n    el
+        = document.createElement(tag);\n  } catch (err) {\n    return this.appendChild(document.createTextNode(tag));\n
+        \ }\n  if (this instanceof Element) {\n    this.appendChild(el);\n  }\n  delete
+        par.tagName;\n  delete par.tag;\n}\nif (el.tagName === 'BUTTON' && par.res)
+        {\n  el.onclick = par.res;\n}\nif (el.tagName === 'FORM') {\n  par.form =
+        el;\n  if (par.title) {\n    el.createElement('H1', {innerHTML: __(par.title)});\n
+        \ }\n  let messageElement = el.messageElement = el.createElement('DIV', 'msg',
+        __(par.description || ''));\n  el.setMessage = (html) => {\n    messageElement.innerHTML
+        = html;\n  };\n  el.onchange = (event) => {\n    el.isModified = true;\n  };\n
+        \ let onloadend = (event) => {\n    console.log('LOADEND', par, JSON.stringify(Aim.config.aim.headers));\n
+        \   if (event.target.status >= 400) {\n      let responses = typeof par.responses
+        === 'function' ? par.responses.call(el) : par.responses;\n      let response
+        = responses[event.target.status];\n      messageElement.innerText = '';\n
+        \     messageElement.createElement('DIV', 'alert-error', response && response.description
+        ? response.description : __('Response error %s %s', event.target.status, event.target.statusText)
+        );\n    }\n  };\n  if (par.onshow === true) {\n    par.onshow = (event) =>
+        {\n      let elements = [...el.elements];\n      new Aim.HttpRequest(par.client,
+        'GET', par.action, {\n        select: elements.map(el => el.name).join(','),\n
+        \     }, event => {\n        elements.forEach(el => {\n          if (el.tagName
+        !== 'BUTTON' && event.body[el.name]) {\n            let value = el.value =
+        event.body[el.name] instanceof String ? String(event.body[el.name]) : event.body[el.name].Value
+        ;\n            if (el.nextElementSibling && el.nextElementSibling.hasAttribute('contentEditable'))
+        {\n              console.log(el.name);\n              el.nextElementSibling.innerHTML
+        = value;\n            }\n          }\n        });\n        el.onchange();\n
+        \       el.isModified = false;\n      }).send();\n    }\n  }\n  if (par.action)
+        {\n    par.method = par.method || 'POST';\n    if (par.res = par.res || par.onload)
+        {\n      console.log('RESSSSS', par.res, par.action);\n      el.onsubmit =
+        event => {\n        event.preventDefault();\n        let method = event.target.getAttribute('method')
+        || 'get';\n        method = method.toLowerCase();\n        let post = {};\n
+        \       let formData = new FormData(el);\n        console.log('formDataformData',
+        formData.keys(), formData.values());\n        for(var pair of formData.entries())
+        {\n          console.log('pair', pair[0]+ ', '+ pair[1]);\n        }\n        console.log('formDataformData
+        END');\n        let submitter = event.submitter || el.submitter;\n        formData.append(submitter.name,
+        submitter.name);\n        let callback = (event) => {\n          event.submitter
+        = submitter;\n          par.res.call(el, event);\n        };\n        var
+        xhr = null;\n        console.log('formDataformData', formData, el);\n        if
+        (method === 'get') {\n          var xhr = new Aim.HttpRequest(par.client,
+        'get', par.action, {\n            onloadend: onloadend,\n          }, callback
+        ).send();\n        } else if (el.isModified) {\n          var xhr = new Aim.HttpRequest(par.client,
+        'post', par.action, formData, callback).send();\n          xhr.onloadend =
+        onloadend;\n        } else {\n          console.log('STARTLOAD GGGG', par);\n
+        \         callback(el, event);\n        }\n        if (xhr) {\n          xhr.formElement
+        = el;\n        }\n      };\n    }\n  } else if (par.res) {\n    el.onsubmit
+        = par.res;\n  }\n} else if (el.tagName === 'INPUT') {\n  if (par.schema) {\n
+        \   console.error('Aim.PulldownElement vervangen voor list element, uitwerken',
+        par);\n  }\n}\nfor (var formElement = el; formElement; formElement = formElement.parentElement)
+        {\n  item = item || formElement.item;\n  if (formElement.tagName === 'FORM')
+        break;\n}\nif (par.qr) {\n  new QRCode(el, par.qr);\n  if (el.tagName ===
+        'IMG') {\n    el.src = el.firstChild.toDataURL(\"image/png\");\n    el.firstChild.remove();\n
+        \ }\n}\nif (par.treelist) {\n  if (!Array.isArray(par.treelist)) return;\n
+        \ var treelist = treelist || {};\n  par.treelist.sort(Aim.sort.index);\n  par.treelist.forEach(row
+        => {\n    var elLI = el.createElement('LI', 'col', treelist.li || {\n      onmouseenter:
+        event => elLI.hasAttribute('open') ? elLI.setAttribute('open', 1) : null,\n
+        \     onmouseleave: event => elLI.hasAttribute('open') ? elLI.setAttribute('open',
+        0) : null,\n      onclick: event => elLI.hasAttribute('open') ? elLI.setAttribute('open',
+        0) : null,\n      draggable: 1\n    });\n    var elA = elLI.createElement('A',
+        { href: `#${row.$id}`, href: '#/id/' + btoa(row['@id']), innerText: row.Title,
+        });\n    row.Children = row.Children || row.items;\n    if (row.Children &&
+        row.Children.length) {\n      elLI.setAttribute('open', treelist.opendefault
+        || 0);\n      elLI.createElement('UL', 'bg', {open: 1, treelist: row.Children});\n
+        \   }\n  });\n}\nif (par.on = par.on || par.event) {\n  for (var name in par.on)
+        {\n    el.addEventListener(name, par.on[name]);\n  }\n}\ndelete par.event;\ndelete
+        par.on;\nif (par.open === null) delete par.open;\nif ('open' in par) {\n  if
+        (par.label) {\n    var foldersOpen = Aim.cookie.foldersOpen ? Aim.cookie.foldersOpen.split(',
+        ') : [];\n    par.open = foldersOpen.includes(par.label) ? 1 : 0;\n  }\n  el.select
+        = Aim.elementSelect;\n  par.className = (par.className ? par.className + '
+        ' : '') + 'open';\n}\nfor (let [name, property] of Object.entries(par)) {\n
+        \ if (property === undefined) continue;\n  if (['object', 'function'].includes(typeof
+        property)) {\n    try {\n      el[name] = property;\n    } catch (err) {\n
+        \     console.error(err);\n    }\n  } else if (name in el) {\n    el[name]
+        = property;\n  } else {\n    try {\n      el.setAttribute(name, el[name] =
+        property);\n    } catch (err) {\n    }\n  }\n}\nif (par.payform) {\n  new
+        Payform(el, par.payform);\n}\nif (par.go) {\n  new Aim.Go(par.go, el);\n}\nif
+        (par.three) {\n  new Aim.Three(par.three, el);\n}\nif (par.chart) {\n  new
+        Aim.Charts(par.chart, el);\n}\nif (par.ganth) {\n  new Ganth(par.ganth, el);\n}\nif
+        (par.calendar) {\n  new Calendar(par.calendar, el);\n}\nif (par.maps) {\n
+        \ Aim.maps.showonmap (par.maps, el);\n}\nif (par.properties) {\n  var isForm
+        = false;\n  var item = par.item;\n  var elForm = el;\n  var elOpen = el;\n
+        \ var label = '';\n  var newLabel = '';\n  for (let [attributeName, attribute]
+        of Object.entries(par.properties)) {\n    attributeName = attribute.name ||
+        attributeName;\n    if (!attribute) continue;\n    const attributeType1 =
+        {\n      default: {\n        createInput() {\n          let type = this.format
+        || this.type;\n          let value = this.value;\n          if (this.type
+        === 'datetime') {\n            type = 'datetime-local';\n            this.step
+        = 1;\n            if (value) {\n              value = (value + ':00').substr(0,19);\n
+        \           }\n          }\n          this.elInp = this.elEdit.createElement('INPUT',
+        Object.assign({}, this, {\n            name: attributeName,\n            className:
+        'inp aco ' + this.name,\n            type: type,\n            value: value,\n
+        \         }));\n          this.elInp.addEventListener('change', event => this.value
+        = event.target.value);\n          this.elInp.placeholder = ' ';\n          this.elInp.title
+        = this.info || '';\n          return this.elInp;\n        },\n        createSpan()
+        {\n          if (this['@id']) {\n            console.log('createSpan', this['@id']);\n
+        \           this.elSpan = this.elView.createElement('A', '', this.Value, {\n
+        \             schema: this.schema || 'item',\n              '@id': this['@id'],\n
+        \             onmouseenter(event) {\n                var rect = this.getBoundingClientRect();\n
+        \               var item = Aim.getItem( this['@id'], item => {\n                  this.popupcard
+        = this.createElement('DIV', 'pucard shdw col', {\n                    style:
+        `top:${rect.top + rect.height - 1}px;left:${rect.left}px;`,\n                    $infoID:
+        item.$id,\n                  }, [\n                    ['DIV', 'aco point',
+        [\n                      ['DIV', 'kop0', item.Title],\n                      ['DIV',
+        'kop1', item.Subject],\n                      ['DIV', 'kop2', item.Summary],\n
+        \                   ]],\n                    ['DIV', 'row top btnbar', (()
+        => {\n                      let arr = [];\n                      if (Array.isArray(item.Email))
+        {\n                        item.Email.forEach(email => {\n                          arr.push(['A',
+        'abtn icn email', property.Value, {href: 'mailto:' + property.Value }]);\n
+        \                       })\n                      }\n                      return
+        arr;\n                    })() ],\n                  ]);\n                });\n
+        \             },\n              onmouseleave(event) {\n                if
+        (this.popupcard) {\n                  this.popupcard.remove();\n                }\n
+        \             },\n            });\n          } else {\n            if (this.options)
+        {\n              this.elSpan = this.elView.createElement('SPAN','aco pre wrap
+        ' + this.className,this.displayvalue,{\n                type: this.type ||
+        '',\n                field: this,\n              });\n            } else {\n
+        \             let value = '';\n              for (const key of ['displayvalue','value','defaultvalue'])
+        {\n                if (key in this) {\n                  value = this[key];\n
+        \                 break;\n                }\n              }\n              this.elSpan
+        = this.elView.createElement(\n                'SPAN',\n                ['aco
+        pre wrap', this.name, this.className].filter(Boolean).join(' '),\n                value,
+        \n                {\n                  type: this.type || '',\n                  field:
+        this,\n                }\n              );\n            }\n          }\n        },\n
+        \       createEdit() {\n          if (this.format === 'hidden') {\n            return
+        this.elEdit = this.createInput(this);\n          }\n          this.elEdit
+        = el.createElement('DIV', ['row input',this.type || '',this.format || '',this.name].filter(Boolean).join('
+        '));\n          if (this.checkvisible && this.item) {\n            this.elEdit.className
+        += ' checkvisible';\n            this.elEdit.checkvisible = this.checkvisible.bind(this.item);\n
+        \         }\n          if (!this.elInp) {\n            if (this.elInp = this.createInput(this))
+        {\n              if (this.elInp.parentElement !== this.elEdit) {\n                this.elEdit.appendChild(this.elInp);\n
+        \             }\n            }\n          }\n          if (this.required &&
+        !this.info) this.info = 'Dit veld is vereist';\n          if (this.elInp)
+        {\n            this.elEdit.createElement('LABEL', 'row aco', __(this.title
+        || this.name), {for: this.for});\n            var iElement = this.elInp.infoElement
+        = this.elEdit.createElement('I', {\n              title: this.info,\n              onclick(event)
+        {\n                alert(event.target.msg || event.target.title);\n              }\n
+        \           });\n            let elInp = this.elInp;\n            if (this.type
+        === 'password') {\n              this.elEdit.createElement('I', {\n                onmousedown(event)
+        {\n                  elInp.type = 'text';\n                },\n                onmouseup(event)
+        {\n                  elInp.type = 'password';\n                },\n              });\n
+        \           }\n          }\n          return this.elEdit;\n        },\n        createView()
+        {\n          this.elView = document.body.createElement('DIV', 'row prop '
+        + (this.format || this.type || ''));\n          this.elView.createElement('LABEL',
+        '', __(this.placeholder));\n          this.createSpan(this);\n          return
+        this.elView;\n        },\n      },\n      sharecam: {\n        createInput:
+        function() {\n          console.log('SHARE CAM', this);\n          this.wall
+        = this.item.$id;\n          this.client = Aim.auth.access.sub;\n          new
+        Chat(this, this.elEdit);\n        },\n      },\n      files: {\n        createInput()
+        {\n          console.log('FILESSSSS', attributeName, attribute, this.elEdit,
+        this.item);\n          const files = new Files(this, this.elEdit);\n          if
+        (this.item && this.item.editBarElement) {\n            if (!this.item.files)
+        {\n              this.item.files = files;\n              this.item.editBarElement.createElement('button',
+        'abtn attach', {type: 'button', accept: '', onclick: files.openDialog});\n
+        \             this.item.editBarElement.createElement('button', 'abtn image',
+        {type: 'button', accept: 'image/*', onclick: files.openDialog});\n            }\n
+        \         }\n          this.elEdit.append(files.element);\n        },\n        createView()
+        {\n          const files = new Files(this);\n          this.item.files = this.item.files
+        || files;\n          return this.elView = files.element;\n        },\n      },\n
+        \     signature: {\n        className: 'doc-content',\n        createInput()
+        {\n          Aim(this.elEdit).draw().css('height:400px;width:100%;border:solid
+        1px gray;');\n        },\n      },\n      location: {\n        className:
+        'doc-content',\n        createInput: function() {\n          let mapsElement
+        = this.elEdit.createElement('DIV', {\n            id:'map',\n            style:
+        'width:100%;height:400px;',\n          });\n          let map = new google.maps.Map(mapsElement,
+        {\n            zoom: 8,\n            gestureHandling: 'cooperative',\n          });\n
+        \         bounds = new google.maps.LatLngBounds();\n          geocoder = new
+        google.maps.Geocoder();\n          if (navigator.geolocation) {\n            navigator.geolocation.getCurrentPosition(function(position)
+        {\n              var pos = {\n                lat: position.coords.latitude,\n
+        \               lng: position.coords.longitude\n              };\n              console.log('CURRENT
+        POS', position);\n              var myLatlng = new google.maps.LatLng(position.coords.latitude,
+        position.coords.longitude);\n              Aim.currgeocoder = Aim.currgeocoder
+        || new google.maps.Geocoder();\n              Aim.currgeocoder.geocode({\n
+        \               'location': myLatlng\n              }, function (results,
+        status) {\n                if (status == google.maps.GeocoderStatus.OK) {\n
+        \                 let marker = new google.maps.Marker({\n                    map:
+        map,\n                    position: results[0].geometry.location\n                  });\n
+        \                 bounds.extend(marker.getPosition());\n                  map.fitBounds(bounds);\n
+        \                 google.maps.event.addListenerOnce(map, 'bounds_changed',
+        function() {\n                    this.setZoom(Math.min(10, this.getZoom()));\n
+        \                 });\n                } else {\n                  console.error('Geocode
+        was not successful for the following reason: ' + status);\n                }\n
+        \             });\n            }, function() {\n            });\n          }
+        else {\n            alert('NOT navigator.geolocation');\n            handleLocationError(false,
+        infoWindow, map.getCenter());\n          }\n        },\n      },\n      cam:
+        {\n        className: 'doc-content',\n        createInput: function() {\n
+        \         let snap = 0;\n          let camElement = this.elEdit.createElement('div',
+        'cam col', [\n            ['div', 'row top w', [\n              ['button',
+        'abtn icn r save', 'save', {onclick() {\n                Aim('video').pause();\n
+        \               let canvas = camElement.createElement('canvas', {\n                  width:
+        640,\n                  height: 480,\n                });\n                let
+        context = canvas.getContext(\"2d\");\n                context.drawImage(video,
+        0, 0, 640, 480);\n                data = canvas.toDataURL(\"image/png\");\n
+        \               console.log(data);\n                canvas.remove();\n              }}],\n
+        \           ]],\n            ['video', 'aco', { id:'video', autoplay: true,
+        width: 640, height: 480, onclick() {\n              let video = Aim('video');\n
+        \             if (video.paused) {\n                Aim('video').play();\n
+        \             } else {\n                Aim('video').pause();\n              }\n
+        \           }}],\n          ]);\n          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+        {\n            navigator.mediaDevices.getUserMedia({ video: true }).then(stream
+        => {\n              try {\n                Aim('video').srcObject = stream;\n
+        \             } catch (error) {\n                Aim('video').src = window.URL.createObjectURL(stream);\n
+        \             }\n              if (Aim('video')) {\n                Aim('video').play();\n
+        \             }\n            });\n          }\n        },\n      },\n      html:
+        {\n        className: 'doc-content',\n        createInput() {\n          this.elEdit.className
+        = 'field col fw';\n          let html = this.value && this.value[0] === '<'
+        ? this.value : '<P>' + (this.value || '') + '</P>';\n          new RichEditor(this.elEdit.createElement('DIV',
+        'inp doc-content', html, {\n            input: this.elInp = this.elEdit.createElement('INPUT',
+        {\n              name: this.name,\n              type:'hidden',\n              value:
+        this.value,\n              item: this.item\n            }),\n          }));\n
+        \         return this.elInp;\n        },\n      },\n      checkbox: {\n        createInput()
+        {\n          const elements = [];\n          const value = this.value ? this.value.split(',')
+        : [];\n          const createElement = (optionName, option) => {\n            this.for
+        = Aim.forId = !Aim.forId ? 1 : Aim.forId + 1;\n            this.elEdit.className
+        = 'inp row check';\n            const optionElement = this.elEdit;\n            var
+        forId = Aim.forId = !Aim.forId ? 1 : Aim.forId + 1;\n            console.log(this.value,
+        attribute.value, value, optionName);\n            let inputElement = optionElement.createElement('INPUT',
+        {\n              type: 'checkbox',\n              value: optionName,\n              id:
+        forId,\n              checked: value.includes(optionName),\n              onchange:
+        event => {\n                this.value = elements.filter(el => el.checked).map(el
+        => el.value).join(',');\n              }\n            });\n            elements.push(inputElement);\n
+        \           const labelElement = optionElement.createElement('LABEL', '',
+        { for: forId } );\n            const buttonElement = labelElement.createElement('I');\n
+        \           const title = __(option.title || optionName);\n            labelElement.createElement('SPAN',
+        '', title);\n            if (option.color) {\n              buttonElement.style.backgroundColor
+        = option.color;\n            }\n          }\n          if (this.options) {\n
+        \           for (let [optionName, option] of Object.entries(this.options))
+        {\n              createElement (optionName, option);\n            }\n          }
+        else {\n            this.for = Aim.forId = !Aim.forId ? 1 : Aim.forId + 1;\n
+        \           this.elEdit.className = 'inp row check';\n            const optionElement
+        = this.elEdit;\n            var forId = Aim.forId = !Aim.forId ? 1 : Aim.forId
+        + 1;\n            optionElement.createElement('INPUT', {\n              type:
+        'checkbox',\n              name: attributeName,\n              id: forId,\n
+        \             checked: this.value ? 1 : 0\n            });\n            const
+        labelElement = optionElement.createElement('LABEL', 'aco', { for: forId }
+        );\n            const buttonElement = labelElement.createElement('I');\n            const
+        title = __(this.title || attributeName);\n            labelElement.createElement('SPAN',
+        '', title);\n          }\n        },\n      },\n      radio: {\n        createInput()
+        {\n          const inputElement = this.elEdit;\n          let el = inputElement.createElement('DIV',
+        'inp row wrap aco ' + (attribute.className || ''));\n          inputElement.createElement('LABEL',
+        '', attribute.title || attributeName);\n          if (typeof attribute.enum
+        === 'object' && !Array.isArray(attribute.enum)) {\n            attribute.options
+        = Object.values(attribute.enum);\n            attribute.enum = Object.keys(attribute.enum);\n
+        \         } else if (attribute.options && !Array.isArray(attribute.options))
+        {\n            attribute.enum = Object.keys(attribute.options);\n            attribute.options
+        = Object.values(attribute.options);\n          } else if (!attribute.enum
+        && Array.isArray(attribute.options)) {\n            attribute.enum = attribute.options;\n
+        \         }\n          if (Array.isArray(attribute.enum)) {\n            attribute.enum.forEach(
+        (value, i) => {\n              var option = attribute.options ? attribute.options[i]
+        : value;\n              var elOption = el.createElement('SPAN', 'row check');\n
+        \             let forId = Aim.forId = !Aim.forId ? 1 : Aim.forId + 1;\n              if
+        (attribute.required) {\n                attribute.value = attribute.value
+        || value;\n              }\n              elOption.createElement('INPUT',
+        {\n                type: this.type === 'array' ? 'checkbox' : 'radio',\n                className:
+        forId + ' ' + attributeName,\n                name: attributeName,\n                id:
+        forId,\n                value: value,\n                checked: value == this.value,\n
+        \               disabled: option.disabled,\n                operation: attribute.operation,\n
+        \               onkeydown(event) {\n                  if (event.code === 'Space'
+        && this.checked && !attribute.required) {\n                    this.checked
+        = 0;\n                  }\n                },\n                onchange: event
+        => {\n                  this.checkedElement = event.target;\n                },\n
+        \               onclick: event => {\n                  if (this.checkedElement
+        === event.target && !attribute.required) {\n                    event.target.checked
+        = 0;\n                    this.checkedElement = null;\n                  }\n
+        \               },\n              });\n              const labelElement =
+        elOption.createElement('LABEL', 'aco', { for: forId } );\n              const
+        buttonElement = labelElement.createElement('I');\n              labelElement.createElement('SPAN',
+        '', __(typeof option === 'object' ? option.title || value.capitalize() : option));\n
+        \             if (option.color) {\n                buttonElement.style.backgroundColor
+        = option.color;\n              }\n            });\n          }\n          this.elSpan
+        = el;\n        },\n        createSpan(item) {\n          const className =
+        ['aco pre wrap', attribute.item ? attribute.item.$id : '', attributeName].filter(Boolean).join('
+        ');\n          let value = this.value;\n          if (this.options && (value
+        in this.options)) {\n            const option = this.options[value];\n            if
+        (typeof option === \"object\") {\n              value = option.title || value;\n
+        \             if (option.color) {\n                this.elView.createElement('i').style.backgroundColor
+        =  option.color;\n              }\n            } else {\n              value
+        = option;\n            }\n          }\n          this.elSpan = this.elView.createElement('span',
+        className, value, {\n            type: this.type || '', title: this.title,
+        field: this\n          });\n        },\n      },\n      select: {\n        createInput()
+        {\n          this.elInp = this.elEdit.createElement('select', 'inp row aco',
+        { item: this.item, name: this.name });\n          this.elEdit.createElement('LABEL',
+        '', this.title || this.name);\n          let selected = [];\n          let
+        value = this.value || this.defaultvalue || '';\n          if (this.type ===
+        'array') {\n            this.elInp.setAttribute('multiple', '');\n            selected
+        = value ? String(value).split(',') : [];\n          }\n          if (Object.prototype.toString.call(this.options)
+        === '[object Array]') {\n            for (var i = 0, optionvalue; optionvalue
+        = this.options[i]; i++) {\n              var optionElement = this.elInp.createElement('option',
+        '', optionvalue, { value: optionvalue, selected: selected.includes(optionvalue)
+        });\n            }\n          } else {\n            for (let [optionName,
+        option] of Object.entries(this.options)) {\n              var optionElement
+        = this.elInp.createElement('option', '', typeof option === 'object' ? option.title
+        || optionName : option, { value: optionName });\n              if (selected.includes(optionName))
+        {\n                optionElement.setAttribute('selected', '');\n              }\n
+        \           }\n          }\n          this.elInp.addEventListener('change',
+        event => {\n            this.value = [...event.target.options].filter(option
+        => option.selected).map(option => option.value).join(',');\n            console.log(this.value);\n
+        \         }, true);\n          this.elInp.value = this.value;\n        }\n
+        \     },\n      meter: {\n        createSpan: function(item) {\n          this.elSpan
+        = this.elView.createElement('meter', { className: 'aco ' + this.name, titel:
+        this.Title, field: this, attr: this.attr, value: '' });\n        },\n      },\n
+        \     check: {\n        createInput: function() {\n          this.elEdit.className
+        += ' fw';\n          var values = this.value.split(', ');\n          this.elInp
+        = this.elEdit.createElement('DIV', { className: 'inp row wrap' });\n          this.options
+        = this.options || this.enum;\n          for (var optionname in this.options)
+        {\n            var option = this.options[optionname];\n            var elInpOption
+        = this.elInp.createElement('span', { className: 'radiobtn check' });\n            elInpOption.createElement('INPUT',
+        {\n              el: this.elInp, type: 'checkbox', id: this.name + optionname,
+        value: optionname, checked: (values.indexOf(optionname) != -1) ? 1 : 0, onclick:
+        function(event) {\n                var c = this.elEdit.getElementsByTagName('INPUT');\n
+        \               var a = [];\n                for (var i = 0, event; event
+        = c[i]; i++) if (event.checked) a.push(event.value);\n                this.elEdit.newvalue
+        = a.join(', ');\n              }\n            });\n            elInpLabel
+        = elInpSpan.createElement('LABEL', { for: this.name + optionname  });\n            elInpLabel.createElement('icon').style.backgroundColor
+        = option.color;\n            elInpLabel.createElement('span', { innerText:
+        option.Title });\n          }\n        }\n      },\n      selectitem: {\n
+        \       createInput() {\n          console.log('SELECT ITEM');\n          const
+        listItemElement = this.elEdit.createElement('DATALIST', {\n            id:
+        'items',\n          });\n          listItemElement.onselect = console.log;\n
+        \         listItemElement.onchange = console.log;\n          listItemElement.onblur
+        = console.log;\n          listItemElement.onclick = console.log;\n          const
+        inputElement = this.elInp = this.elEdit.createElement('INPUT', 'inp', {\n
+        \           value: this.value,\n          });\n          this.oldValue = inputElement.value;\n
+        \         this.elInp.setAttribute('list', 'items');\n          function updateList
+        () {\n            listItemElement.innerText = '';\n            const search
+        = inputElement.value.toLowerCase();\n            Aim.items\n            .filter(item
+        => item.schema === attribute.schema && item.title.toLowerCase().includes(search))\n
+        \           .forEach(item => listItemElement.createElement('OPTION', '', item.subject,
+        {value: item.title + ' ' + item.$id}));\n          }\n          this.elInp.onchange
+        = (event) => {\n            this.oldValue = inputElement.value;\n            const
+        [$id] = inputElement.value.match(/\\b\\w+\\(\\d+\\)/);\n            if ($id)
+        {\n              const item = Aim.items.find(item => item.$id === $id);\n
+        \             if (item) {\n                attribute.value = {\n                  LinkID:
+        item.ID,\n                }\n              }\n            }\n          }\n
+        \         this.elInp.onkeyup = (event) => {\n            console.log(event.type);\n
+        \           if (this.oldValue === inputElement.value) return;\n            this.oldValue
+        = inputElement.value;\n            updateList();\n            if (this.request)
+        return;\n            clearTimeout(this.timeout);\n            this.timeout
+        = setTimeout(() => {\n              this.request = new Aim.HttpRequest(Aim.config.aim,
+        `/${attribute.schema}`)\n              .select('Title')\n              .search(inputElement.value)\n
+        \             .top(20)\n              .get()\n              .then(event =>
+        {\n                console.log(event.body, Aim.items);\n                updateList(this.request
+        = null);\n              });\n            },500);\n          };\n          this.elEdit.createElement('LABEL',
+        '', this.title || this.name);\n          return;\n          this.elEdit.className
+        = 'col input selectitem ' + this.name;\n          this.canInsert = 1;\n          this.elEdit.noupdate
+        = true;\n          this.placeholder = ' ';\n          if (this.canInsert)
+        {\n            this.elInp = this.elEdit.createElement('INPUT', 'inp', this);\n
+        \           this.elEdit.createElement('LABEL', '', this.title || this.name);\n
+        \           this.elInp.setAttribute('list', this.schema);\n            let
+        datalistElement = this.elEdit.createElement('DATALIST', { id: this.schema
+        });\n          } else {\n            this.elInp = this.elEdit.createElement('SELECT');\n
+        \           this.elEdit.createElement('LABEL', '', this.title || this.name);\n
+        \           httpRequest.body.value.forEach(item => {\n              this.elInp.createElement('OPTION',
+        '', item.Title, {value: item.$id});\n            });\n          }\n        },\n
+        \       createSpan() {\n          const data = attribute.data;\n          if
+        (data && data['@id']) {\n            this.elSpan = this.elView.createElement('A',
+        '', data.Value, {\n              href: '#/id/' + btoa(data['@id']),\n              schema:
+        data.schema || 'item',\n              '@id': data['@id'],\n              onmouseenter(event)
+        {\n                Aim.popupcard(data['@id'], this);\n              },\n            });\n
+        \         }\n        }\n      },\n      checklist: {\n        createInput:
+        function() {\n          this.elInp = this.elEdit.createElement('select', {});\n
+        \         for (var optionname in this.options) this.elInp.createElement('option',
+        { value: optionname, innerText: this.options[optionname].Title || optionname
+        });\n        },\n      },\n      address: {\n        createInput() {\n          this.elEdit.className
+        = this.elEdit.className.replace('row', 'col');\n          const addressField
+        = this;\n          const prefix = attributeName;\n          const onchange
+        = (event) => {\n            event.target.modified = true;\n            let
+        address = [\n              [\n                formElement[prefix + 'Street'].value,\n
+        \               formElement[prefix + 'Number'].value,\n                formElement[prefix
+        + 'Add'].value,\n              ].filter(Boolean).join('+'),\n              [\n
+        \               formElement[prefix + 'PostalCode'].value,\n                formElement[prefix
+        + 'City'].value,\n              ].filter(Boolean).join('+'),\n              [\n
+        \               formElement[prefix + 'Country'].value,\n              ].filter(Boolean).join('+'),\n
+        \           ].join(',');\n            new Aim.HttpRequest('https:\n            .query({\n
+        \             address: address,\n              key: 'AIzaSyAKNir6jia2uSgmEoLFvrbcMztx-ao_Oys',\n
+        \           })\n            .get()\n            .then(event => {\n              let
+        compnames = {\n                route: prefix + 'Street',\n                sublocality_level_2:
+        prefix + 'Street',\n                sublocality: prefix + 'Street',\n                street_number:
+        prefix + 'Number',\n                postal_code: prefix + 'PostalCode',\n
+        \               locality: prefix + 'City',\n                administrative_area_level_2:
+        prefix + 'Town',\n                administrative_area_level_1: prefix + 'State',\n
+        \               country: prefix + 'Country',\n              };\n              event.body.results.forEach(result
+        => {\n                if (result.address_components) {\n                  result.address_components.forEach(comp
+        => {\n                    comp.types.forEach(type => {\n                      fieldname
+        = compnames[type];\n                      if (formElement[fieldname] && !formElement[fieldname].modified)
+        {\n                        formElement[fieldname].value = comp.long_name;\n
+        \                     }\n                    })\n                  });\n                }\n
+        \             });\n            });\n          };\n          this.elEdit.createElement('DIV',
+        'row wrap', {\n            properties: {\n              [prefix + 'Street']:
+        { title: 'AddressStreet', required: this.required, onchange: onchange },\n
+        \             [prefix + 'Number']: { title: 'AddressNumber', required: this.required,
+        onchange: onchange },\n              [prefix + 'Add']: { title: 'AddressAdd'
+        },\n            }\n          });\n          this.elEdit.createElement('DIV',
+        'row wrap', {\n            properties: {\n              [prefix + 'PostalCode']:
+        { title: 'AddressPostalCode', required: this.required, onchange: onchange
+        },\n              [prefix + 'City']: { title: 'AddressCity', required: this.required,
+        onchange: onchange },\n            }\n          });\n          this.elEdit.createElement('DIV',
+        'row wrap', {\n            properties: {\n              [prefix + 'Town']:
+        {title: 'AddressTown', onchange: onchange },\n              [prefix + 'State']:
+        {title: 'AddressState', onchange: onchange },\n              [prefix + 'Country']:
+        {title: 'AddressCountry', onchange: onchange },\n            }\n          });\n
+        \       },\n      },\n      textarea: {\n        createInput: function() {\n
+        \         this.elEdit.className = 'row input textarea';\n          console.log(this);\n
+        \         this.elInp = this.elEdit.createElement('textarea', 'inp', this,
+        { placeholder: ' ' });\n          this.elInp.resize = function(event){\n            this.style.height
+        = '0px';\n            this.style.height = (this.scrollHeight + 24) + 'px';\n
+        \         };\n          this.elInp.resize();\n          this.elInp.addEventListener('keyup',
+        this.elInp.resize);\n        },\n      },\n      json: {\n        createInput:
+        function() {\n          this.elEdit.className = 'field col fw';\n          this.elInp
+        = this.elEdit.createElement('CODE').createElement('TEXTAREA', { className:
+        'inp oa', style: 'white-space:nowrap;', value: editor.json(this.value) });\n
+        \         this.elInp.addEventListener('change', function() { try { JSON.parse(this.value,
+        true) } catch (err) { alert('JSON format niet in orde;'); } });\n          this.elEdit.createElement('LABEL',
+        { innerText: this.placeholder });\n          this.elInp.onkeyup = function(event)
+        {\n            if (this.style.height < 300) {\n              this.style.height
+        = 'auto';\n              this.style.height = Math.min(this.scrollHeight +
+        20, 300) + 'px';\n            }\n          };\n          setTimeout(function(el)
+        { this.elEdit.onkeyup(); }, 100, this.elInp);\n        },\n      },\n      email:
+        {\n        pattern: '[a-z0-9._%+-]+@[a-z0-9.-]+\\\\.[a-z]{2,4}$',\n      },\n
+        \     password: {\n        autocomplete: 'current_password',\n      },\n      tel:
+        {\n        pattern: '[0-9]{10,11}',\n      },\n      url: {\n      },\n      linkedin:
+        {\n      },\n      skype: {\n      },\n      hidden: {\n        createEdit()
+        {\n          this.tabindex = -1;\n          if (this.type === 'password' ||
+        this.autocomplete === 'username') {\n            return elForm.createElement('INPUT',
+        'hide_input', this, {type: 'hidden'});\n          } else {\n            return
+        elForm.createElement('INPUT', this);\n          }\n        }\n      },\n    };\n
+        \   const attributeType = Aim.format;\n    let type = attribute.type;\n    let
+        format = attribute.format || (attribute.schema ? 'selectitem' : attribute.options
+        ? 'select' : null );\n    const FormProperty = function () {\n      this.name
+        = attributeName;\n      this.selector = el;\n      this.property = attribute;\n
+        \     return formElement ? this.edit() : this.view();\n    }\n    FormProperty.prototype
+        = Object.assign(\n      {\n        name: attributeName,\n        get placeholder()
+        {\n          return attributeName;\n        },\n        get value() {\n          return
+        attribute.value || attribute.defaultValue;\n        },\n        set value(value)
+        {\n          console.log('set value', value, window.event);\n          attribute.value
+        = value;\n        },\n        get displayvalue() {\n          const value
+        = this.value;\n          if (this.options && (value in this.options)) {\n
+        \           return typeof this.options[value] == \"object\" ? this.options[value].title
+        || value : this.options[value];\n          }\n          return value;\n        },\n
+        \     },\n      Aim.format.default,\n      Aim.format[attribute.format]\n
+        \   );\n    const formProperty = new FormProperty();\n    return;\n    if
+        (!formElement && !property.value) continue;\n    Object.assign(property, attributeType.default,
+        attributeType[type], attributeType[format], attribute);\n    property.placeholder
+        = property.title || (Aim.translate['label_' + attributeName] ? Aim.translate['label_'
+        + attributeName] : attributeName);\n    if ('label' in property && newLabel
+        !== property.label) {\n      newLabel = property.label;\n    }\n    if (label
+        !== newLabel) {\n      let elOpen = elForm.createElement('A', 'openheader',
+        __(label = newLabel), {\n        label: newLabel,\n        open: 0,\n        tabindex:
+        0,\n        href: '#',\n        onclick(event) {\n          return false;\n
+        \       },\n        onkeydown(event) {\n          if (event.code === 'Space')
+        {\n            elOpen.select();\n          }\n        }\n      });\n      el
+        = elForm.createElement('DIV', 'col fieldgroup');\n    }\n    if (formElement)
+        {\n      el.appendChild(property.createEdit());\n    } else {\n      el.appendChild(property.createView());\n
+        \   }\n  };\n  el = elForm;\n}\nif (par.hyperlinks) {\n  var elUL = el.createElement('UL',
+        {className:'hyperlinks'});\n  for (let [name, hyperlink] of Object.entries(par.hyperlinks))
+        {\n    if (hyperlink) {\n      if (Array.isArray(hyperlink)) {\n        elUL.createElement('LI',
+        [hyperlink] );\n        return;\n      }\n      if ('visible' in hyperlink
+        && !hyperlink.visible) {\n        return;\n      }\n      var elLI = elUL.createElement('LI',
+        { innerText: __(hyperlink.innerText || '') + ' ' } );\n      elLI.createElement('A',
+        Object.assign({}, hyperlink, { innerText: __(hyperlink.label || name) }));\n
+        \   }\n  };\n}\nif (par.operations) {\n  var elOperations = el.tagName ===
+        'FORM' ? el.createElement('DIV', 'row btns') : el;\n  for (let [name, operation]
+        of Object.entries(par.operations)) {\n    if (!operation) continue;\n    if
+        ('visible' in operation && !operation.visible) continue;\n    var buttonElement
+        = el[name] = elOperations.createElement(operation.href ? 'A' : 'BUTTON', 'abtn
+        icn ' + (operation.className || name), operation, {\n      value: name,\n
+        \     label: Aim.translate['label_' + name] ? Aim.translate['label_' + name]
+        : __(operation.label || operation.value || name),\n      name: name, \n      on:
+        {\n        click: event => el.submitter = event.target,\n      }\n    });\n
+        \ }\n  if (formElement) formElement.onchange();\n}\nif (par.children && par.children.length)
+        {\n  par.children.forEach(child => {\n    if (child instanceof Element) {\n
+        \     el.appendChild(child);\n    } else if (Array.isArray(child)) {\n      el.createElement(...child);\n
+        \   } else if (typeof child === 'string') {\n      el.appendChild(document.createTextNode(decodeURI(child)));\n
+        \   } else {\n      el.createElement(child);\n    }\n  });\n  delete par.children;\n}\nif
+        ('send' in par) {\n  el.addEventListener('click', ws.send.bind(el, this.send));\n}\nif
+        (el.tagName === 'A' && el.item) {\n  el.innerText = el.item.Title;\n  if (el.item['@id'])
+        {\n    el.href = `#/${el.item['@id'].split('/api/').pop()}/id/${btoa(el.item['@id'])}?Title,
+        Subject, Summary, HasAttachements, HasChildren, State, Source&$filter=FinishDateTime+eq+NULL`;\n
+        \   Web.Element.popup(el);\n  }\n}\nif (el.popupmenu) {\n  el.setAttribute('type',
+        'button');\n  el.addEventListener('click', event => new Aim.Popup() );\n}\nel.on
+        = function(name, callback){\n  this.addEventListener(name, callback);\n  return
+        this;\n};\nreturn el;"
+    css:
+      type: method
+      code: |-
+        const elem = this.elem || this.selector;
+        if (attribute instanceof Object) {
+          Object.entries(attribute).forEach(entry => arguments.callee.call(this, ...entry))
+        } else {
+          elem.style.cssText = elem.style.cssText.split(';').filter(s => s.trim()).join(';');
+          if (value === undefined) {
+            elem.style.cssText += attribute;
+          } else {
+            elem.style.cssText += `;${attribute}:${value};`;
+            let id = elem === document.body ? '_body' : elem.id;
+            if (id) {
+              let css = window.localStorage.getItem('css');
+              css = css ? JSON.parse(css) : {};
+              (css[id] = css[id] || {})[attribute] = value;
+              window.localStorage.setItem('css', JSON.stringify(css));
+            }
+          }
+        }
+        return this;
+    delete:
+      type: method
+      code: |-
+        this.params.method = 'delete';
+        return httpRequest(this);
+    draw:
+      type: method
+      code: |-
+        this.elem = elem('CANVAS', 'aco');
+        setTimeout(() => new SignaturePad(this.elem));
+        if (this.selector) {
+          this.selector.append(this.elem);
+        }
+        console.log(this.elem);
+        return this;
+    edit:
+      type: method
+      code: |-
+        const selector = this.selector;
+        const fn = Aim.format[property.format] || Aim.format.text;
+        console.log(property, property.format, fn);
+        fn.edit.call(this, property);
+        return this;
+    eventHandle:
+      type: object
+    exec:
+      type: method
+      code: |-
+        this.url(param);
+        const req = this.req;
+        const searchParams = this.URL.searchParams;
+        searchParams.forEach((value, key) => {
+          if (typeof Aim[key] === 'function') {
+            Aim.his(new Aim().url().query(req.query).toString());
+            const result = Aim[key].apply(Aim, value ? value.split(', ') : []) || true;
+            return result;
+          }
+        });
+        const getPathname = path => {
+          var [dummy, basePath, folder, sep, id] = path.match(/(.*?\/om|\/api|^)(\/.*?)(\/id\/|$)(.*)/);
+          return [basePath, folder, sep, id];
+        }
+        var newPath = [basePath, path, sep, id] = getPathname(this.URL.pathname);
+        if (path) {
+          if (this.paths_) {
+            var args = [];
+            let pathKey = path.replace(/\((.+?)\)/g, '()');
+            pathKey = Object.keys(Aim.paths).find(key => key.replace(/\(([^\)]+)\)/g,'()') === pathKey);
+            if (pathKey) {
+              const def = Aim.paths[pathKey][req.method.toLowerCase()] || Aim.paths[pathKey][req.method.toUpperCase()];
+              console.error('pathKey', pathKey, def);
+              if (!def) {
+                return console.error(req.method.toUpperCase(), req.toString(), 'Method not allowed');
+              }
+              if (req.search) {
+                req.search.forEach((value, key) => req.path = req.path.replace(key, value));
+              }
+              var args = path.match(/\(([^\)]+)\)/g);
+              for (var i=0, arr = def.operationId.split(/\/|\./), name, obj; name = arr[i]; i++) {
+                var objName = name.split('(').shift();
+                console.error('objName', objName, obj, window[objName]);
+                var parentObj = obj ? obj : (window[objName] ? window : ( Aim.operations && Aim.operations[objName] ? Aim.operations : Aim.ref ));
+                console.error('parentObj', objName, parentObj);
+                var nextArgument = args ? args.shift() : null;
+                var param = nextArgument ? nextArgument.replace(/\(|\)/g, '').split(', ') : [];
+                if (typeof parentObj[objName] === 'function') {
+                  obj = parentObj[objName](...param);
+                } else {
+                  obj = parentObj[objName];
+                }
+              }
+              if (obj) {
+                console.debug('obj', obj);
+                return obj;
+              }
+            }
+          }
+          if (this.paths) {
+            let replaceLocation = false;
+            if (id) {
+              replaceLocation = true;
+              try {
+                [id] = atob(Aim.id = id.replace(/(\/.*)/, '')).match(/\/\w+\(.+?\)/);
+                this.api(id).get().then(event => Aim.page(event.body));
+              } catch (err) {
+                console.error('Illegal requestPath.id', id, requestPath.id);
+              }
+            }
+            const folderTag = path.replace(/\(.*?\)/g,'()');
+            let pathKey = Object.keys(this.paths).find(key => key.replace(/\(.*?\)/g,'()') === folderTag);
+            let apiPath = this.paths[pathKey];
+            if (apiPath && apiPath.get) {
+              replaceLocation = true;
+              Aim.list([], path);
+              if (this.URL.searchParams.has('$search') && !this.URL.searchParams.get('$search')) {
+                console.error('NO SEARCH');
+              }
+              this.api(path).query(this.URL.searchParams.toString()).get()
+              .then(event => {
+                if (event.body) {
+                  console.log(event.body._children);
+                  const items = event.body.value || event.body._children;
+                  Aim.list(items);
+                }
+              });
+            }
+            if (replaceLocation && typeof document !== 'undefined') {
+              if (document.location.protocol === 'file:') {
+                var currentPath = getPathname(document.location.hash.substr(1));
+                [basePath, path, sep, id] = currentPath.map((value,i) => newPath[i] || value);
+                var replacePath = ['#', path, sep, id];
+              } else {
+                var currentPath = getPathname(document.location.pathname);
+                var replacePath = currentPath.map((value,i) => newPath[i] || value);
+              }
+              const search = this.URL.searchParams.toString();
+              var replacePath = replacePath.join('') + (search ? '?' + search : '');
+              Aim.his( replacePath);
+            }
+          }
+        }
+    extend:
+      type: constructor
+      code: |-
+        const selector = this.selector || this;
+        let objects = [];
+        if (properties) {
+          Object.entries(properties).forEach(entry => Object.defineProperty(selector, ...entry))
+        }
+        [object].forEach(function recurse(source) {
+          if (objects.indexOf(source) !== -1) {
+            return;
+          }
+          objects.push(source);
+          if (typeof source !== 'object') {
+            return source;
+          }
+          for (var prop in source) {
+            if (Object.prototype.toString.call(source[prop]) === '[object Object]' && ['object', 'function'].includes(typeof this[prop])) {
+              if (!(prop in this)) {
+                this[prop] = source[prop];
+              } else {
+                recurse.call(this[prop], source[prop]);
+              }
+            } else {
+              this[prop] = source[prop];
+            }
+          }
+        }.bind(selector));
+        return selector;
+      constructor: true
+    filter:
+      type: constructor
+      code: |-
+        this.query('$' + paramName, param);
+        this.URL.searchParams.set('$' + paramName, param);
+        return this;
+      constructor: true
+    get:
+      type: method
+      code: |-
+        this.setParam( 'method', 'get');
+        return httpRequest(this);
+    getPath:
+      type: method
+      code: |-
+        path = path || (this.URL ? this.URL.pathname : '');
+        var [dummy, basePath, folder, sep, id] = path.match(/(.*?\/om|\/api|^)(\/.*?)(\/id\/|$)(.*)/) || [];
+        return [basePath, folder, sep, id];
+    hash:
+      type: constructor
+      code: |-
+        this.url();
+        this.URL[paramName] = param;
+        return this;
+      constructor: true
+    headers:
+      type: constructor
+      code: |-
+        const params = this.params;
+        const param = params[paramName] = params[paramName] || {};
+        if (typeof key === 'object') {
+          Object.assign(param,key);
+        } else if (value === undefined) {
+          params[paramName] = key;
+        } else {
+          param[key] = value;
+        }
+        return this;
+      constructor: true
+    host:
+      type: constructor
+      code: |-
+        this.url();
+        this.URL[paramName] = param;
+        return this;
+      constructor: true
+    input:
+      type: method
+      code: |-
+        if (typeof param === 'object') {
+          if (param.constructor) {
+            if (param.constructor.name === 'Object') {
+              this.headers('Content-Type', 'application/json');
+              param = Aim.stringify(param);
+            } else if (this[param.constructor.name]) {
+              return this[param.constructor.name](param);
+            } else {
+              console.error(param);
+            }
+          }
+        }
+        this.params.input = param;
+        return this;
+    level:
+      type: constructor
+      code: |-
+        this.query('$' + paramName, param);
+        this.URL.searchParams.set('$' + paramName, param);
+        return this;
+      constructor: true
+    onmessage:
+      type: method
+      code: |-
+        const ws = event.target;
+        const config = this.config;
+        let data = event.data;
+        try {
+          data = JSON.parse(data);
+        } catch (err) {
+          return Aim.status('wsm', 'error');
+        }
+        if ('userstate' in data) {
+          console.log('userstate', data);
+          console.log(Aim.items, Aim.items.filter(item => item.ID == data.sub));
+          Aim.items
+          .filter(item => item.ID == data.sub)
+          .forEach(item => item.elements.forEach(element => element.hasAttribute('userstate') ? element.setAttribute('userstate', data.userstate) : null))
+        }
+        if ('socket_id' in data) {
+          ws.socket_id = data.socket_id;
+          let currentState = ws.state;
+          if (data.socket_id === 1) {
+            Aim.status('ws', ws.state = 'UNAUTHORIZED');
+          } else if (data.payload) {
+            Aim.status('ws', ws.state = 'AUTHORIZED');
+            setState = (state) => {
+              Aim.status('ws', ws.state = state);
+            }
+          } else {
+            Aim.status('ws', ws.state = 'CONNECTED');
+          }
+          data.type = 'connect';
+          if (currentState === 'CONNECTING') {
+            Aim.emit('connect', data);
+          }
+          while (message = ws.messages.shift()) {
+            console.debug('MESSAGE', message);
+            ws.send(message);
+          }
+        } else if (data.body && ('requests' in data.body)) {
+          data.body.requests.forEach(ws.handleRequest);
+        } else {
+          ws.handleRequest(data);
+        }
+        return;
+        if ((data.ref.itemsModified || data.forward) && data.from_id && this.wsServer) {
+          this.wsServer.forward(data, event.data, ws);
+        }
+        if ('aliconnector' in data) {
+          Aim.Aliconnector.connector_id = data.aliconnector;
+          Aim.Aliconnector.state = 'online';
+          if (ws.infoElement) {
+            ws.infoElement.innerText = ws.state + '+';
+          }
+        }
+        if ('reply' in data) {
+          Aim.Aliconnector.reply(data.reply);
+        }
+        if ('signin' in data) {
+          const sub = config.id ? config.id.sub : (config.access ? config.access.sub : null);
+          if (data.access.sub != sub) {
+            Aim.reload();
+          }
+        }
+    order:
+      type: constructor
+      code: |-
+        this.query('$' + paramName, param);
+        this.URL.searchParams.set('$' + paramName, param);
+        return this;
+      constructor: true
+    password:
+      type: constructor
+      code: |-
+        const params = this.params;
+        const param = params[paramName] = params[paramName] || {};
+        if (typeof key === 'object') {
+          Object.assign(param,key);
+        } else if (value === undefined) {
+          params[paramName] = key;
+        } else {
+          param[key] = value;
+        }
+        return this;
+      constructor: true
+    patch:
+      type: method
+      code: |-
+        this.params.method = 'patch';
+        this.input(data);
+        return httpRequest(this);
+    post:
+      type: method
+      code: |-
+        this.params.method = 'post';
+        if (param) {
+          if (typeof param === 'object' && param.constructor.name === 'Object') {
+            this.formdata(param);
+          } else {
+            this.input(param);
+          }
+        }
+        return httpRequest(this);
+    postform:
+      type: method
+      code: |-
+        this.params.method = 'post';
+        if (typeof data === 'object') {
+          this.formdata(data);
+        } else {
+          this.input(data);
+        }
+        return httpRequest(this);
+    query:
+      type: method
+      code: |-
+        const arg = [...arguments];
+        const entries = param instanceof Object ? Object.entries(param) : [[param, value]];
+        entries.forEach(arg => this.URL.searchParams.set(...arg))
+        return this;
+    search:
+      type: constructor
+      code: |-
+        this.query('$' + paramName, param);
+        this.URL.searchParams.set('$' + paramName, param);
+        return this;
+      constructor: true
+    select:
+      type: constructor
+      code: |-
+        this.query('$' + paramName, param);
+        this.URL.searchParams.set('$' + paramName, param);
+        return this;
+      constructor: true
+    servers:
+      type: method
+      code: |-
+        if (servers && servers.length) {
+          url(servers[0].url);
+        }
+    setParam:
+      type: method
+      code: |-
+        this.params = this.params || [];
+        this.params[name] = value;
+    then:
+      type: constructor
+      code: |-
+        const params = this.params;
+        const param = params[paramName] = params[paramName] || {};
+        if (typeof key === 'object') {
+          Object.assign(param,key);
+        } else if (value === undefined) {
+          params[paramName] = key;
+        } else {
+          param[key] = value;
+        }
+        return this;
+      constructor: true
+    top:
+      type: constructor
+      code: |-
+        this.query('$' + paramName, param);
+        this.URL.searchParams.set('$' + paramName, param);
+        return this;
+      constructor: true
+    toString:
+      type: method
+      code: |-
+        if (this.URL) {
+          return this.URL.toString();
+        }
+    ucFirst:
+      type: method
+      code: return this.selector[0].toUpperCase() + this.selector.substr(1);
+    url:
+      type: method
+      code: |-
+        url = url || '';
+        this.URL = new URL(url, window.document ? document.location.href : 'https:
+        return this;
+    username:
+      type: constructor
+      code: |-
+        const params = this.params;
+        const param = params[paramName] = params[paramName] || {};
+        if (typeof key === 'object') {
+          Object.assign(param,key);
+        } else if (value === undefined) {
+          params[paramName] = key;
+        } else {
+          param[key] = value;
+        }
+        return this;
+      constructor: true
+...

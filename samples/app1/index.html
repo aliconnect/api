@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="app" dark="1">
+<head>
+	<title>App 1</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<link rel="manifest" href="/v1/om/manifest.json" crossorigin="anonymous">
+	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<meta name="apple-mobile-web-app-title" content="Aliconnect">
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	<link rel="icon" type="image/png" href="/favicon.png"/>
+	<link rel='apple-touch-icon' href='/image/icon/icon-76x76.png' />
+	<link rel='apple-touch-icon' sizes='76x76' href='/image/icon/icon-76x76.png' />
+	<link rel='apple-touch-icon' sizes='120x120' href='/image/icon/icon-120x120.png' />
+	<link rel='apple-touch-icon' sizes='152x152' href='/image/icon/icon-152x152.png' />
+	<link rel='apple-touch-icon' sizes='180x180' href='/image/icon/icon-180x180.png' />
+	<link rel='apple-touch-icon' sizes='167x167' href='/image/icon/icon-167x167.png' />
+	<link rel='apple-touch-startup-image' href='/image/icon/icon-920x680.png' />
+
+	<link rel="stylesheet" href="/src/css/web.css" />
+	<link rel="stylesheet" href="/src/css/icon.css" />
+	<!-- <script src="../src/js/aim.js"></script> -->
+	<!-- <script src="../src/js/aim.js"></script> -->
+	<!-- <script src="../src/js/aim.js" libraries="signaturepad,three,charts,go,notification,calendar,ganth,qrcode,qrscan,upload,om,maps,client"></script> -->
+	<!-- <script src="/src/js/aim.js" libraries="om"></script> -->
+	<script src="/src/js/aim.js"></script>
+	<!-- <script src="../src/js/auth.js"></script> -->
+	<script src="/src/js/web.js"></script>
+	<script src="/src/js/jszip.js"></script>
+	<script src="/src/js/xlsx.js"></script>
+	<script src="js/app.js"></script>
+</head>
+<body class="col aim om bg" view="rows">
+	<nav id="navtop" class="row top bar noselect np"></nav>
+	<div class="row aco main">
+		<section id="navleft" class="col aco noselect np"></section><div class="seperator"></div>
+		<section id="treeview" class="col aco atv noselect np"></section><div class="seperator"></div>
+		<section id="listview" class="row aco listview"></section><div class="seperator" right></div>
+		<section id="colpage" class="col aco apv printcol"></section>
+		<section id="colinfo" class="col apv info"></section>
+		<!-- <section id="colpanel" class="col pupanel shdw"></section> -->
+	</div>
+	<section id="rowinfo"></section>
+	<iframe id="baseframe" name="baseframe" class="col " style="display:none;"></iframe>
+	<div id="chat-room" style="display: none;">
+    <div id="videos">
+      <video id="self-view" autoplay></video>
+      <video id="remote-view" autoplay></video>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,159 @@
+/* ======================================================================================================================= */
+/* CALANDER PANEL */
+/* .days> :nth-child(2n) {
+border-top: solid 1px rgba(180,180,180,0.4);
+} */
+.agenda .row.top > :first-child {
+	margin-right: auto;
+	padding: 0 5px;
+}
+div.agenda {
+
+}
+div.agenda [selected] {
+	background-color: #C0E9FF;
+}
+div.agenda [vandaag] {
+	background-color: blue;
+	color: white;
+}
+div.agenda [othermonth] { /*color:#CCC;*/
+}
+div.agenda [app] {
+	font-weight: bold;
+}
+.days> :nth-child(2n+1) {
+	border-top: solid 1px rgba(180,180,180,0.4);
+}
+.days:hover {
+	border-color: #ccc;
+}
+.days>div {
+	border-top: solid 1px transparent;
+	border-bottom: solid 1px transparent;
+}
+.days>div:hover {
+	border-color: #ccc;
+}
+div.week {
+	background-color: inherit;
+}
+.week.row > div {
+	flex: 1 1 100%;
+}
+/*#week .g {display: flex;display: -webkit-flex;}*/
+.week .g > div {
+	flex: 0 0 auto;
+	height: 30px;
+	display: flex;
+	display: -webkit-flex;
+	/* color: black; */
+}
+.week .g > :nth-child(-n+16),
+.week .g > :nth-last-child(-n+14) {
+	background-color: rgba(180,180,180,0.2);
+}
+.week > div {
+	border-left: solid 1px transparent;
+	border-right: solid 1px rgba(180,180,180,0.4);
+}
+.week.row > :nth-child(1) {
+	flex: 0 0 46px;
+}
+.week.row > :nth-child(1) > :nth-child(2n+1) {
+	border-bottom: solid 1px transparent;
+}
+.weeks > span {
+	display: inline-block;
+	padding: 5px 10px;
+	cursor: pointer;
+}
+.calendar > .col.aco {
+	background-color: inherit;
+	padding-top: 36px;
+}
+.weekheader {
+	/* position: absolute; */
+	/* margin-top: auto; */
+	/* top: 36px; */
+	/* left: 0; */
+	margin-right: 18px;
+	height: 80px;
+	/* z-index: 1; */
+	/* color: black; */
+	border-bottom: solid 1px rgba(180,180,180,0.4);
+
+}
+/* .weekbody {
+padding-top: 80px;
+} */
+.maand button {
+	border: none;
+	outline: none;
+	padding: 0;
+	margin: 0;
+	background-color: none;
+}
+#weekheader > *,
+div.maand > div > * {
+	display: inline-block;
+	min-width: 30px;
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	text-align: center;
+	vertical-align: middle;
+	font-size: 14px;
+	margin: 0;
+	padding: 0;
+}
+div.maand > div > button {
+	cursor: pointer;
+}
+/*.maand > div > button:hover {background-color:#CCC;}*/
+div.maand > div > :first-child {
+	font-size: 8pt;
+	border-right: solid 1px gray;
+	width: 15px;
+	min-width: 15px;
+}
+div.appointment {
+	width: 100%;
+	background: rgba(200,200,255,0.5);
+	position: absolute;
+	height: 30px;
+	display: flex;
+	display: -webkit-flex;
+	flex-flow: column;
+	-webkit-flex-flow: column;
+	border: solid 1px #CCC;
+}
+div.appointment .content {
+	flex: 0 0 auto;
+	height: 100%;
+	overflow: auto;
+	padding-left: 10px;
+}
+div.appointment .left {
+	width: 5px;
+	height: 100%;
+	background: green;
+	position: absolute;
+	top: 0;
+	left: 0;
+	cursor: move;
+}
+div.appointment .start {
+	width: 100%;
+	height: 5px;
+	position: absolute;
+	top: 0;
+	cursor: n-resize;
+}
+div.appointment .eind {
+	width: 100%;
+	height: 5px;
+	position: absolute;
+	bottom: 0;
+	cursor: s-resize;
+}

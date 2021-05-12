@@ -1,0 +1,57 @@
+<h1>login</h1><p>Javascript</p><pre class="code">config = {
+  auth: {
+    servers: [
+      {
+        url: 'https://login.aliconnect.nl/api',
+      },
+    ],
+  },
+  api: {
+    servers: [
+      {
+        url: 'https://aliconnect.nl/api',
+      },
+    ],
+  },
+};
+</pre><p>Javascript</p><pre class="code">Aim.on('load', event =&gt; {
+  console.debug('config', config);
+  aim = Aim().client(config);
+  document.body.createElement('button', 'abtn', 'Login', {
+    onclick() {
+      me = aim.account();
+      console.debug('TEST', me);
+    }
+  })
+  // me.login();
+  // me.getApi();
+})
+</pre><p>Creates following html</p><pre class="code"></pre><p>sampleConsole</p><pre class="code" style="height: 100px; overflow: auto; font-family: consolas; font-size: 0.8em;"><div></div><div></div><div>ONLOAD</div><div></div><div></div><div>ME</div><div>ONLOAD</div></pre><iframe style="width: 100%;"></iframe><p>Alle Javascript bij elkaar</p><pre class="code">config = {
+  auth: {
+    servers: [
+      {
+        url: 'https://login.aliconnect.nl/api',
+      },
+    ],
+  },
+  api: {
+    servers: [
+      {
+        url: 'https://aliconnect.nl/api',
+      },
+    ],
+  },
+};
+Aim.on('load', event =&gt; {
+  console.debug('config', config);
+  aim = Aim().client(config);
+  document.body.createElement('button', 'abtn', 'Login', {
+    onclick() {
+      me = aim.account();
+      console.debug('TEST', me);
+    }
+  })
+  // me.login();
+  // me.getApi();
+})
+</pre>
