@@ -3488,8 +3488,6 @@ eol = '\n';
       })
       .on('click', event => {
 
-        // console.log('CLICK MAIN', event);
-
         $.clickEvent = event;
         // return;
         private.clickElement = event.target;
@@ -3536,6 +3534,8 @@ eol = '\n';
         // }
 
 
+
+
         for (let elem of event.path.filter(elem => elem instanceof Element)) {
           if (elem.is && elem.is.has('ofile') && elem.is.get('ofile').src.match(/\.(jpg|png|bmp|jpeg|gif|bin|mp4|webm|mov|3ds)/i)) {
             return $(document.body).slider(elem)
@@ -3543,15 +3543,29 @@ eol = '\n';
           // if (elem.hasAttribute('src')) {
           //   return document.location.href = '#?src='+elem.getAttribute('src');
           // }
-          if (window.colpage && elem.hasAttribute('href')) {
-            if (elem.getAttribute('href')[0] === '#' && elem.getAttribute('href')[1] === '/') {
-              return $().exec(elem.getAttribute('href').substr(1));
-            } else if (elem.getAttribute('href').includes('.pdf') && !elem.download) {
-              event.preventDefault();
-              return new $.Frame(elem.href);
+          if (elem.hasAttribute('href')) {
+            // console.log('CLICK MAIN', elem.href.includes('/wiki/'), elem.getAttribute('href'));
+            // event.preventDefault();
+            // event.preventDefault();
+            if (window.colpage) {
+              if (elem.getAttribute('href')[0] === '#' && elem.getAttribute('href')[1] === '/') {
+                return $().exec(elem.getAttribute('href').substr(1));
+              } else if (elem.getAttribute('href').includes('.pdf') && !elem.download) {
+                event.preventDefault();
+                return new $.Frame(elem.href);
+              }
+            } else if (elem.href.includes(document.location.origin)) {
+              window.history.pushState('page', 'test1', elem.href);
+              $(window).emit('popstate');
+              // $('list').load(elem.getAttribute('href')+'.md');
+
+              // console.log();
+              return event.preventDefault();
             }
           }
         }
+
+
         if ($.mainPopup) {
           $.mainPopup.close();
           $.subPopup.close();
@@ -4232,12 +4246,19 @@ eol = '\n';
       })
       .on('paste', event => handleData($.nav.itemFocussed, event))
       .on('popstate', event => {
+        console.log('POPSTATE');
         event.preventDefault();
-        console.log('popstate');
+        // if (document.location.pathname.includes('wiki/')) {
+        //   return $('list').load(document.location.pathname+'.md');
+        // }
         if (document.location.hash && $[document.location.hash.substr(1)]) {
           return $[document.location.hash.substr(1)]();
         }
         $().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec();
+
+        return $('list').load(document.location.pathname);
+        // console.log('POPSTATE2', document.location.pathname);
+
       })
       .on('resize', event => {
 
@@ -5012,6 +5033,7 @@ eol = '\n';
       })
     },
     om() {
+      console.log('AA');
       function childObject(object, schemaname) {
         // console.log(schemaname);
         if (object) {
@@ -5515,12 +5537,17 @@ eol = '\n';
       });
     },
     loadclient() {
+      console.log('AA');
       $().on({
         load() {
+          console.log('AA');
           const el = document.createElement('script');
           el.src = ($().script||{}).src||'/lib/js/client.js';
           document.head.appendChild(el);
-          $('list').load('/index.md');
+          // $('list').append(
+          //   $('iframe').style('border:none;width:100%;height:100%;').src('/index'),
+          // )
+          // $('list').load('/index');
         }
       });
     },
@@ -15329,6 +15356,7 @@ eol = '\n';
 			const all = [...docelem.elem.querySelectorAll("h1, h2, h3")];
 			const allmenu = [];
 			let i = 0;
+      var li;
 			function addChapters (ul, level) {
 				for (let elem = all[i]; elem; elem = all[i]) {
 					const tagLevel = Number(elem.tagName[1]);
@@ -15337,13 +15365,13 @@ eol = '\n';
 						$(elem).append(
 							$('a').attr('name', 'chapter' + i)
 						);
-						var li = $('li').parent(ul).append(
+						li = $('li').parent(ul).append(
 							elem.a = $('a').text(elem.innerText).attr('href', '#chapter' + i).attr('open', '0').attr('target', '_self')
 						);
 						i++;
 						allmenu.push(elem.a);
 						// all.shift();
-					} else if (tagLevel > level) {
+					} else if (li && tagLevel > level) {
 						li.append(
 							addChapters($('ul'), level+1)
 						)
@@ -15482,6 +15510,9 @@ eol = '\n';
       return this;
     },
     load(src, callback){
+      if (src.match(/\w+\(\d+\)/)) {
+        return;
+      }
       // console.warn(src);
       this.text('').append(
         $('div').class('row doc aco').append(
@@ -15493,15 +15524,23 @@ eol = '\n';
         )
       );
       // const docElem = this.docElem;
-			$().url(src).accept('text/md').get().then(event => {
+			$().url(src)
+      .accept('text/markdown')
+      .get()
+      .then(event => {
 				let content = event.target.responseText;
+        console.log(src, event);
 				content = content.replace(/<\!-- sample button -->/gs,`<button onclick="$().demo(event)">Show sample</button>`);
 				try {
 					eval('content=`'+content.replace(/\`/gs,'\\`')+'`;');
 				} catch (err) {
 					//console.error(err);
 				}
-				this.docElem.mdc(content);
+				this.docElem
+        .append(
+          $('h1').text(event.target.responseURL.split('/').pop().split('.').shift()),
+        )
+        .mdc(content);
         if (callback) callback(this.docElem);
         this.indexElem.index(this.docElem);
 				[...this.docElem.elem.getElementsByClassName('code')].forEach(elem => {
@@ -15630,7 +15669,7 @@ eol = '\n';
         }
         return newlines.push(line);
       });
-      this.elem.innerHTML = newlines.join('\n');
+      this.elem.innerHTML += newlines.join('\n');
       [...this.elem.getElementsByTagName('DETAILS')].forEach(
         el => el.addEventListener('toggle', event => el.open ? ga('send', 'pageview', el.firstChild.innerText) : null)
       );

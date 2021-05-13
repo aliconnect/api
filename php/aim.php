@@ -3303,7 +3303,8 @@ class aim {
 		$this->initapi();
 		define('AIM_API_SUB_ROOT', empty($this->access['sub']) ? '' : AIM_ROOT . '/api/' . $this->access['sub'] );
 		define('AIM_API_ROOT', is_dir(AIM_API_SUB_ROOT) ? AIM_API_SUB_ROOT : AIM_ROOT );
-		// return $this;
+   	// return $this;
+
 	}
 	public function mail ($param = []) {
     if (!isset($param['send'])) {
@@ -3379,6 +3380,38 @@ class aim {
     // echo $q;
   }
 	public function init() {
+
+    $paths = [
+      '/sites/'.AIM_DOMAIN.$_SERVER['REQUEST_URI'],
+      $_SERVER['REQUEST_URI'],
+      '/../node_modules/@aliconnect'.str_replace(['sites/','v1/'],'',$_SERVER['REQUEST_URI']),
+    ];
+
+    foreach ($paths as $path) {
+      foreach (['','.md','Readme.md','Home.md','Index.md','/Readme.md','/Home.md','/Index.md'] as $filename) {
+        // echo $_SERVER['DOCUMENT_ROOT'].$path.$filename.PHP_EOL;
+        if (is_file($fname = $_SERVER['DOCUMENT_ROOT'].$path.$filename)) {
+          $headers = array_change_key_case(getallheaders());
+          if (strstr($headers['accept'], 'markdown')) {
+            // die($path.$filename);
+            header("Cache-Control: no-store");
+            header('Location: '.$path.$filename);
+            // echo "# $filename\n";
+            // readfile($fname);
+            // die();
+          }
+          // die();
+          return;
+          // die('mjkmjksadf');
+          // return this;
+        }
+      }
+    }
+
+    // echo 'ja';
+
+
+
 		// debug(1, $this->apifile, $this->data);
 		$this->secret = array_replace_recursive($this->secret,json_decode(file_get_contents(AIM_ROOT.'/secret.json'),true)?:[]);
 
@@ -3480,7 +3513,12 @@ class aim {
 			try {
 				// debug(1, AIM_ROOT);
 				$response = $this->request_uri();
-				// debug(1);
+        http_response_code(200);
+        if ($response) {
+          header('Content-Type: application/json');
+          echo json_encode($response, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
+        die();
 			} catch (Exception $e) {
 				// echo 'a';
 				// DEBUG: Check for method_exists is required otherwise for some unkown reason throw new Exception is always executed even if the code bock of the throw is not executed????
@@ -3501,10 +3539,12 @@ class aim {
 					die(http_response_code($e->getCode()));
 				}
 			}
-			if ($response) {
-				header('Content-Type: application/json');
-				echo json_encode($response, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-			}
+      // debug(!is_null($response));
+			// if (!is_null($response)) {
+      //   debug(1);
+			// 	header('Content-Type: application/json');
+			// 	die(json_encode($response, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+			// }
 		} else {
 			if (isset($_GET['prompt'])) {
 				if (is_file($fname = AIM_ROOT.'/'.$_GET['prompt'].'.html')) {
@@ -4546,6 +4586,7 @@ class request_type {
   	die(json_encode(yaml_parse($content)));
   }
   public function mail() {
+    // debug(4);
     // aim.js
 		$content = file_get_contents('php://input');
 		if (!empty($content)) {
@@ -7534,3 +7575,4 @@ function aim() {
 }
 $aim = new aim();
 $aim->init();
+// echo 'KLAAR';

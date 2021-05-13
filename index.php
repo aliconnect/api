@@ -37,6 +37,10 @@ error_reporting(E_ALL);
 // header('Access-Control-Allow-Origin: ' . ( array_key_exists('HTTP_REFERER',$_SERVER) ? implode('/',array_slice(explode('/',$_SERVER['HTTP_REFERER']),0,3)) : '*') );
 // die('test '. $_GET['par']);
 //
+header("Cache-Control: no-store");
 require_once ('php/aim.php');
+// header('Location: /');
+
+
 // aim()->server()->init();
 // (^[v][0-9].*?)\/(|.*\/)(lib|docs|omb|om)(.*)
