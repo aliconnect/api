@@ -7,6 +7,9 @@ Automation Integration Manager SDK
 - [GitHub Aliconnect API Wiki](https://github.com/aliconnect/api/wiki?type=wikis)
 - [GitHub Aliconnect API](https://github.com/aliconnect/api)
 
+- [Terms of use](wiki/Explore-Terms-of-use)
+
+
 # Published source
 
 ```html
