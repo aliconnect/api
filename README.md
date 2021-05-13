@@ -2,12 +2,13 @@
 
 Automation Integration Manager SDK
 
-- [Aliconnect API wiki](https://sdk.aliconnect.nl/api/wiki/)
-- [Aliconnect API](https://sdk.aliconnect.nl/api)
+- [Aliconnect](https://aliconnect.nl)
+- [Explore-Terms-of-use](https://aliconnect.nl/api/wiki/Explore-Terms-of-use)
+
+- [Aliconnect API wiki](https://aliconnect.nl/sdk/api/wiki/)
+- [Aliconnect API](https://aliconnect.nl/sdk/api)
 - [GitHub Aliconnect API Wiki](https://github.com/aliconnect/api/wiki?type=wikis)
 - [GitHub Aliconnect API](https://github.com/aliconnect/api)
-
-- [Terms of use](/api/wiki/Explore-Terms-of-use)
 
 
 # Published source
