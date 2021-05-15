@@ -2873,9 +2873,9 @@ padding:10px;
   opacity: 0.6;
   color: inherit;
   max-width:100%;
-  display:inline-block;
-  display:block;
-  padding: 3px;
+  /* display:block;
+  display:inline-block; */
+  /* padding: 3px; */
 }
 .mc-menu a::first-letter {
   text-transform: uppercase;
@@ -6557,4 +6557,9 @@ main.dashboard .wrap>div.ghost{
 .abtn.close.abs:active,
 .abtn.close.abs:focus {
   border: solid 1px blue;
+}
+
+div.modified {
+  font-size: 10pt;
+  font-weight: normal;
 }

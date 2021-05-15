@@ -1697,6 +1697,7 @@ eol = '\n';
           }
         }
       }
+      return;
       return this;
     },
     filter(){
@@ -1949,6 +1950,7 @@ eol = '\n';
         } catch(err){
           console.error('JSON error', xhr, xhr.responseText.substr(0,2000));
         }
+
         this.onload(event);
       });
       if ($.statusbar) {
@@ -3487,7 +3489,14 @@ eol = '\n';
         private.stateTimeout = setTimeout(() => $().state('inactive'), 500);
       })
       .on('click', event => {
-
+        checkPath(event);
+        private.clickEvent = event;
+        const sectionElement = event.path.find(elem => elem.tagName === 'SECTION' && elem.id);
+        if (sectionElement) {
+          document.body.setAttribute('section', sectionElement.id);
+        }
+      }, true)
+      .on('click', event => {
         $.clickEvent = event;
         // return;
         private.clickElement = event.target;
@@ -3525,9 +3534,10 @@ eol = '\n';
         // 		return;
         // 	}
         // }
-        if (elem.hasAttribute('open')) {
-          $(elem).select();
-        }
+        // DEBUG: MAX
+        // if (elem.hasAttribute('open')) {
+        //   $(elem).select();
+        // }
 
         // if (elem = event.path.find(elem => elem instanceof Element && elem.hasAttribute('open'))) {
         // 	$.el.select.call(elem);
@@ -3554,13 +3564,14 @@ eol = '\n';
                 event.preventDefault();
                 return new $.Frame(elem.href);
               }
-            } else if (elem.href.includes(document.location.origin)) {
+            } else if (elem.getAttribute('href')[0] !== '#' && elem.href.includes(document.location.origin)) {
+              event.preventDefault();
               window.history.pushState('page', 'test1', elem.href);
               $(window).emit('popstate');
               // $('list').load(elem.getAttribute('href')+'.md');
 
               // console.log();
-              return event.preventDefault();
+              return;// event.preventDefault();
             }
           }
         }
@@ -3664,14 +3675,6 @@ eol = '\n';
         // if ($.activeElement.item && $.activeElement.item.focus) $.activeElement.item.focus(event);//app.selection.cancel();
         // //Element.Pulldown.el.innerText = '';
       })
-      .on('click', event => {
-        checkPath(event);
-        private.clickEvent = event;
-        const sectionElement = event.path.find(elem => elem.tagName === 'SECTION' && elem.id);
-        if (sectionElement) {
-          document.body.setAttribute('section', sectionElement.id);
-        }
-      }, true)
       .on('copy', event => $.nav.clipboard(event))
       .on('cut', event => $.nav.clipboard(event))
       .on('dragend', event => {
@@ -4254,9 +4257,11 @@ eol = '\n';
         if (document.location.hash && $[document.location.hash.substr(1)]) {
           return $[document.location.hash.substr(1)]();
         }
-        $().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec();
-
-        return $('list').load(document.location.pathname);
+        if (!$().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec()) {
+          if (!document.location.hash) {
+            return $('list').load(document.location.pathname);
+          }
+        };
         // console.log('POPSTATE2', document.location.pathname);
 
       })
@@ -5033,7 +5038,6 @@ eol = '\n';
       })
     },
     om() {
-      console.log('AA');
       function childObject(object, schemaname) {
         // console.log(schemaname);
         if (object) {
@@ -5115,9 +5119,9 @@ eol = '\n';
             $('footer').statusbar(),
           );
           $(document.body).messagesPanel();
-          // return;
           await $().url(document.location.origin+'/api.json').get().then(event => $().extend(event.body));
-          // await $().translate();
+          // return;
+          await $().translate();
           // await $().getApi(document.location.origin+'/api/');
 
 
@@ -5540,10 +5544,11 @@ eol = '\n';
       console.log('AA');
       $().on({
         load() {
-          console.log('AA');
-          const el = document.createElement('script');
-          el.src = ($().script||{}).src||'/lib/js/client.js';
-          document.head.appendChild(el);
+          if ($().script && $().script.src) {
+            const el = document.createElement('script');
+            el.src = $().script.src;
+            document.head.appendChild(el);
+          }
           // $('list').append(
           //   $('iframe').style('border:none;width:100%;height:100%;').src('/index'),
           // )
@@ -6181,6 +6186,7 @@ eol = '\n';
         },
       },
       prg(line, lang, modifier){
+        // return line;
         modifier = modifier || 'g';
         let groups = {};
         let keywords = {
@@ -6308,22 +6314,22 @@ eol = '\n';
         // ;
       },
       json(line){
-        return param.prg (line, ['json']);
+        return this.prg (line, ['json']);
       },
       css(line){
         return this.prg (line, ['css']);
       },
       php(line){
-        return param.prg (line,['php']);
+        return this.prg (line,['php']);
       },
       js(line){
         return line ? this.prg(line, ['js']) : '';
       },
       alf(line){
-        return param.prg (line, ['js']);
+        return this.prg (line, ['js']);
       },
       sql(line){
-        return param.prg (line, ['sql'], 'gi');
+        return this.prg (line, ['sql'], 'gi');
       },
       st(line){
         return this;
@@ -6401,11 +6407,11 @@ eol = '\n';
   				}
   			};
   			var toHTML = s => {
-  				var identTag = [],
-  				tag = '',
-  				identLevel = -1,
-  				html = [],
-  				setTag = function(newTag, className) {
+  				var identTag = [];
+  				var tag = '';
+  				var identLevel = -1;
+  				var html = [];
+  				var setTag = function(newTag, className) {
   					if (tag) {
   						html.push('</' + tag + '>');
   					}
@@ -6413,8 +6419,15 @@ eol = '\n';
   						html.push('<' + newTag + (className ? ` class="${className}"` : '') + '>');
   					}
   					tag = newTag || '';
-  				},
-  				lines = s.split(/\n/).forEach(line => {
+  				};
+          // console.log(s.split('\n\n'));
+          s = s.replace(/\r/gs, '').split(/\n\n/).filter(Boolean).join('\n\n');
+          // s = s.replace(/\r/gs, '').replace(/\n\n/gs, '\n</p><p>\n');
+          // console.log(s);
+  				var lines = s
+          .replace(/\n\| (.*?) \|\n.*?- \|\n\| (.*?) \|\n(?!\|)/gs, (l,h,b) => `<table><thead><tr><th>${h.replace(/ \|\n\| /gs,`</th></tr><tr><th>`).replace(/ \| /gs,`</th><th>`)}</td></tr></thead><tbody><tr><td>${b.replace(/ \|\n\| /gs,`</td></tr><tr><td>`).replace(/ \| /gs,`</td><td>`)}</td></tr></tbody></table>`)
+          .split(/\n/)
+          .forEach(line => {
   					var listMatch = line.match(/^([ ]+|)(- |\+ |\* |[0-9]. )(.*)/);
   					var ident = listMatch ? listMatch[1].length / 2 : -1;
   					var newLine = '';
@@ -6456,11 +6469,11 @@ eol = '\n';
   						var match = line.match(/^> (\w+):/);
   						setTag('BLOCKQUOTE', match ? match[1] : null);
   						html.push(match ? line.replace(/^> (\w+):/,'') : line.replace(/^> /,''));
-  					} else if (line.match(/ \| /)) {
-  						if (tag !== 'TABLE') {
-  							setTag('TABLE');
-  						}
-  						html.push('<tr><td>' + line.replace(/\|/g, '</td><td>') + '</td></tr>');
+  					// } else if (line.match(/ \| /)) {
+  					// 	if (tag !== 'TABLE') {
+  					// 		setTag('TABLE');
+  					// 	}
+  					// 	html.push('<tr><td>' + line.replace(/\|/g, '</td><td>') + '</td></tr>');
   					} else {
   						if (!tag) {
   							setTag('P');
@@ -6468,13 +6481,16 @@ eol = '\n';
   						html.push(line);
   					}
   				});
-  				return html
+          html = html
   				.map(line => {
   					return line
   					.replace(/[\s][\s]$/g, '<br>')
   					;
   				})
   				.join('\n')
+          // .replace(/\r/gs, '')
+
+
           .replace(/\[ \]/gs, '&#9744;')
           .replace(/\[v\]/gs, '&#9745;')
           .replace(/\[x\]/gs, '&#9745;')
@@ -6525,6 +6541,8 @@ eol = '\n';
   				.replace(/ >:([^\b| ]+)\b(?=(?:(?:[^`]*`){2})*[^`]*$)/g, ' <span class="indicator">$1</span>')
   				.replace(new RegExp('`(.+?)`','gs'), '<code>$1</code>')
   				;
+          // console.log(html);
+          return html;
   			};
         function toCodeHtml (codeString) {
           if (codeString) {
@@ -9019,7 +9037,6 @@ eol = '\n';
 
   let localAttr = window.localStorage.getItem('attr');
   $.localAttr = localAttr = localAttr ? JSON.parse(localAttr) : {};
-
 
   $().on({
     connect: handleEvent,
@@ -13346,7 +13363,12 @@ eol = '\n';
     return this.attr(name, '');
   });
   'focus,select'.split(',').forEach(name => Elem.prototype[name] = function fn() {
+    console.log(name, typeof this.elem[name]);
     this.elem[name](...arguments);
+    // if (typeof this.elem[name] === 'function'){
+    //   this.elem[name](...arguments);
+    // }
+
     return this;
   });
   'draggable'.split(',').forEach(name => Elem.prototype[name] = function attrTrue() {
@@ -15023,11 +15045,11 @@ eol = '\n';
 				},
 				js: content => {
 					//console.log(content, this);
-					this.elem.innerHTML = param.prg (content, ['js']);
+					this.elem.innerHTML = this.prg (content, ['js']);
 					return this;
 				},
 			};
-			[...arguments].forEach(content => this.elem.innerHTML += typeof content === 'function' ? param.prg (String(content).replace(/^(.*?)\{|\}$/g,''), ['js']) : content );
+			[...arguments].forEach(content => this.elem.innerHTML += typeof content === 'function' ? this.prg (String(content).replace(/^(.*?)\{|\}$/g,''), ['js']) : content );
 			return this;
 		},
     htmledit(property) {
@@ -15513,9 +15535,34 @@ eol = '\n';
       if (src.match(/\w+\(\d+\)/)) {
         return;
       }
-      // console.warn(src);
+
+      const rootPath = $().site.rootPath;
+      const wikiPath = $().site.wikiPath;
+      const sidebarUrl = $().site.wikiPath + '/' + $().site.sidebar;
+      const footerUrl = $().site.wikiPath + '/' + $().site.footer;
+      const hostname = document.location.hostname.split('.')[0];
+      console.warn(src,sidebarUrl,footerUrl);
+      if (src.match(/^\/aliconnect/)) {
+        if (src.match(/wiki/)) {
+          if (src.match(/wiki$/)) {
+            src+='/Home';
+          }
+          src=src.replace(/\/aliconnect\/(\w+)\/wiki\//, '/wiki/aliconnect/$1/')
+        } else {
+          src+='/README';
+          src=src.replace(/\/aliconnect\/(\w+)\//, '/aliconnect/$1/main/')
+        }
+        src+='.md';
+        src = 'https://raw.githubusercontent.com' + src.replace(/\/\//g,'/');
+      } else {
+        src = $().site.home;
+      }
+
+
       this.text('').append(
         $('div').class('row doc aco').append(
+          this.homeElem = $('div').class('mc-menu left np oa').append(
+          ),
           this.docElem = $('div').class('aco col doc-content oa'),
           $('div').class('mc-menu right np oa').append(
             $('div').class('ac-header').text('Table of contents'),
@@ -15524,21 +15571,37 @@ eol = '\n';
         )
       );
       // const docElem = this.docElem;
+
+      const path = src.replace(/(.*\/).*/,'$1');
+      // console.log(src, src.replace(/(.*\/).*/,'$1'), path, path+'/_Footer.md');
+
+      if (sidebarUrl) {
+        $().url(sidebarUrl).accept('text/markdown').get()
+        .then(event => this.homeElem.md(event.target.responseText));
+      }
+      console.warn(src);
 			$().url(src)
       .accept('text/markdown')
       .get()
       .then(event => {
 				let content = event.target.responseText;
-        console.log(src, event);
+
+        const filename = event.target.responseURL;
+        const title = filename.split('/').pop().split('.').shift().replace(/-/g,' ');
+        const date = event.target.getResponseHeader('last-modified');
+        console.log(event.target.getAllResponseHeaders());
+        console.log(filename, date);
 				content = content.replace(/<\!-- sample button -->/gs,`<button onclick="$().demo(event)">Show sample</button>`);
 				try {
-					eval('content=`'+content.replace(/\`/gs,'\\`')+'`;');
+					// eval('content=`'+content.replace(/\`/gs,'\\`')+'`;');
 				} catch (err) {
 					//console.error(err);
 				}
 				this.docElem
         .append(
-          $('h1').text(event.target.responseURL.split('/').pop().split('.').shift()),
+          $('h1').text(title).append(
+            date ? $('div').class('modified').text(__('Last modified'), new Date(date).toLocaleString()) : null,
+          )
         )
         .mdc(content);
         if (callback) callback(this.docElem);
@@ -15587,6 +15650,11 @@ eol = '\n';
 						}),
 					)
 				});
+
+        if (footerUrl) {
+          $().url(footerUrl).accept('text/markdown').get()
+          .then(event => $('section').parent(this.docElem).md(event.target.responseText));
+        }
 			});
       return this;
 		},
@@ -18192,19 +18260,21 @@ eol = '\n';
       if (this.webpage = children.find(item => item instanceof Webpage)) {
         $().api(`/${this.webpage.tag}/children`).query('level', 3).get().then(async event => {
           $().elemMenuList = $('ul').parent(this.elem);
-          async function addChildren(elem, item, level) {
-            const children = await item.children;
-            children.forEach(item => {
-              const elemLi = $('li').parent(elem);
-              $('a').parent(elemLi).text(item.header0).on('click', event => {
-                event.stopPropagation();
-                $().elemMenuList.style('display:none;');
-                $('view').showpage(item);
+          function addChildren(elem, item, level) {
+            if (Array.isArray(item.data.Children)) {
+              item.data.Children.forEach(data => {
+                const item = $(data);
+                const elemLi = $('li').parent(elem);
+                $('a').parent(elemLi).text(item.header0).on('click', event => {
+                  event.stopPropagation();
+                  $().elemMenuList.style('display:none;');
+                  $('view').showpage(item);
+                });
+                if (level < 3) {
+                  addChildren($('ul').parent(elemLi), item, level + 1);
+                }
               });
-              if (level < 3) {
-                addChildren($('ul').parent(elemLi), item, level + 1);
-              }
-            });
+            }
           }
           addChildren($().elemMenuList, this.webpage, 1);
           this.on('mouseenter', event => $().elemMenuList.style(''))

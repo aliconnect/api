@@ -3383,10 +3383,12 @@ class aim {
 
     $paths = [
       '/sites/'.AIM_DOMAIN.$_SERVER['REQUEST_URI'],
+      '/sites'.$_SERVER['REQUEST_URI'],
       $_SERVER['REQUEST_URI'],
-      '/../node_modules/@aliconnect'.str_replace(['sites/','v1/'],'',$_SERVER['REQUEST_URI']),
+      str_replace('/aliconnect/','/sites/',$_SERVER['REQUEST_URI']),
+      '/../node_modules/@aliconnect'.str_replace(['/sites','/aliconnect','/sdk','/v1'],'',$_SERVER['REQUEST_URI']),
     ];
-
+    // debug(1);
     foreach ($paths as $path) {
       foreach (['','.md','Readme.md','Home.md','Index.md','/Readme.md','/Home.md','/Index.md'] as $filename) {
         // echo $_SERVER['DOCUMENT_ROOT'].$path.$filename.PHP_EOL;
@@ -3394,10 +3396,13 @@ class aim {
           $headers = array_change_key_case(getallheaders());
           if (strstr($headers['accept'], 'markdown')) {
             // die($path.$filename);
-            header("Cache-Control: no-store");
+            // header("Cache-Control: no-store");
+            // header("filename: $filename");
+            // header("last-modified: ".filemtime($fname) );
+            // readfile($fname);
+            // die();
             header('Location: '.$path.$filename);
             // echo "# $filename\n";
-            // readfile($fname);
             // die();
           }
           // die();
@@ -7575,4 +7580,3 @@ function aim() {
 }
 $aim = new aim();
 $aim->init();
-// echo 'KLAAR';
