@@ -4,7 +4,7 @@ Welkom Aliconnect Application Programming Interface
 
 ### samples
 
-- [samples/all](/api/samples/all)
+- [samples/all](api/samples/all)
 
 
 
