@@ -5445,7 +5445,7 @@ eol = '\n';
             $('toptitle').text(document.title = $().info.title).title([$().info.description,$().info.version,$().info.lastModifiedDateTime].join(' '));
           }
 
-          if (document.location.pathname === '/' && $().ref.home) {
+          if (document.location.pathname === '/' && !document.location.search && $().ref.home) {
             window.history.replaceState('page', 'PAGINA', '?md='+$().ref.home);
             // $(window).emit('popstate');
           }
@@ -15561,7 +15561,7 @@ eol = '\n';
           ),
         )
       );
-      function mdRewriteHref (event, elem) {
+      function mdRewriteRef (event, elem) {
         const filename = event.target.responseURL;
         console.warn(filename);
         [...elem.elem.getElementsByTagName('A')].forEach(elem => {
@@ -15582,11 +15582,29 @@ eol = '\n';
           src = src.replace(/\/tree|\/blob/, '');
           $(elem).href('?md='+src);
         });
+        [...elem.elem.getElementsByTagName('IMG')].forEach(elem => {
+          let src = elem.getAttribute('src')||'';
+          if (src.match(/\/\//)) {
+            const url = new URL(src);
+            src = url.origin + url.pathname;
+          } else if (src.match(/^\//)) {
+            const url = new URL(filename);
+            src = url.origin + src;
+          } else {
+            const url = new URL(src, filename.replace(/[^\/]+$/,''));
+            src = url.origin + url.pathname;
+          }
+          src = src.replace(/\/wiki$/, '/wiki/Home');
+          src = src.replace(/github.com/, 'raw.githubusercontent.com');
+          src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
+          src = src.replace(/\/tree|\/blob/, '');
+          $(elem).src(src);
+        });
       }
 
       if (wikiPath) {
         $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
-        .then(event => mdRewriteHref(event, this.homeElem.md(event.target.responseText)));
+        .then(event => mdRewriteRef(event, this.homeElem.md(event.target.responseText)));
       }
 
       const contentLoad = src => {
@@ -15608,7 +15626,7 @@ eol = '\n';
   				} catch (err) {
   					//console.error(err);
   				}
-  				mdRewriteHref(event, this.docElem.text('').append(
+  				mdRewriteRef(event, this.docElem.text('').append(
             $('h1').text(title).append(
               date ? $('div').class('modified').text(__('Last modified'), new Date(date).toLocaleString()) : null,
             )
@@ -15661,7 +15679,7 @@ eol = '\n';
   				});
           if (wikiPath) {
             $().url(wikiPath+'/_Footer.md').accept('text/markdown').get()
-            .then(event => mdRewriteHref(event, $('section').parent(this.docElem).md(event.target.responseText)));
+            .then(event => mdRewriteRef(event, $('section').parent(this.docElem).md(event.target.responseText)));
           }
   			});
       };
