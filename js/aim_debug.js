@@ -2390,7 +2390,7 @@ eol = '\n';
       });
     },
     access_token(){
-      return this.props('access_token', ...arguments);
+      return this.set('access_token', ...arguments);
     },
     authProvider(context){
       return this.get(AuthProvider, context);
