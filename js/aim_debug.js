@@ -3554,8 +3554,14 @@ eol = '\n';
           //   return document.location.href = '#?src='+elem.getAttribute('src');
           // }
           if (elem.hasAttribute('href')) {
-            // console.log('CLICK MAIN', elem.href.includes('/wiki/'), elem.getAttribute('href'));
-            // event.preventDefault();
+            console.log('CLICK MAIN', elem.href.includes('/wiki/'), elem.getAttribute('href'));
+            var url = new URL(elem.href);
+            if (url.searchParams.has('md')) {
+              event.preventDefault();
+              window.history.pushState('page', 'test1', elem.href);
+              $(window).emit('popstate');
+              return;
+            }
             // event.preventDefault();
             if (window.colpage) {
               if (elem.getAttribute('href')[0] === '#' && elem.getAttribute('href')[1] === '/') {
@@ -3564,14 +3570,14 @@ eol = '\n';
                 event.preventDefault();
                 return new $.Frame(elem.href);
               }
-            } else if (elem.getAttribute('href')[0] !== '#' && elem.href.includes(document.location.origin)) {
-              event.preventDefault();
-              window.history.pushState('page', 'test1', elem.href);
-              $(window).emit('popstate');
-              // $('list').load(elem.getAttribute('href')+'.md');
-
-              // console.log();
-              return;// event.preventDefault();
+            // } else if (elem.getAttribute('href')[0] !== '#' && elem.href.includes(document.location.origin)) {
+            //   event.preventDefault();
+            //   window.history.pushState('page', 'test1', elem.href);
+            //   $(window).emit('popstate');
+            //   // $('list').load(elem.getAttribute('href')+'.md');
+            //
+            //   // console.log();
+            //   return;// event.preventDefault();
             }
           }
         }
@@ -4249,19 +4255,20 @@ eol = '\n';
       })
       .on('paste', event => handleData($.nav.itemFocussed, event))
       .on('popstate', event => {
-        console.log('POPSTATE');
+        var url = new URL(document.location);
+        console.log('POPSTATE', url.searchParams.get('md'));
         event.preventDefault();
+        if (url.searchParams.get('md')) {
+          return $('list').load(url.searchParams.get('md'));
+        }
+        // return;
         // if (document.location.pathname.includes('wiki/')) {
         //   return $('list').load(document.location.pathname+'.md');
         // }
         if (document.location.hash && $[document.location.hash.substr(1)]) {
           return $[document.location.hash.substr(1)]();
         }
-        if (!$().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec()) {
-          if (!document.location.hash) {
-            return $('list').load(document.location.pathname);
-          }
-        };
+        $().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec();
         // console.log('POPSTATE2', document.location.pathname);
 
       })
@@ -5436,6 +5443,11 @@ eol = '\n';
 
           if ($().info) {
             $('toptitle').text(document.title = $().info.title).title([$().info.description,$().info.version,$().info.lastModifiedDateTime].join(' '));
+          }
+
+          if (document.location.pathname === '/' && $().site.home) {
+            window.history.replaceState('page', 'PAGINA', '?md='+$().site.home);
+            // $(window).emit('popstate');
           }
 
           // $(document.body).cookieWarning();
@@ -15541,22 +15553,33 @@ eol = '\n';
       const sidebarUrl = $().site.wikiPath + '/' + $().site.sidebar;
       const footerUrl = $().site.wikiPath + '/' + $().site.footer;
       const hostname = document.location.hostname.split('.')[0];
-      console.warn(src,sidebarUrl,footerUrl);
-      if (src.match(/^\/aliconnect/)) {
-        if (src.match(/wiki/)) {
-          if (src.match(/wiki$/)) {
-            src+='/Home';
-          }
-          src=src.replace(/\/aliconnect\/(\w+)\/wiki\//, '/wiki/aliconnect/$1/')
-        } else {
-          src+='/README';
-          src=src.replace(/\/aliconnect\/(\w+)\//, '/aliconnect/$1/main/')
-        }
-        src+='.md';
-        src = 'https://raw.githubusercontent.com' + src.replace(/\/\//g,'/');
-      } else {
-        src = $().site.home;
+      var pathname = document.location.pathname;
+
+      if (!pathname.match(/^\/aliconnect/)) {
+        pathname = '/aliconnect/' + hostname + pathname.replace(/\/$/,'')
       }
+      // console.warn(src);
+
+
+      // if (src.match(/^\/aliconnect/)) {
+      //   if (src.match(/wiki/)) {
+      //     if (src.match(/wiki$/)) {
+      //       src+='/Home';
+      //     }
+      //     src=src.replace(/\/aliconnect\/(\w+)\/wiki\//, '/wiki/aliconnect/$1/')
+      //   } else {
+      //     src+='/README';
+      //     src=src.replace(/\/aliconnect\/(\w+)\//, '/aliconnect/$1/main/')
+      //   }
+      //   src+='.md';
+      //   // src = 'https://raw.githubusercontent.com' + src.replace(/\/\//g,'/');
+      // } else {
+      //   src = $().site.home;
+      // }
+
+
+
+      src += src.match(/\/wiki/) ? '.md' : '/README.md';
 
 
       this.text('').append(
@@ -15572,90 +15595,113 @@ eol = '\n';
       );
       // const docElem = this.docElem;
 
-      const path = src.replace(/(.*\/).*/,'$1');
+      // const path = src.replace(/(.*\/).*/,'$1');
       // console.log(src, src.replace(/(.*\/).*/,'$1'), path, path+'/_Footer.md');
+
+      function mdRewriteHref (event, elem) {
+        const filename = event.target.responseURL;
+        console.warn(filename);
+        [...elem.elem.getElementsByTagName('A')].forEach(elem => {
+          let src = elem.getAttribute('href')||'';
+          if (src.match(/\/\//)) {
+
+          } else if (src.match(/^\//)) {
+            const url = new URL(filename);
+            src = url.origin + src;
+          } else {
+            const url = new URL(src, filename.replace(/[^\/]+$/,''));
+            src = url.origin + url.pathname;
+          }
+          src = src.replace(/\/wiki$/, '/wiki/Home');
+          src = src.replace(/github.com/, 'raw.githubusercontent.com');
+          src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
+          src = src.replace(/\/tree|\/blob/, '');
+          $(elem).href('?md='+src);
+        });
+      }
 
       if (sidebarUrl) {
         $().url(sidebarUrl).accept('text/markdown').get()
-        .then(event => this.homeElem.md(event.target.responseText));
+        .then(event => mdRewriteHref(event, this.homeElem.md(event.target.responseText)));
       }
-      console.warn(src);
-			$().url(src)
-      .accept('text/markdown')
-      .get()
-      .then(event => {
-				let content = event.target.responseText;
 
-        const filename = event.target.responseURL;
-        const title = filename.split('/').pop().split('.').shift().replace(/-/g,' ');
-        const date = event.target.getResponseHeader('last-modified');
-        console.log(event.target.getAllResponseHeaders());
-        console.log(filename, date);
-				content = content.replace(/<\!-- sample button -->/gs,`<button onclick="$().demo(event)">Show sample</button>`);
-				try {
-					// eval('content=`'+content.replace(/\`/gs,'\\`')+'`;');
-				} catch (err) {
-					//console.error(err);
-				}
-				this.docElem
-        .append(
-          $('h1').text(title).append(
-            date ? $('div').class('modified').text(__('Last modified'), new Date(date).toLocaleString()) : null,
-          )
-        )
-        .mdc(content);
-        if (callback) callback(this.docElem);
-        this.indexElem.index(this.docElem);
-				[...this.docElem.elem.getElementsByClassName('code')].forEach(elem => {
-					$(elem.previousElementSibling).class('row').append(
-						$('button').class('abtn copy').css('margin-left: auto'),
-						$('button').class('abtn edit').on('click', event => $(elem).editor()),
-						$('button').class('abtn view').on('click', event => {
-              const block = {
-                html: '',
-                css: '',
-                js: '',
-              };
-              for (let codeElem of this.docElem.elem.getElementsByClassName('code')) {
-                const type = codeElem.previousElementSibling.innerText.toLowerCase();
-      					if (type === 'html') {
-      						block[type] = block[type].includes('<!-- html -->') ? block[type].replace('<!-- html -->', codeElem.innerText) : codeElem.innerText;
-                } else if (type === 'js') {
-      						block.html = block.html.replace(
-      							/\/\*\* js start \*\*\/.*?\/\*\* js end \*\*\//s, codeElem.innerText
-      						);
-                } else if (type === 'yaml') {
-      						block.html = block.html.replace(
-      							/`yaml`/s, '`'+codeElem.innerText + '`',
-      						);
-      					} else if (type === 'css') {
-      						block.html = block.html.replace(
-      							/\/\*\* css start \*\*\/.*?\/\*\* css end \*\*\//s, codeElem.innerText
-      						);
-      					}
+      const contentLoad = src => {
+  			$()
+        .url(src)
+        .accept('text/markdown')
+        .get()
+        .then(event => {
+  				let content = event.target.responseText;
 
-                if (codeElem === elem) break;
-              }
-              var html = block.html
-              .replace('/** css **/', block.css)
-              .replace('/** js **/', block.js);
+          const filename = event.target.responseURL;
+          const title = filename.split('/').pop().split('.').shift().replace(/-/g,' ');
+          const date = event.target.getResponseHeader('last-modified');
+          console.log(event.target.getAllResponseHeaders());
+          console.log(filename, date);
+  				content = content.replace(/<\!-- sample button -->/gs,`<button onclick="$().demo(event)">Show sample</button>`);
+  				try {
+  					// eval('content=`'+content.replace(/\`/gs,'\\`')+'`;');
+  				} catch (err) {
+  					//console.error(err);
+  				}
+  				mdRewriteHref(event, this.docElem.text('').append(
+            $('h1').text(title).append(
+              date ? $('div').class('modified').text(__('Last modified'), new Date(date).toLocaleString()) : null,
+            )
+          ).md(content));
+          if (callback) callback(this.docElem);
+          this.indexElem.index(this.docElem);
+  				[...this.docElem.elem.getElementsByClassName('code')].forEach(elem => {
+  					$(elem.previousElementSibling).class('row').append(
+  						$('button').class('abtn copy').css('margin-left: auto'),
+  						$('button').class('abtn edit').on('click', event => $(elem).editor()),
+  						$('button').class('abtn view').on('click', event => {
+                const block = {
+                  html: '',
+                  css: '',
+                  js: '',
+                };
+                for (let codeElem of this.docElem.elem.getElementsByClassName('code')) {
+                  const type = codeElem.previousElementSibling.innerText.toLowerCase();
+        					if (type === 'html') {
+        						block[type] = block[type].includes('<!-- html -->') ? block[type].replace('<!-- html -->', codeElem.innerText) : codeElem.innerText;
+                  } else if (type === 'js') {
+        						block.html = block.html.replace(
+        							/\/\*\* js start \*\*\/.*?\/\*\* js end \*\*\//s, codeElem.innerText
+        						);
+                  } else if (type === 'yaml') {
+        						block.html = block.html.replace(
+        							/`yaml`/s, '`'+codeElem.innerText + '`',
+        						);
+        					} else if (type === 'css') {
+        						block.html = block.html.replace(
+        							/\/\*\* css start \*\*\/.*?\/\*\* css end \*\*\//s, codeElem.innerText
+        						);
+        					}
 
-              // console.log(html);
+                  if (codeElem === elem) break;
+                }
+                var html = block.html
+                .replace('/** css **/', block.css)
+                .replace('/** js **/', block.js);
 
-							const win = window.open('about:blank', 'sample');
-							const doc = win.document;
-							doc.open();
-							doc.write(html);
-							doc.close();
-						}),
-					)
-				});
+                // console.log(html);
 
-        if (footerUrl) {
-          $().url(footerUrl).accept('text/markdown').get()
-          .then(event => $('section').parent(this.docElem).md(event.target.responseText));
-        }
-			});
+  							const win = window.open('about:blank', 'sample');
+  							const doc = win.document;
+  							doc.open();
+  							doc.write(html);
+  							doc.close();
+  						}),
+  					)
+  				});
+          if (footerUrl) {
+            $().url(footerUrl).accept('text/markdown').get()
+            .then(event => mdRewriteHref(event, $('section').parent(this.docElem).md(event.target.responseText)));
+          }
+  			});
+      };
+      contentLoad(src);
       return this;
 		},
     async maps(selector, referenceNode) {
@@ -15707,7 +15753,7 @@ eol = '\n';
 			// new $.maps(el, par.maps);
 		},
     md(s) {
-			this.elem.innerHTML = $.String.md(s);
+			this.elem.innerHTML += $.String.md(s);
 			return this;
 		},
     mdc(s) {

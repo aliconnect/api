@@ -4,7 +4,7 @@ header('Access-Control-Allow-Methods: GET, HEAD, POST, PUT, DELETE, OPTIONS, PAT
 header('Access-Control-Allow-Headers: Authorization, Origin, X-Requested-With, Content-Type, Accept, Accept-Charset, Accept-Language, If-Match, If-None-Match, Isolation, Prefer, OData-Version, OData-MaxVersion, X-API-Key, Apikey, Api-Key, Api_Key');
 header('Access-Control-Expose-Headers: OData-Version');
 header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Origin: ' . ( array_key_exists('HTTP_REFERER',$_SERVER) ? implode('/',array_slice(explode('/',$_SERVER['HTTP_REFERER']),0,3)) : '*') );
+// header('Access-Control-Allow-Origin: ' . ( array_key_exists('HTTP_REFERER',$_SERVER) ? implode('/',array_slice(explode('/',$_SERVER['HTTP_REFERER']),0,3)) : '*') );
 header("Cache-Control: no-store");
 // if ($_SERVER['REQUEST_METHOD']==='POST') die('JA');
 ini_set('default_charset', 'UTF-8');
@@ -413,7 +413,7 @@ if (isset($origin)) {
 	}
 }
 $hostname = $hostname ?: 'aliconnect';
-header('Access-Control-Allow-Origin: '.$AccessControlAllowOrigin);
+// header('Access-Control-Allow-Origin: '.$AccessControlAllowOrigin);
 define('AIM_DOMAIN', $hostname );
 // DEBUG: MKAN ONBEKEND WAAROM DEZE CODE
 if (isset($_GET['path'])) {
@@ -3381,37 +3381,50 @@ class aim {
   }
 	public function init() {
 
-    $paths = [
-      '/sites/'.AIM_DOMAIN.$_SERVER['REQUEST_URI'],
-      '/sites'.$_SERVER['REQUEST_URI'],
-      $_SERVER['REQUEST_URI'],
-      str_replace('/aliconnect/','/sites/',$_SERVER['REQUEST_URI']),
-      '/../node_modules/@aliconnect'.str_replace(['/sites','/aliconnect','/sdk','/v1'],'',$_SERVER['REQUEST_URI']),
-    ];
-    // debug(1);
-    foreach ($paths as $path) {
-      foreach (['','.md','Readme.md','Home.md','Index.md','/Readme.md','/Home.md','/Index.md'] as $filename) {
-        // echo $_SERVER['DOCUMENT_ROOT'].$path.$filename.PHP_EOL;
-        if (is_file($fname = $_SERVER['DOCUMENT_ROOT'].$path.$filename)) {
-          $headers = array_change_key_case(getallheaders());
-          if (strstr($headers['accept'], 'markdown')) {
-            // die($path.$filename);
-            // header("Cache-Control: no-store");
-            // header("filename: $filename");
-            // header("last-modified: ".filemtime($fname) );
-            // readfile($fname);
-            // die();
-            header('Location: '.$path.$filename);
-            // echo "# $filename\n";
-            // die();
-          }
-          // die();
-          return;
-          // die('mjkmjksadf');
-          // return this;
-        }
-      }
-    }
+    // $headers = array_change_key_case(getallheaders());
+    // if (strstr($headers['accept'], 'markdown')) {
+    //   if (preg_match('/wiki/',$_SERVER['REQUEST_URI'])) {
+    //     header('Location: https://raw.githubusercontent.com/wiki/aliconnect/api/Home.md');
+    //   } else {
+    //     header('Location: https://raw.githubusercontent.com/aliconnect/api/main/README.md');
+    //   }
+    //   // header('Location: /wiki/aliconnect/api/Home.md');
+    //   return;
+    //   header('Location: https://raw.githubusercontent.com/wiki/aliconnect/api/Home.md');
+    //   $paths = [
+    //     '/sites/'.AIM_DOMAIN.$_SERVER['REQUEST_URI'],
+    //     '/sites'.$_SERVER['REQUEST_URI'],
+    //     $_SERVER['REQUEST_URI'],
+    //     str_replace('/aliconnect/','/sites/',$_SERVER['REQUEST_URI']),
+    //     '/../node_modules/@aliconnect'.str_replace(['/sites','/aliconnect','/sdk','/v1'],'',$_SERVER['REQUEST_URI']),
+    //   ];
+    //   // debug(1);
+    //   foreach ($paths as $path) {
+    //     foreach (['','.md','Readme.md','Home.md','Index.md','/Readme.md','/Home.md','/Index.md'] as $filename) {
+    //       // echo $_SERVER['DOCUMENT_ROOT'].$path.$filename.PHP_EOL;
+    //       if (is_file($fname = $_SERVER['DOCUMENT_ROOT'].$path.$filename)) {
+    //         $headers = array_change_key_case(getallheaders());
+    //         if (strstr($headers['accept'], 'markdown')) {
+    //           // die($path.$filename);
+    //           // header("Cache-Control: no-store");
+    //           // header("filename: $filename");
+    //           // header("last-modified: ".filemtime($fname) );
+    //           // readfile($fname);
+    //           // die();
+    //           header('Location: '.$path.$filename);
+    //           // echo "# $filename\n";
+    //           // die();
+    //         }
+    //         // die();
+    //         return;
+    //         // die('mjkmjksadf');
+    //         // return this;
+    //       }
+    //     }
+    //   }
+    // }
+
+
 
     // echo 'ja';
 
