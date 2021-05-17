@@ -2747,7 +2747,7 @@ eol = '\n';
         prompt: 'login',
         response_type: 'code',
         client_id: $().client_id,
-        redirect_uri: document.location.origin,
+        redirect_uri: document.location.origin + ($().redirect_path || ''),
         // client_id: config.auth.client_id || config.auth.clientId,
         // state: state,
         scope: $().scope,//('all'),
@@ -5048,6 +5048,15 @@ eol = '\n';
         );
       })
     },
+    signin(){
+      $().on({
+        async load() {
+          $().server.url = $().server.url || document.location.origin;
+          await $().url($().server.url+'/api.json').get().then(event => $().extend(event.body));
+          await $().login();
+        }
+      });
+    },
     om() {
       function childObject(object, schemaname) {
         // console.log(schemaname);
@@ -5130,8 +5139,9 @@ eol = '\n';
             $('footer').statusbar(),
           );
           $(document.body).messagesPanel();
-          console.log($().api_url);
-          await $().url($().api_url || document.location.origin+'/api.json').get().then(event => $().extend(event.body));
+          ($().server = $().server || {}).url = $().server.url || document.location.origin;
+          console.log($().server.url);
+          await $().url($().server.url+'/api.json').get().then(event => $().extend(event.body));
           // return;
           await $().translate();
           // await $().getApi(document.location.origin+'/api/');
@@ -5143,14 +5153,14 @@ eol = '\n';
 
             // await $().api('/').get().then(event => $($()).extend(event.body));
 
-            await $().url(document.location.origin+`/config/${$().authProvider().sub}/api.json`).get().then(event => $().extend(event.body));
+            await $().url($().server.url+`/config/${$().authProvider().sub}/api.json`).get().then(event => $().extend(event.body));
 
             if ('Notification' in window) {
               var permission = Notification.permission;
               // const notificationPermission = Notification.permission.toString();
               // console.log('Notification', permission);
               if (Notification.permission === 'default') {
-                this.elemNavtop.append(
+                $.elemNavtop.append(
                   $('a').class('abtn').text('Notifications').on('click', event => Notification.requestPermission())
                 )
               }
@@ -5450,7 +5460,9 @@ eol = '\n';
             $('toptitle').text(document.title = $().info.title).title([$().info.description,$().info.version,$().info.lastModifiedDateTime].join(' '));
           }
 
-          if (document.location.pathname === '/' && !document.location.search && $().ref.home) {
+          // console.log(document.location.application_path);
+          $().application_path = $().application_path || '/';
+          if (document.location.pathname === $().application_path && !document.location.search && $().ref.home) {
             window.history.replaceState('page', 'PAGINA', '?md='+$().ref.home);
             // $(window).emit('popstate');
           }
