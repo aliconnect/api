@@ -5445,8 +5445,8 @@ eol = '\n';
             $('toptitle').text(document.title = $().info.title).title([$().info.description,$().info.version,$().info.lastModifiedDateTime].join(' '));
           }
 
-          if (document.location.pathname === '/' && $().site.home) {
-            window.history.replaceState('page', 'PAGINA', '?md='+$().site.home);
+          if (document.location.pathname === '/' && $().ref.home) {
+            window.history.replaceState('page', 'PAGINA', '?md='+$().ref.home);
             // $(window).emit('popstate');
           }
 
@@ -15547,41 +15547,9 @@ eol = '\n';
       if (src.match(/\w+\(\d+\)/)) {
         return;
       }
-
-      const rootPath = $().site.rootPath;
-      const wikiPath = $().site.wikiPath;
-      const sidebarUrl = $().site.wikiPath + '/' + $().site.sidebar;
-      const footerUrl = $().site.wikiPath + '/' + $().site.footer;
-      const hostname = document.location.hostname.split('.')[0];
-      var pathname = document.location.pathname;
-
-      if (!pathname.match(/^\/aliconnect/)) {
-        pathname = '/aliconnect/' + hostname + pathname.replace(/\/$/,'')
-      }
-      // console.warn(src);
-
-
-      // if (src.match(/^\/aliconnect/)) {
-      //   if (src.match(/wiki/)) {
-      //     if (src.match(/wiki$/)) {
-      //       src+='/Home';
-      //     }
-      //     src=src.replace(/\/aliconnect\/(\w+)\/wiki\//, '/wiki/aliconnect/$1/')
-      //   } else {
-      //     src+='/README';
-      //     src=src.replace(/\/aliconnect\/(\w+)\//, '/aliconnect/$1/main/')
-      //   }
-      //   src+='.md';
-      //   // src = 'https://raw.githubusercontent.com' + src.replace(/\/\//g,'/');
-      // } else {
-      //   src = $().site.home;
-      // }
-
-
-
+      const homePath = $().ref.home;
+      const wikiPath = $().ref.wiki;
       src += src.match(/\/wiki/) ? '.md' : '/README.md';
-
-
       this.text('').append(
         $('div').class('row doc aco').append(
           this.homeElem = $('div').class('mc-menu left np oa').append(
@@ -15593,18 +15561,14 @@ eol = '\n';
           ),
         )
       );
-      // const docElem = this.docElem;
-
-      // const path = src.replace(/(.*\/).*/,'$1');
-      // console.log(src, src.replace(/(.*\/).*/,'$1'), path, path+'/_Footer.md');
-
       function mdRewriteHref (event, elem) {
         const filename = event.target.responseURL;
         console.warn(filename);
         [...elem.elem.getElementsByTagName('A')].forEach(elem => {
           let src = elem.getAttribute('href')||'';
           if (src.match(/\/\//)) {
-
+            const url = new URL(src);
+            src = url.origin + url.pathname;
           } else if (src.match(/^\//)) {
             const url = new URL(filename);
             src = url.origin + src;
@@ -15620,8 +15584,8 @@ eol = '\n';
         });
       }
 
-      if (sidebarUrl) {
-        $().url(sidebarUrl).accept('text/markdown').get()
+      if (wikiPath) {
+        $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
         .then(event => mdRewriteHref(event, this.homeElem.md(event.target.responseText)));
       }
 
@@ -15695,8 +15659,8 @@ eol = '\n';
   						}),
   					)
   				});
-          if (footerUrl) {
-            $().url(footerUrl).accept('text/markdown').get()
+          if (wikiPath) {
+            $().url(wikiPath+'/_Footer.md').accept('text/markdown').get()
             .then(event => mdRewriteHref(event, $('section').parent(this.docElem).md(event.target.responseText)));
           }
   			});
