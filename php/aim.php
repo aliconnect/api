@@ -3425,7 +3425,6 @@ class aim {
     // }
 
 
-
     // echo 'ja';
 
 
@@ -7427,8 +7426,8 @@ class oauth {
 class token {
 	public function __construct() {
 		//header('Access-Control-Allow-Origin: '.implode("/",array_slice(explode("/",$_SERVER["HTTP_REFERER"]),0,3)));
-		header('Access-Control-Allow-Origin: *');
-		header('Access-Control-Allow-Methods: GET,POST');
+		// header('Access-Control-Allow-Origin: *');
+		// header('Access-Control-Allow-Methods: GET,POST');
 		$this->client_secret = aim()->client_secret;
 	}
 	public function get () {

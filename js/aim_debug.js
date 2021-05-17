@@ -2740,6 +2740,7 @@ eol = '\n';
       return this;
     },
     loginUrl() {
+      console.error($().client_id);
       return this
       .url('https://login.aliconnect.nl/')
       .query({
@@ -4258,9 +4259,6 @@ eol = '\n';
         var url = new URL(document.location);
         console.log('POPSTATE', url.searchParams.get('md'));
         event.preventDefault();
-        if (url.searchParams.get('md')) {
-          return $('list').load(url.searchParams.get('md'));
-        }
         // return;
         // if (document.location.pathname.includes('wiki/')) {
         //   return $('list').load(document.location.pathname+'.md');
@@ -4268,7 +4266,13 @@ eol = '\n';
         if (document.location.hash && $[document.location.hash.substr(1)]) {
           return $[document.location.hash.substr(1)]();
         }
-        $().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec();
+        if (!$().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec()) {
+          if (url.searchParams.get('md')) {
+            return $('list').load(url.searchParams.get('md'));
+          }
+        }
+
+
         // console.log('POPSTATE2', document.location.pathname);
 
       })
@@ -5126,7 +5130,8 @@ eol = '\n';
             $('footer').statusbar(),
           );
           $(document.body).messagesPanel();
-          await $().url(document.location.origin+'/api.json').get().then(event => $().extend(event.body));
+          console.log($().api_url);
+          await $().url($().api_url || document.location.origin+'/api.json').get().then(event => $().extend(event.body));
           // return;
           await $().translate();
           // await $().getApi(document.location.origin+'/api/');
