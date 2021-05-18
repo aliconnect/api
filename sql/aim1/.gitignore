@@ -1,0 +1,7 @@
+*.dbmdl
+*.jfm
+*.sln
+*.sqlproj
+*.sqlproj.user
+/bin
+/obj
