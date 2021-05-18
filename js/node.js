@@ -323,7 +323,7 @@ function getConfig() {
     getData(approot + '/config.json'),
     getData(approot + '/webroot/config.json'),
     getData(projectroot + '/config.json'),
-    require(data_filename),
+    // require(data_filename),
   ].forEach(options => $(data).extend(options))
 	// if (data.value) {
 	// 	data.value.forEach(item => Object.assign(item, aim.find(item.ID).values));
@@ -337,9 +337,9 @@ function getConfig() {
 }
 function httpServerRequest (req, res) {
 	res.setHeader('Access-Control-Allow-Origin', '*');
-	res.setHeader('Access-Control-Request-Method', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
 	res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET');
-	res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Request-Method', '*');
 	const pathname = req.url.split('//').shift().split('?').shift()
   const path = pathname.substr(1).split('/')
   const root = path.shift()

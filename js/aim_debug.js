@@ -2393,6 +2393,24 @@ eol = '\n';
       return this.set('access_token', ...arguments);
     },
     authProvider(context){
+      // console.error(context);
+      return this.get(AuthProvider, context);
+    },
+    auth() {
+      console.log('AUTH');
+      $().on({
+        async ready() {
+          console.log('LOGIN READY', window[$.config.callback]);
+          await $().login();
+          // await $().login();
+          if (typeof window[$.config.callback] === 'function') {
+            window[$.config.callback]();
+          }
+        }
+      });
+    },
+    auth(context){
+      console.error(context);
       return this.get(AuthProvider, context);
     },
     api(path){
@@ -5058,6 +5076,7 @@ eol = '\n';
       });
     },
     om() {
+      console.error('OM');
       function childObject(object, schemaname) {
         // console.log(schemaname);
         if (object) {
@@ -5582,19 +5601,6 @@ eol = '\n';
           //   $('iframe').style('border:none;width:100%;height:100%;').src('/index'),
           // )
           // $('list').load('/index');
-        }
-      });
-    },
-    auth() {
-      console.log('AUTH');
-      $().on({
-        async ready() {
-          console.log('LOGIN READY', window[$.config.callback]);
-          await $().login();
-          // await $().login();
-          if (typeof window[$.config.callback] === 'function') {
-            window[$.config.callback]();
-          }
         }
       });
     },
@@ -7704,7 +7710,7 @@ eol = '\n';
             // return;
 
             const itemModified = private.itemsModified[item['@id']] = private.itemsModified[item['@id']] || {
-              ID: item.data.ID.Value || item.data.ID,
+              ID: item.data.ID ? item.data.ID.Value || item.data.ID : null,
               method: 'patch',
               path: '/' + item.tag,
               body: {
@@ -19412,21 +19418,15 @@ eol = '\n';
   private.openItems = window.localStorage.getItem('openItems');
 	apiorigin = $.httpHost === 'localhost' && $().storage === 'api' ? 'http://localhost' : $.origin;
   $.config = $.config || {};
-  (new URLSearchParams(document.location.search)).forEach((value,key)=>$().extend(minimist([key,value])));
-  (new URL(document.currentScript.src)).searchParams.forEach((value, key) => $.config[key] = value);
 
-  // [...document.currentScript.attributes].map(attribute => $.config[attribute.name]=attribute.value);
+  (new URL(document.currentScript.src)).searchParams.forEach((value, key)=>$.extend($.config, minimist([key,value])));
+  [...document.currentScript.attributes].forEach(attribute => $.extend($.config, minimist(['--'+attribute.name, attribute.value])));
+  (new URLSearchParams(document.location.search)).forEach((value,key)=>$.extend($.config, minimist([key,value])));
+  $().extend($.config);
 
-  [...document.currentScript.attributes].forEach(attribute => $().extend(minimist(['--'+attribute.name, $.config[attribute.name] = attribute.value])));
-  // [...document.currentScript.attributes].forEach(attribute => console.log(attribute.name, attribute.value, minimist(['--'+attribute.name, attribute.value])));
-
-
-  // console.log(Object.fromEntries([...document.currentScript.attributes].map(attribute => [attribute.name, attribute.value])));
-  // console.log([...document.currentScript.attributes],Object.fromEntries(document.currentScript.attributes));
-
-  // $(this).extend(event.body);
-
-
+  // (new URLSearchParams(document.location.search)).forEach((value,key)=>$().extend(minimist([key,value])));
+  // (new URL(document.currentScript.src)).searchParams.forEach((value, key) => $.config[key] = value);
+  // [...document.currentScript.attributes].forEach(attribute => $().extend(minimist(['--'+attribute.name, attribute.value])));
 
   $.apiPath = document.currentScript.src.split('/js')[0];
   if ($.config.libraries){
