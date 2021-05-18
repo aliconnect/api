@@ -5083,7 +5083,7 @@ eol = '\n';
       });
     },
     om() {
-      console.error('OM');
+      // console.error('OM');
       function childObject(object, schemaname) {
         // console.log(schemaname);
         if (object) {
@@ -5165,9 +5165,9 @@ eol = '\n';
             $('footer').statusbar(),
           );
           $(document.body).messagesPanel();
-          ($().server = $().server || {}).url = $().server.url || document.location.origin;
+          ($().server = $().server || {}).url = $().server.url || (document.location.origin + '/api');
           console.log($().server.url);
-          await $().url($().server.url+'/api.json').get().then(event => $().extend(event.body));
+          await $().url($().server.url+'.json').get().then(event => $().extend(event.body));
           // return;
           await $().translate();
           // await $().getApi(document.location.origin+'/api/');
@@ -15592,24 +15592,31 @@ eol = '\n';
         const filename = event.target.responseURL;
         console.warn(filename);
         [...elem.elem.getElementsByTagName('A')].forEach(elem => {
-          let src = elem.getAttribute('href')||'';
-          if (src.match(/\/\//)) {
-            const url = new URL(src);
-            src = url.origin + url.pathname;
-          } else if (src.match(/^\//)) {
-            const url = new URL(filename);
-            src = url.origin + src;
-          } else {
-            const url = new URL(src, filename.replace(/[^\/]+$/,''));
-            src = url.origin + url.pathname;
-          }
-          src = src.replace(/\/wiki$/, '/wiki/Home');
-          src = src.replace(/github.com/, 'raw.githubusercontent.com');
-          src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
-          src = src.replace(/\/tree|\/blob/, '');
-          if (!src.match(/\.\w+$/)) {
+          function setsrc(src){
+            src = src.replace(/\/wiki$/, '/wiki/Home');
+            src = src.replace(/github.com/, 'raw.githubusercontent.com');
+            src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
+            src = src.replace(/\/tree|\/blob/, '');
             $(elem).href('?md='+src);
           }
+          let src = elem.getAttribute('href')||'';
+          if (src.match(/^http/)) {
+            // const url = new URL(src);
+            // src = url.origin + url.pathname;
+          } else if (src.match(/^\/[^\/]/)) {
+            const url = new URL(filename);
+            setsrc(url.origin + src);
+          } else {
+            const url = new URL(src, filename.replace(/[^\/]+$/,''));
+            setsrc(url.origin + url.pathname);
+          }
+          // if (!src.match(/\.\w+$/)) {
+          //   $(elem).href('?md='+src);
+          // }
+          // if (!src.match(/^http/)) {
+          //   console.log(src);
+          //   $(elem).href('?md='+src);
+          // }
         });
         [...elem.elem.getElementsByTagName('IMG')].forEach(elem => {
           let src = elem.getAttribute('src')||'';
