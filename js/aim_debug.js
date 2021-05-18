@@ -15597,7 +15597,9 @@ eol = '\n';
           src = src.replace(/github.com/, 'raw.githubusercontent.com');
           src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
           src = src.replace(/\/tree|\/blob/, '');
-          $(elem).href('?md='+src);
+          if (!src.match(/\.\w+$/)) {
+            $(elem).href('?md='+src);
+          }
         });
         [...elem.elem.getElementsByTagName('IMG')].forEach(elem => {
           let src = elem.getAttribute('src')||'';
