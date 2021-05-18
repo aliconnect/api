@@ -732,6 +732,7 @@ eol = '\n';
       // window.sessionStorage.clear();
       // window.localStorage.clear();
 
+
       if (auth.id_token){
         try {
           const id = this.id = this.auth.id = JSON.parse(atob(auth.id_token.split('.')[1]));
@@ -747,6 +748,7 @@ eol = '\n';
         // console.error(auth.id_token);
       }
       const access_token = auth.api_key || auth.access_token || auth.id_token;
+      console.log([access_token, auth.api_key, auth.access_token, auth.id_token]);
       if (access_token){
         try {
           // console.error(access_token);
@@ -1516,7 +1518,12 @@ eol = '\n';
 			}
 		},
 		clipboard(event) {
-      console.log('CLIPBOARD', event.type);
+      const selection = window.getSelection();
+      if (selection.focusNode.nodeType === 3) {
+        return;
+      }
+      // console.log('CLIPBOARD', event.type, selection, selection.focusNode.nodeType, selection.focusNode, selection.ancherNode, selection.extendNode, selection.baseNode);
+
       if(document.activeElement.isContentEditable || ['INPUT'].includes(document.activeElement.tagName)) {
         return;
       }
@@ -2411,7 +2418,7 @@ eol = '\n';
     },
     auth(context){
       console.error(context);
-      return this.get(AuthProvider, context);
+      return this.get(AuthProvider, {auth: context});
     },
     api(path){
       const client = this.client();
@@ -5172,7 +5179,7 @@ eol = '\n';
 
             // await $().api('/').get().then(event => $($()).extend(event.body));
 
-            await $().url($().server.url+`/config/${$().authProvider().sub}/api.json`).get().then(event => $().extend(event.body));
+            // await $().url($().server.url+`/config/${$().authProvider().sub}/api.json`).get().then(event => $().extend(event.body));
 
             if ('Notification' in window) {
               var permission = Notification.permission;
@@ -6902,16 +6909,11 @@ eol = '\n';
       if ($().statusElem) {
         $().statusElem.text(...arguments);
       }
-      // if (window.document) {
-      //   $('console').append($('div').text(...arguments))
-      // } else {
-      //   console.msg(...arguments)
-      // }
-      // if (window.document && document.getElementById('console')){
-      //   $('console').append($('div').text(...arguments))
-      // } else {
-      //   console.msg(...arguments)
-      // }
+      if (document.getElementById('console')) {
+        $('console').append($('div').text(...arguments))
+      } else {
+        console.msg(...arguments)
+      }
       return arguments;
     },
     link(params) {
@@ -7323,7 +7325,7 @@ eol = '\n';
     },
   });
 
-  Item = Object.assign(function () {}, {
+  Object.assign(Item = function () {}, {
     get(selector, schemaName){
 
       // console.log(selector.schemaName);
@@ -7370,6 +7372,7 @@ eol = '\n';
         // console.debug(schemaName, window[schemaName]);
         // if (!window[schemaName]) return console.warn(schemaName, 'not exists');
         // console.log(schemaName, window[schemaName]);
+
         var item = window[schemaName] ? new window[schemaName]() : new Item();
         // console.debug(selector, item.schema, window[schemaName].prototype);
         // console.log(selector.properties);
@@ -9069,6 +9072,8 @@ eol = '\n';
     setTimeout(async event => await $().emit('load') && await $().emit('ready'));
     return module.exports = $;
   }
+  require = function () {};
+
 
   let localAttr = window.localStorage.getItem('attr');
   $.localAttr = localAttr = localAttr ? JSON.parse(localAttr) : {};
@@ -17655,7 +17660,7 @@ eol = '\n';
 			return this;
 		},
     script(src) {
-			return $.promise('script', resolve => $('script').src(src).parent(document.head).on('load', resolve))
+			return $.promise('script', resolve => $('script').src(src).parent(this).on('load', resolve))
 		},
     _select(event) {
 			const elem = this.elem;
@@ -18044,7 +18049,16 @@ eol = '\n';
               }),
               //revert: { disabled: !this.srcID, Title: 'Revert to inherited', item: this, onclick: function() { this.item.revertToInherited(); } },
               // $('li').class('abtn sbs').text('SBS').on('click', event => {}),
-              // $('li').class('abtn').text('Secret JSON 30 days').attr('href', `api/?request_type=secret_json&sub=${this.ID}&aud=${$.auth.access.aud}`),
+              // $('li').class('abtn').text('Api key').href(`api/?request_type=api_key&sub=${item.ID}`),
+              $('li').class('abtn').text('Api key').on('click', event => {
+                $().api('/').query('request_type', 'api_key').query('expires_after', 30).post({
+                  sub: item.ID,
+                  aud: item.ID
+                }).get().then(event => {
+                  $('dialog').open(true).parent(document.body).text(event.target.responseText);
+                  console.log(event.target.responseText);
+                })
+              }),
               // $('li').class('abtn').text('Secret JSON Unlimited').attr('href', `api/?request_type=secret_json&release&sub=${this.ID}&aud=${$.auth.access.aud}`),
               // $('li').class('abtn doc').text('Breakdown').click(event => build_map(items => $().list(items))),
               $('li').class('abtn doc').text('Breakdown').on('click', event => {
@@ -19421,6 +19435,7 @@ eol = '\n';
 
   (new URL(document.currentScript.src)).searchParams.forEach((value, key)=>$.extend($.config, minimist([key,value])));
   [...document.currentScript.attributes].forEach(attribute => $.extend($.config, minimist(['--'+attribute.name, attribute.value])));
+  [...document.currentScript.attributes].forEach(attribute => $.extend($.config, minimist([attribute.name, attribute.value])));
   (new URLSearchParams(document.location.search)).forEach((value,key)=>$.extend($.config, minimist([key,value])));
   $().extend($.config);
 

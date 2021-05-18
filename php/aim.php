@@ -4471,6 +4471,124 @@ class request_type {
     header('Content-type: application/json');
     die(json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
   }
+  public function build_data() {
+    // zie web.js datainit
+    ini_set('display_errors', 1);
+    ini_set('log_errors', 1);
+    $content = file_get_contents('php://input');
+
+    // if (isset($_GET['sub'])) {
+    //   $ID = $_GET['sub'];
+    // }
+    // else
+    if (isset($_GET['id'])) {
+      $ID = $_GET['id'];
+    }
+    else if (isset(aim()->access['sub'])) {
+      $ID = aim()->access['sub'];
+    }
+    else if ($content) {
+      $content = json_decode($content, true);
+      if (isset($content['mac'])) {
+        foreach ($content['mac'] as $mac_address => $mac_ip) {
+          $mac_address = str_replace(":","-",$mac_address);
+          $row = sqlsrv_fetch_object(aim()->query(
+            // DEBUG:
+            // "SELECT * FROM auth.mac WHERE address = %s AND ip IS NULL",
+            "SELECT * FROM auth.mac WHERE address = %s",
+            $mac_address
+          ));
+          if (isset($row->ID)) {
+            aim()->query(
+              "UPDATE auth.mac SET ip = %s WHERE ID = %d",
+              $mac_ip,
+              $row->ID
+            );
+            $ID = $row->sub;
+          }
+        }
+      }
+    }
+
+    // debug(aim()->access);
+
+    // debug(1);
+    // debug(1, $ID);
+    // debug('api1',__DIR__,$ID);
+    // debug(1, aim()->access, $_POST, $ID);
+    // debug($ID, aim()->access, getallheaders());
+    if (!isset($ID)) {
+      // die(http_response_code(401));
+      throw new Exception('Unauthorized', 401);
+    }
+    // die("THIS IS DATA");
+
+    $data = [
+      'info'=>isset(aim()->api->info) ? aim()->api->info : '',
+      'paths'=> [],
+      'components'=> [
+        'schemas'=> [],
+      ],
+      'value'=> [],
+      // 'attributes'=> []
+    ];
+    // debug(111,$data,aim()->secret['config']);
+    // debug("EXEC item.getData $ID");
+    // debug("EXEC item.build_data $ID");
+    // echo "EXEC item.build_data $ID";
+    $res = aim()->query($q = "EXEC item.build_data $ID");
+    // die($q);
+    $items = (object)[];
+    while ($row = sqlsrv_fetch_object($res)) {
+      $row->{'@id'} = "/$row->schema($row->ID)";
+      $items->{$row->ID} = $row;
+      if (isset(aim()->api->components->schemas->{$row->schema})) {
+        $data['components']['schemas'][$row->schema] = aim()->api->components->schemas->{$row->schema};
+      }
+      // if ($row->MasterID && isset($items->{$row->MasterID})) {
+      // 	if (empty($items->{$row->MasterID}->Children)) {
+      // 		$items->{$row->MasterID}->Children = [];
+      // 	}
+      // 	$items->{$row->MasterID}->Children[] = $items->{$row->ID};
+      // } else {
+      // 	$data['value'][] = $items->{$row->ID};
+      // }
+      $data['value'][] = $items->{$row->ID};
+    }
+    // foreach ($data['components']['schemas'] as $schemaName => $schema) {
+    //   if (isset($schema->operations)) {
+    //     foreach ($schema->operations as $operationName => $operation) {
+    //       $data['paths']["/$schemaName(id)/$operationName()"]["post"] = [
+    //         "operationId"=> "$schemaName(id).$operationName()",
+    //       ];
+    //     }
+    //   }
+    // }
+    // $data['paths'] = 'sdfasdfas';
+
+    // debug($data);
+    sqlsrv_next_result($res);
+    while (	$row = sqlsrv_fetch_object($res)) {
+      if (isset($items->{$row->ItemID})) {
+        $items->{$row->ItemID}->{$row->AttributeName} = $row;//array_push($data['attributes'],$row);
+      }
+    }
+
+    // foreach ($items as $item) {
+    // 	if (!isset($item->schema)) debug($item);
+    // 	if (isset(aim()->api->components->schemas->{$item->schema})) {
+    // 		$data['components']['schemas'][$item->schema] = aim()->api->components->schemas->{$item->schema};
+    // 	}
+    // }
+    // $data['value'] = array_values((array)$items);
+
+
+    $date = date("Ymd-his");
+    // header("Content-disposition: attachment; filename=aliconnect-export-$date-$ID-data.json");
+    header('Content-type: application/json');
+    // die(json_encode($data));
+    die(json_encode($data));
+  }
   public function build_node_data() {
     // gebruikt door node.js, opbouwen data voor node
     ini_set('display_errors', 0);
@@ -4637,122 +4755,6 @@ class request_type {
 		$attachement['filename'] = '/test.pdf';
 		file_put_contents($_SERVER['DOCUMENT_ROOT'].$attachement['filename'], $dompdf->output());
 	}
-  public function build_data() {
-    // zie web.js datainit
-    ini_set('display_errors', 1);
-    ini_set('log_errors', 1);
-    $content = file_get_contents('php://input');
-
-    // if (isset($_GET['sub'])) {
-    //   $ID = $_GET['sub'];
-    // }
-    // else
-    if (isset(aim()->access['sub'])) {
-      $ID = aim()->access['sub'];
-    }
-    else if (isset($_GET['id'])) {
-      $ID = $_GET['id'];
-    }
-    else if ($content) {
-      $content = json_decode($content, true);
-      if (isset($content['mac'])) {
-        foreach ($content['mac'] as $mac_address => $mac_ip) {
-          $mac_address = str_replace(":","-",$mac_address);
-          $row = sqlsrv_fetch_object(aim()->query(
-            // DEBUG:
-            // "SELECT * FROM auth.mac WHERE address = %s AND ip IS NULL",
-            "SELECT * FROM auth.mac WHERE address = %s",
-            $mac_address
-          ));
-          if (isset($row->ID)) {
-            aim()->query(
-              "UPDATE auth.mac SET ip = %s WHERE ID = %d",
-              $mac_ip,
-              $row->ID
-            );
-            $ID = $row->sub;
-          }
-        }
-      }
-    }
-
-    // debug(aim()->access);
-
-    // debug(1);
-    // debug(1, $ID);
-    // debug('api1',__DIR__,$ID);
-    // debug(1, aim()->access, $_POST, $ID);
-    // debug($ID, aim()->access, getallheaders());
-    if (!isset($ID)) {
-      // die(http_response_code(401));
-      throw new Exception('Unauthorized', 401);
-    }
-    // die("THIS IS DATA");
-
-    $data = [
-      'info'=>isset(aim()->api->info) ? aim()->api->info : '',
-      'paths'=> [],
-      'components'=> [
-        'schemas'=> [],
-      ],
-      'value'=> [],
-      // 'attributes'=> []
-    ];
-    // debug(111,$data,aim()->secret['config']);
-    // debug("EXEC item.getData $ID");
-    $res = aim()->query($q = "EXEC item.build_data $ID");
-    // die($q);
-    $items = (object)[];
-    while (	$row = sqlsrv_fetch_object($res)) {
-      $row->{'@id'} = "/$row->schema($row->ID)";
-      $items->{$row->ID} = $row;
-      if (isset(aim()->api->components->schemas->{$row->schema})) {
-        $data['components']['schemas'][$row->schema] = aim()->api->components->schemas->{$row->schema};
-      }
-      // if ($row->MasterID && isset($items->{$row->MasterID})) {
-      // 	if (empty($items->{$row->MasterID}->Children)) {
-      // 		$items->{$row->MasterID}->Children = [];
-      // 	}
-      // 	$items->{$row->MasterID}->Children[] = $items->{$row->ID};
-      // } else {
-      // 	$data['value'][] = $items->{$row->ID};
-      // }
-      $data['value'][] = $items->{$row->ID};
-    }
-    // foreach ($data['components']['schemas'] as $schemaName => $schema) {
-    //   if (isset($schema->operations)) {
-    //     foreach ($schema->operations as $operationName => $operation) {
-    //       $data['paths']["/$schemaName(id)/$operationName()"]["post"] = [
-    //         "operationId"=> "$schemaName(id).$operationName()",
-    //       ];
-    //     }
-    //   }
-    // }
-    // $data['paths'] = 'sdfasdfas';
-
-    // debug($data);
-    sqlsrv_next_result($res);
-    while (	$row = sqlsrv_fetch_object($res)) {
-      if (isset($items->{$row->ItemID})) {
-        $items->{$row->ItemID}->{$row->AttributeName} = $row;//array_push($data['attributes'],$row);
-      }
-    }
-
-    // foreach ($items as $item) {
-    // 	if (!isset($item->schema)) debug($item);
-    // 	if (isset(aim()->api->components->schemas->{$item->schema})) {
-    // 		$data['components']['schemas'][$item->schema] = aim()->api->components->schemas->{$item->schema};
-    // 	}
-    // }
-    // $data['value'] = array_values((array)$items);
-
-
-    $date = date("Ymd-his");
-    // header("Content-disposition: attachment; filename=aliconnect-export-$date-$ID-data.json");
-    header('Content-type: application/json');
-    // die(json_encode($data));
-    die(json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-  }
   public function uploadfile() {
     // debug(1);
   	$src = $_SERVER['DOCUMENT_ROOT'].explode('alicon.nl',$_POST['src'])[1];
@@ -4844,6 +4846,37 @@ class request_type {
     }
     return $data;
   }
+  public function api_key() {
+		// debug($_POST, aim()->access);
+		// $keys = array_merge($_GET,$_POST);
+		// extract($keys);
+		// extract($_GET);
+		// extract($_POST);
+    // {"api_key":"eyJ0eXAiOiJKV1QiLCJhbGciOiJzaGEyNTYifQ.eyJpc3MiOiJyd3MuYWxpY29ubmVjdC5ubCIsImNsaWVudF9pZCI6MzY2NjEzNCwiYXVkIjoiMjgwNDM0MiIsInN1YiI6IjI4MDQzNDIiLCJzY29wZSI6Im5hbWUsZW1haWwsbW9iaWxlIHdlYnNpdGUucmVhZCBuYW1lIGVtYWlsIiwiaWF0IjoxNjIxMzMzODExLCJleHAiOjE2MjEzMzQ1MzEsIm5vbmNlIjoiRjBBNjYzMzYtOTc3RS00NDNELUFEOTAtRTQwMTA0OTNDMzc0In0.mTwK8qwjrn6jCLD0Dr4RjTNR6iaDVDEB8g0DpHz0ZQk"}
+		// $client_secret = $_POST['client_secret'];
+		// unset($keys['client_secret'], $keys['expires_after'], $keys['request_type']);
+		$options = array_replace(aim()->access, $_POST, [
+			// 'iss' => AIM_DOMAIN.".aliconnect.nl", // Audience, id of host, owner of scope
+			// 'aud' => (int)$account->ClientID, // Audience, id of host, owner of scope
+			// 'azp' => (int)$account->ClientID, // From config.json
+			// 'client_id' => (int)$account->ClientID, // Client Identifier // application
+			// 'scope' => implode(' ',[$scope, $account->GrantScope]),//trim($scope . (isset($scope) ? ' '.$scope->scope : '' )), // Scope Values
+			'exp' => time() + 24 * $_GET['expires_after'], // Expiration Time
+			'iat' => time(), // Issued At
+		]);
+		// die($client_secret);0
+		// debug(aim()->access, getallheaders());
+		// return die(jwt_encode(aim()->access, aim()->client_secret ));
+		return [
+			'api_key'=> jwt_encode($options, aim()->client_secret),
+			// 'options'=> $options,
+		];
+			// debug($_POST);
+		// $content = file_get_contents('php://input');
+		// $name = $_SERVER['DOCUMENT_ROOT'].'/shared/upload/'.date('YmdhIs').'.xml';
+		// file_put_contents($name, $content);
+		// die($name);
+	}
 
 
   // request_tyoe sms ????
@@ -5589,36 +5622,6 @@ class request_type {
 		$content = file_get_contents('php://input');
 		// debug($content, $_POST);
 		die(yaml_emit(json_decode($content, true)));
-	}
-	public function _API_key() {
-		// debug($_POST, aim()->access);
-		$keys = array_merge($_GET,$_POST);
-		extract($keys);
-		// extract($_GET);
-		// extract($_POST);
-		// $client_secret = $_POST['client_secret'];
-		unset($keys['client_secret'], $keys['expires_after'], $keys['request_type']);
-		$options = array_replace(aim()->access, array_filter($keys), [
-			'iss' => AIM_DOMAIN.".aliconnect.nl", // Audience, id of host, owner of scope
-			// 'aud' => (int)$account->ClientID, // Audience, id of host, owner of scope
-			// 'azp' => (int)$account->ClientID, // From config.json
-			// 'client_id' => (int)$account->ClientID, // Client Identifier // application
-			// 'scope' => implode(' ',[$scope, $account->GrantScope]),//trim($scope . (isset($scope) ? ' '.$scope->scope : '' )), // Scope Values
-			'exp' => time() + 24 * $expires_after, // Expiration Time
-			'iat' => time(), // Issued At
-		]);
-		// die($client_secret);0
-		// debug(aim()->access, getallheaders());
-		// return die(jwt_encode(aim()->access, aim()->client_secret ));
-		return [
-			'api_key'=> jwt_encode($options, aim()->client_secret),
-			'options'=> $options,
-		];
-			// debug($_POST);
-		// $content = file_get_contents('php://input');
-		// $name = $_SERVER['DOCUMENT_ROOT'].'/shared/upload/'.date('YmdhIs').'.xml';
-		// file_put_contents($name, $content);
-		// die($name);
 	}
 
   public function _build() {

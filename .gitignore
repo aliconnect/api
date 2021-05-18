@@ -6,13 +6,16 @@ __**
 **Copy**
 **kopie**
 
-*[a-zA-Z][0-9].*
+*[a-zA-Z][0-9].js
+*[a-zA-Z][0-9].css
+*[a-zA-Z][0-9].html
+*[a-zA-Z][0-9].yaml
+*[a-zA-Z][0-9].md
 
 **.mp4
 **.svg
 **.log
 **.exe
-
 
 *test*
 
