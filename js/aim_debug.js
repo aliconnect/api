@@ -6906,11 +6906,10 @@ eol = '\n';
     },
 
     log() {
-      if ($().statusElem) {
-        $().statusElem.text(...arguments);
-      }
       if (document.getElementById('console')) {
         $('console').append($('div').text(...arguments))
+      } else if ($().statusElem) {
+        $().statusElem.text(...arguments);
       } else {
         console.msg(...arguments)
       }
