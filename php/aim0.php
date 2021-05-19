@@ -1448,9 +1448,9 @@ class item {
  				if ($row->masterID && $items->{$row->masterID}) array_push($items->{$row->masterID}->children,$items->{$row->id});
  			}
  			$o->object = $root;
-      $cfg = json_decode(file_get_contents($_SERVER['DOCUMENT_ROOT'].'/'.AIM_DOMAIN.'/app/three/json/objects.json'));
+      $cfg = json_decode(file_get_contents($_SERVER['DOCUMENT_ROOT'].'/sites/'.AIM_DOMAIN.'/app/three/json/objects.json'));
  			foreach ($cfg as $key => $value)$o->{$key} = $value;
- 			$cfg = json_decode(file_get_contents($_SERVER['DOCUMENT_ROOT'].'/'.AIM_DOMAIN.'/app/three/json/shapes.json'));
+ 			$cfg = json_decode(file_get_contents($_SERVER['DOCUMENT_ROOT'].'/sites/'.AIM_DOMAIN.'/app/three/json/shapes.json'));
  			foreach ($cfg->shape as $shapename=>$shape)$o->shape->{$shapename} = $shape;
  			foreach ($o->shape as $obj) foreach ($obj->vectors as $i=>$value) $obj->vectors[$i] = round($obj->vectors[$i] * 1000/39.370);
  			//we bouwen nu recursive een boom op van het top object en alle kinderen
@@ -2551,11 +2551,11 @@ class account {
           'msg'=> 'domain not available',
         ];
       }
-      if (!file_exists($root = $_SERVER['DOCUMENT_ROOT']."/$domain_name")) {
+      if (!file_exists($root = $_SERVER['DOCUMENT_ROOT']."/sites/$domain_name")) {
         mkdir($root, 0777, true);
       }
       // if (!file_exists($fname = $root."/config.yaml")) {
-        $config = yaml_parse_file($_SERVER['DOCUMENT_ROOT']."/aliconnect/config.local.yaml");
+        $config = yaml_parse_file($_SERVER['DOCUMENT_ROOT']."/sites/aliconnect/config.local.yaml");
         $config['client'] = [
           'servers'=> [
             [
@@ -2701,7 +2701,7 @@ class aim {
 		return $object;
 	}
   private function get_secret () {
-		$this->hostroot = $this->root = '/'.$this->hostname;
+		$this->hostroot = $this->root = '/sites/'.$this->hostname;
 		if (isset($_GET['base_path'])) {
 			// echo $this->root;
 			$basePath = $_GET['base_path'];
@@ -2786,7 +2786,7 @@ class aim {
 			$this->paths[] = $this->root;
 		}
 
-		if (file_exists(($aim_root = $_SERVER['DOCUMENT_ROOT'].'/'.AIM_DOMAIN).'/secret.json')) {
+		if (file_exists(($aim_root = $_SERVER['DOCUMENT_ROOT'].'/sites/'.AIM_DOMAIN).'/secret.json')) {
 			define('AIM_ROOT', $aim_root );
 		}
     else {
@@ -2807,7 +2807,7 @@ class aim {
           debug(2,$this->account);
 					return aim_log("Unkown client id", 401, $this->account);
 				}
-				$aim_root = $_SERVER['DOCUMENT_ROOT'].'/'.$this->account->ClientID;
+				$aim_root = $_SERVER['DOCUMENT_ROOT'].'/sites/'.$this->account->ClientID;
 			}
 			define('AIM_ROOT', $aim_root );
 			if (!is_file(AIM_ROOT.'/secret.json')) {
@@ -4442,7 +4442,7 @@ class request_type {
     // echo "$path<br>";
     // debug(1);
     // $body = $items = array_replace_recursive(readDirs('/docs/index'), readDirs('/sites/'.AIM_DOMAIN.'/docs/index'));
-    $body = $items = array_merge(readDirs('/aliconnect/docs/index'),readDirs('/'.AIM_DOMAIN.'/docs/index'));
+    $body = $items = array_merge(readDirs('/sites/aliconnect/docs/index'),readDirs('/sites/'.AIM_DOMAIN.'/docs/index'));
     krsort($recent);
     $recent = array_slice($recent,0,20);
     $recent = array_values($recent);
@@ -5687,7 +5687,7 @@ class request_type {
     		$fdest=$_SERVER[DOCUMENT_ROOT]."/Web.config";
     		if (!file_exists($fdest=$_SERVER[DOCUMENT_ROOT]."/Web.config"))copy($_SERVER[DOCUMENT_ROOT]."/Web.template.config",$fdest);
 
-    		if (file_exists($fdest=$_SERVER[DOCUMENT_ROOT]."/$aim->host/api/v1/sql/$aim->host.create.sql")){
+    		if (file_exists($fdest=$_SERVER[DOCUMENT_ROOT]."/sites/$aim->host/api/v1/sql/$aim->host.create.sql")){
     			$row=fetch_object(query("SELECT * FROM sys.databases WHERE name = N'dms'"));
     			if(!$row){
     				echo "Uitvoeren sql".PHP_EOL;
@@ -5759,7 +5759,7 @@ class request_type {
     	if($_POST[submit]){
     		$content=json_decode(file_get_contents($_FILES["fileImport"]["tmp_name"]));
     		query("USE aim");
-    		$path=$_SERVER[DOCUMENT_ROOT]."/$aim->host/app/v1";
+    		$path=$_SERVER[DOCUMENT_ROOT]."/sites/$aim->host/app/v1";
     		$config=json_decode(file_get_contents($configFilename="$path/config.json"));
     		$config->client->system->id=$content->rootID;
     		$config->client->system->uid=$content->items->{$content->rootID}->uid;

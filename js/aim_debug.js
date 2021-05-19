@@ -3302,9 +3302,9 @@ eol = '\n';
     tree(selector) {
       return this.getObject(arguments.callee.name, Treeview, [...arguments]);
 		},
-    ucFirst(){
-      return this.selector[0].toUpperCase() + this.selector.substr(1);
-    },
+    // ucFirst(){
+    //   return this.selector[0].toUpperCase() + this.selector.substr(1);
+    // },
     url(selector){
       return new Request(...arguments);
       // return this.props('url', this.props('url') || new URL(selector || '/', document.location));
@@ -5165,9 +5165,11 @@ eol = '\n';
             $('footer').statusbar(),
           );
           $(document.body).messagesPanel();
-          ($().server = $().server || {}).url = $().server.url || (document.location.origin + '/api');
+          console.log(document.location.hostname.split('.')[0]);
+          ($().server = $().server || {}).url = $().server.url || ('//' + document.location.hostname.split('.')[0] + '.aliconnect.nl/api');
           console.log($().server.url);
-          await $().url($().server.url+'.json').get().then(event => $().extend(event.body));
+
+          await $().url($().server.url+'/').get().then(event => $().extend(event.body));
           // return;
           await $().translate();
           // await $().getApi(document.location.origin+'/api/');
@@ -12908,7 +12910,7 @@ eol = '\n';
 			// //console.log(html);
 			var xhr = new XMLHttpRequest();
 			//xhr.open('GET', this.menuitem.template, true);//'/moba/utildoc/sjabloon.mht', true);
-			xhr.open('GET', '/sites/' + $.host + '/app/mht/template.mht', true);
+			xhr.open('GET', '/' + $.host + '/app/mht/template.mht', true);
 			xhr.responseType = 'blob';
 			//xhr.menuitem = this.menuitem;
 			xhr.onload = function () {
@@ -15600,7 +15602,9 @@ eol = '\n';
             $(elem).href('?md='+src);
           }
           let src = elem.getAttribute('href')||'';
-          if (src.match(/^http/)) {
+          if (src.match(/\?md=/)) {
+            $(elem).href(src.replace(/.*(?=\?md=)/,''));
+          } else if (src.match(/^http/)) {
             // const url = new URL(src);
             // src = url.origin + url.pathname;
           } else if (src.match(/^\/[^\/]/)) {
@@ -15651,8 +15655,11 @@ eol = '\n';
         .then(event => {
   				let content = event.target.responseText;
 
-          const filename = event.target.responseURL;
-          const title = filename.split('/').pop().split('.').shift().replace(/-/g,' ');
+          const filename = event.target.responseURL.replace(/\/\//g,'/');
+          const title = filename.match(/README.md$/)
+          ? filename.replace(/\/README.md$/,'').split('/').pop().split('.').shift().capitalize()
+          : filename.split('/').pop().split('.').shift().replace(/-/g,' ');
+
           const date = event.target.getResponseHeader('last-modified');
           console.log(event.target.getAllResponseHeaders());
           console.log(filename, date);
@@ -15715,7 +15722,7 @@ eol = '\n';
   				});
           if (wikiPath) {
             $().url(wikiPath+'/_Footer.md').accept('text/markdown').get()
-            .then(event => mdRewriteRef(event, $('section').parent(this.docElem).md(event.target.responseText)));
+            .then(event => mdRewriteRef(event, $('section').class('footer').parent(this.docElem).md(event.target.responseText)));
           }
   			});
       };
