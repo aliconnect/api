@@ -2099,7 +2099,7 @@ eol = '\n';
       }
     },
     onmessage(event){
-      console.debug('ws.onmessage', event.data);
+      // console.debug('ws.onmessage', event.data);
       const ws = event.target;
       const config = this.config;
       let data = event.data;
@@ -3366,8 +3366,8 @@ eol = '\n';
           // window.focus();
         });
 
-    		navigator.serviceWorker.register('/v1/api/js/sw.js', { scope: '/' }).then(function(registration) {
-    			console.log('Registration successful, scope is:', registration.scope, navigator.serviceWorker);
+    		navigator.serviceWorker.register('/api/js/sw.js', { scope: '/' }).then(function(registration) {
+    			// console.log('Registration successful, scope is:', registration.scope, navigator.serviceWorker);
           $().sw = registration;
           return;
 
