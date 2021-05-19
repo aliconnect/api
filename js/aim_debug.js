@@ -748,7 +748,7 @@ eol = '\n';
         // console.error(auth.id_token);
       }
       const access_token = auth.api_key || auth.access_token || auth.id_token;
-      console.log([access_token, auth.api_key, auth.access_token, auth.id_token]);
+      // console.log([access_token, auth.api_key, auth.access_token, auth.id_token]);
       if (access_token){
         try {
           // console.error(access_token);
@@ -1729,13 +1729,7 @@ eol = '\n';
       return this;
     },
     http(){
-      this.promise = $.promise( 'http', resolve => typeof XMLHttpRequest !== 'undefined' ? this.web(resolve) : this.node(resolve));
-      return this;
-    },
-    then(){
-      this.promise.then(...arguments);
-      return this;
-      // return $.promise( 'http', resolve => typeof XMLHttpRequest !== 'undefined' ? this.web(resolve) : this.node(resolve));
+      return $.promise('http', (resolve,reject) => typeof XMLHttpRequest !== 'undefined' ? this.web(resolve,reject) : this.node(resolve,reject));
     },
     body(callback){
       this.promise.then(event => callback(event.body));
@@ -1765,7 +1759,7 @@ eol = '\n';
           this.input.data.append(param.submitter.name, param.submitter.value);
         };
       } else if (param.constructor){
-        console.log('param.constructor.name', param.constructor.name);
+        // console.log('param.constructor.name', param.constructor.name);
         if (['Object','Array'].includes(param.constructor.name)){
           if (formData) {
             this.input.data = new FormData();
@@ -1872,7 +1866,6 @@ eol = '\n';
           // event.body || this.responseText,
         );
       }
-      this.resolve(event);
     },
     onprogress(event){
       console.debug('onprogressssssssssssssssssssss', event.type, event);
@@ -1933,8 +1926,9 @@ eol = '\n';
       this.URL.headers = this.URL.headers || {};
       this.input.data = null;
     },
-    web(resolve){
-      this.resolve = resolve;
+    web(resolve,reject){
+      // console.log('AAAAA',resolve,reject,this);
+      // this.resolve = resolve;
       const xhr = new XMLHttpRequest();
       xhr.request = this;
       const url = this.URL.toString();
@@ -1949,6 +1943,11 @@ eol = '\n';
         if (xhr.waitfolder){
           window.collist.setAttribute('wait', Number(window.collist.getAttribute('wait')) - 1);
         }
+        if (xhr.status !== 200) {
+          return reject(xhr.status);
+          // throw 'FOUTJE';
+          // reject('STATUS', xhr.status);
+        }
         try {
           event.body = xhr.responseText;
           if (xhr.getResponseHeader('content-type').includes('application/json')){
@@ -1957,8 +1956,8 @@ eol = '\n';
         } catch(err){
           console.error('JSON error', xhr, xhr.responseText.substr(0,2000));
         }
-
         this.onload(event);
+        resolve(event);
       });
       if ($.statusbar) {
         xhr.total = xhr.loaded = 0;
@@ -1978,8 +1977,12 @@ eol = '\n';
       }
       Object.entries(this.URL.headers).forEach(entry => xhr.setRequestHeader(...entry));
       xhr.startTime = new Date();
-      xhr.send(this.input.data);
-      return xhr;
+      try {
+        xhr.send(this.input.data);
+      } catch(err) {
+
+      }
+      // return xhr;
       // $().status('main', url);
       // xhr.withCredentials = url.includes(document.location.origin);
       // xhr.setCharacterEncoding("UTF-8");
@@ -1997,7 +2000,7 @@ eol = '\n';
         this.setState('CONNECTING', `Connecting ${this.url}`);
         if (this.WebSocket) return resolve(this);
         this.resolve = resolve;
-        console.debug('connect');
+        // console.debug('connect');
         Object.assign(this.WebSocket = new window.WebSocket(this.url), {
           messages: [],
           requests: {},
@@ -3335,7 +3338,7 @@ eol = '\n';
       });
     },
     libraries() {
-      console.log('LIBRARIES', ...arguments);
+      // console.log('LIBRARIES', ...arguments);
     },
     qrcode() {
       const elem = document.head.appendChild(document.createElement('script'));
@@ -3410,7 +3413,7 @@ eol = '\n';
       return $().api('/').query('extend', true).post({config: yaml});
     },
     web() {
-      console.log('WEB');
+      // console.log('WEB');
       // const el = document.createElement('link');
       // el.rel = 'stylesheet';
       // el.href = 'https://aliconnect.nl/v1/api/css/web.css';
@@ -3784,10 +3787,10 @@ eol = '\n';
       })
       .on('drop', event => private.targetItemElement ? handleData(private.targetItemElement.item, event) : null)
       .on('focus', event => {
-        console.log('FOCUS');
+        // console.log('FOCUS');
 
         if ($().authProvider().access_token) {
-          console.log('JE BENT INGELOGT, DUS CONTROLEREN OF TOKEN NOG OK IS ALS HET EEN INLOG TOKEN IS');
+          // console.log('JE BENT INGELOGT, DUS CONTROLEREN OF TOKEN NOG OK IS ALS HET EEN INLOG TOKEN IS');
           const access = $().authProvider().access;
           // als een nonce aanwezig is dan is het een inlog token.
           // controleer of token nog actief is, c.q. gebruiker is ingelogt
@@ -3796,13 +3799,12 @@ eol = '\n';
               request_type: 'access_token_verification',
               // access_token: $().authProvider().access_token,
             }).then(event => {
-              console.log(event.target.status);
               if (event.target.status !== 200) {
                 $().logout();
               }
             });
           }
-          console.log($().authProvider());
+          // console.log($().authProvider());
 
         }
 
@@ -4282,7 +4284,7 @@ eol = '\n';
       .on('paste', event => handleData($.nav.itemFocussed, event))
       .on('popstate', event => {
         var url = new URL(document.location);
-        console.log('POPSTATE', url.searchParams.get('md'));
+        // console.log('POPSTATE', url.searchParams.get('md'));
         event.preventDefault();
         // return;
         // if (document.location.pathname.includes('wiki/')) {
@@ -5054,7 +5056,7 @@ eol = '\n';
 
     },
     start() {
-      console.log('START');
+      // console.log('START');
       return;
       if ($.user) $().dashboard();
       else $().home();
@@ -5165,15 +5167,13 @@ eol = '\n';
             $('footer').statusbar(),
           );
           $(document.body).messagesPanel();
-          console.log(document.location.hostname.split('.')[0]);
+          // console.log(document.location.hostname.split('.')[0]);
           ($().server = $().server || {}).url = $().server.url || ('//' + document.location.hostname.split('.')[0] + '.aliconnect.nl/api');
-          console.log($().server.url);
+          // console.log($().server.url);
 
-          await $().url($().server.url+'/').get().then(event => $().extend(event.body));
-          // return;
+          await $().url($().server.url+'/').get().then(event => $().extend(event.body)).catch(console.error);
           await $().translate();
           // await $().getApi(document.location.origin+'/api/');
-
 
           await $().login();
 
@@ -5480,7 +5480,7 @@ eol = '\n';
           // }
 
           if ($().aud) {
-            console.log($().aud, $({tag: `Company(${$().aud})`}));
+            // console.log($().aud, $({tag: `Company(${$().aud})`}));
             $().elemMenu.showMenuTop($({tag: `Company(${$().aud})`}));
           }
 
@@ -5598,7 +5598,7 @@ eol = '\n';
       });
     },
     loadclient() {
-      console.log('AA');
+      // console.log('AA');
       $().on({
         load() {
           if ($().script && $().script.src) {
@@ -6671,7 +6671,7 @@ eol = '\n';
         return client;
       }
     }),
-    promise(selector, callback) {
+    promise(selector, context) {
       const messageElem = $.statusbar ? $('span').parent($.statusbar.main).text(selector) : null;
       // $().progress(1, 1);
       // const progressElem = $.statusbar.progress;
@@ -6680,7 +6680,7 @@ eol = '\n';
       if (Aim.LOGPROMISE) {
         console.debug(selector, 'start');
       }
-      return new Promise( callback )
+      return new Promise( context )
       .then( result => {
         // $().progress(-1, -1);
         if (messageElem) {
@@ -7962,7 +7962,7 @@ eol = '\n';
       return $.promise( 'Details', resolve => {
         if (reload || !this.hasDetails){
           this.data = {};
-          this.get().then(event => resolve(event.body, this.hasDetails = true));
+          this.get().then(event => resolve(event.body, this.hasDetails = true)).catch(console.error);
         } else {
           resolve(this)
         }
@@ -9074,7 +9074,6 @@ eol = '\n';
     return module.exports = $;
   }
   require = function () {};
-
 
   let localAttr = window.localStorage.getItem('attr');
   $.localAttr = localAttr = localAttr ? JSON.parse(localAttr) : {};
@@ -15576,8 +15575,12 @@ eol = '\n';
       if (src.match(/\w+\(\d+\)/)) {
         return;
       }
-      const homePath = $().ref.home;
-      const wikiPath = $().ref.wiki;
+      // const homePath = $().ref.home;
+      // const wikiPath = $().ref.wiki;
+      const homePath = document.location.origin;
+      const wikiPath = document.location.origin + '/wiki';
+      // const wikiPath = document.location.hostname.match(/aliconnect\.nl&/) ? document.location.origin + '/wiki' : ;
+
       src += src.match(/\/wiki/) ? '.md' : '/README.md';
       this.text('').append(
         $('div').class('row doc aco').append(
@@ -15592,7 +15595,7 @@ eol = '\n';
       );
       function mdRewriteRef (event, elem) {
         const filename = event.target.responseURL;
-        console.warn(filename);
+        // console.warn(filename);
         [...elem.elem.getElementsByTagName('A')].forEach(elem => {
           function setsrc(src){
             src = src.replace(/\/wiki$/, '/wiki/Home');
@@ -15644,14 +15647,15 @@ eol = '\n';
 
       if (wikiPath) {
         $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
-        .then(event => mdRewriteRef(event, this.homeElem.md(event.target.responseText)));
+        .then(event => mdRewriteRef(event, this.homeElem.md(event.target.responseText)))
+        .catch(console.error);
       }
-
       const contentLoad = src => {
   			$()
         .url(src)
         .accept('text/markdown')
         .get()
+        .catch(err => console.log(err))
         .then(event => {
   				let content = event.target.responseText;
 
@@ -15661,8 +15665,8 @@ eol = '\n';
           : filename.split('/').pop().split('.').shift().replace(/-/g,' ');
 
           const date = event.target.getResponseHeader('last-modified');
-          console.log(event.target.getAllResponseHeaders());
-          console.log(filename, date);
+          // console.log(event.target.getAllResponseHeaders());
+          // console.log(filename, date);
   				content = content.replace(/<\!-- sample button -->/gs,`<button onclick="$().demo(event)">Show sample</button>`);
   				try {
   					// eval('content=`'+content.replace(/\`/gs,'\\`')+'`;');
@@ -15722,7 +15726,8 @@ eol = '\n';
   				});
           if (wikiPath) {
             $().url(wikiPath+'/_Footer.md').accept('text/markdown').get()
-            .then(event => mdRewriteRef(event, $('section').class('footer').parent(this.docElem).md(event.target.responseText)));
+            .then(event => mdRewriteRef(event, $('section').class('footer').parent(this.docElem).md(event.target.responseText)))
+            .catch(console.error);
           }
   			});
       };
@@ -19503,10 +19508,10 @@ eol = '\n';
     // });
   }
   window.addEventListener('load', event => {
-    console.debug('AIM LOAD');
+    // console.debug('AIM LOAD');
     $().emit('load').then(event => {
       $().emit('ready').then(event => {
-        console.debug('AIM READY')
+        // console.debug('AIM READY')
         $(window).emit('popstate');
         $(window).emit('focus');
       });
