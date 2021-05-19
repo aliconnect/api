@@ -15595,7 +15595,6 @@ eol = '\n';
       );
       function mdRewriteRef (event, elem) {
         const filename = event.target.responseURL;
-        // console.warn(filename);
         [...elem.elem.getElementsByTagName('A')].forEach(elem => {
           function setsrc(src){
             src = src.replace(/\/wiki$/, '/wiki/Home');
@@ -15609,8 +15608,6 @@ eol = '\n';
             $(elem).href(src.replace(/.*(?=\?md=)/,''));
           } else if (src.match(/^http/)) {
             $(elem).target('site')
-            // const url = new URL(src);
-            // src = url.origin + url.pathname;
           } else if (src.match(/^\/[^\/]/)) {
             const url = new URL(filename);
             setsrc(url.origin + src);
@@ -15618,13 +15615,6 @@ eol = '\n';
             const url = new URL(src, filename.replace(/[^\/]+$/,''));
             setsrc(url.origin + url.pathname);
           }
-          // if (!src.match(/\.\w+$/)) {
-          //   $(elem).href('?md='+src);
-          // }
-          // if (!src.match(/^http/)) {
-          //   console.log(src);
-          //   $(elem).href('?md='+src);
-          // }
         });
         [...elem.elem.getElementsByTagName('IMG')].forEach(elem => {
           let src = elem.getAttribute('src')||'';
@@ -15660,20 +15650,26 @@ eol = '\n';
         .then(event => {
   				let content = event.target.responseText;
 
-          const filename = event.target.responseURL.replace(/\/\//g,'/');
-          const title = filename.match(/README.md$/)
-          ? filename.replace(/\/README.md$/,'').split('/').pop().split('.').shift().capitalize()
-          : filename.split('/').pop().split('.').shift().replace(/-/g,' ');
+          var title = event.target.responseURL.replace(/\/\//g,'/');
+          const match = content.match(/^#\s(.*)/);
+          if (match) {
+            content = content.replace(/^#.*/,'');
+            title = match[1];
+          } else {
+            title = title.match(/README.md$/)
+            ? title.replace(/\/README.md$/,'').split('/').pop().split('.').shift().capitalize()
+            : title.split('/').pop().split('.').shift().replace(/-/g,' ');
+            title = title.replace(/-/,' ');
+          }
 
           const date = event.target.getResponseHeader('last-modified');
-          // console.log(event.target.getAllResponseHeaders());
-          // console.log(filename, date);
   				content = content.replace(/<\!-- sample button -->/gs,`<button onclick="$().demo(event)">Show sample</button>`);
   				try {
   					// eval('content=`'+content.replace(/\`/gs,'\\`')+'`;');
   				} catch (err) {
   					//console.error(err);
   				}
+
   				mdRewriteRef(event, this.docElem.text('').append(
             $('h1').text(title).append(
               date ? $('div').class('modified').text(__('Last modified'), new Date(date).toLocaleString()) : null,
