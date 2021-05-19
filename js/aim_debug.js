@@ -15608,6 +15608,7 @@ eol = '\n';
           if (src.match(/\?md=/)) {
             $(elem).href(src.replace(/.*(?=\?md=)/,''));
           } else if (src.match(/^http/)) {
+            $(elem).target('site')
             // const url = new URL(src);
             // src = url.origin + url.pathname;
           } else if (src.match(/^\/[^\/]/)) {
