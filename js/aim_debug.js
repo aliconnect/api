@@ -3571,7 +3571,8 @@ eol = '\n';
 
 
 
-        for (let elem of event.path.filter(elem => elem instanceof Element)) {
+        if (!event.ctrlKey && !event.shiftKey && !event.altKey) {
+          for (let elem of event.path.filter(elem => elem instanceof Element)) {
           if (elem.is && elem.is.has('ofile') && elem.is.get('ofile').src.match(/\.(jpg|png|bmp|jpeg|gif|bin|mp4|webm|mov|3ds)/i)) {
             return $(document.body).slider(elem)
           }
@@ -3579,7 +3580,13 @@ eol = '\n';
           //   return document.location.href = '#?src='+elem.getAttribute('src');
           // }
           if (elem.hasAttribute('href')) {
-            console.log('CLICK MAIN', elem.href.includes('/wiki/'), elem.getAttribute('href'));
+            // console.log('CLICK MAIN', elem.href.includes('/wiki/'), elem.getAttribute('href'));
+            if (elem.getAttribute('href').match(/^\/\//)) {
+              event.preventDefault();
+              window.history.pushState('page', 'test1', '?md='+elem.getAttribute('href'));
+              $(window).emit('popstate');
+              return;
+            }
             var url = new URL(elem.href);
             if (url.searchParams.has('md')) {
               event.preventDefault();
@@ -3605,6 +3612,8 @@ eol = '\n';
             //   return;// event.preventDefault();
             }
           }
+        }
+
         }
 
 
@@ -15578,17 +15587,17 @@ eol = '\n';
       // const homePath = $().ref.home;
       // const wikiPath = $().ref.wiki;
 
-      console.warn(src);
 
       // 'https://schiphol-nl.github.io'
       // 'https://raw.githubusercontent.com/wiki/schiphol-nl/schiphol-nl.github.io/Home.md'
 
       // src = src.replace(/\/\/github.com/, '//raw.githubusercontent.com');
-      console.warn(src);
-
+      const startsrc = src;
       const homePath = document.location.origin;
-      console.warn(src);
+      const origin = new URL(src, document.location).origin;
+      // console.warn(src, origin);
       src = src.replace(/\/wiki$/, '/wiki/Home');
+      src = src.replace(/\/tree|\/blob/, '');
       src = src.replace(/\/$/,'') + (src.match(/\/wiki/) ? '.md' : '/README.md');
       src = src.replace(/github.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
       var url = new URL(src, document.location);
@@ -15607,10 +15616,10 @@ eol = '\n';
           var wikiPath = match[1];
         }
       }
-      console.log('wikiPath', wikiPath);
+      // console.log('wikiPath', wikiPath);
 
-      src = url.toString();
-      console.warn(src);
+      // src = url.toString();
+      // console.warn(src);
       // var match = url.href.match(/^.*?\/wiki/);
       // const wikiPath = match ? match[0] : url.origin + '/wiki';
       // const wikiPath = document.location.hostname.match(/aliconnect\.nl&/) ? document.location.origin + '/wiki' : ;
@@ -15636,8 +15645,8 @@ eol = '\n';
             // src = src.replace(/\/wiki$/, '/wiki/Home');
             // src = src.replace(/github.com/, 'raw.githubusercontent.com');
             // src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
-            src = src.replace(/\/tree|\/blob/, '');
-            $(elem).href('?md='+src);
+            // $(elem).href('?md='+src);
+            $(elem).href(src.replace(/.*?:/,''));
           }
           let src = elem.getAttribute('href')||'';
           if (src.match(/^http/)) {
@@ -15649,15 +15658,18 @@ eol = '\n';
           if (src.match(/\?md=/)) {
             return $(elem).href(src.replace(/.*(?=\?md=)/,''));
           }
-          if (src.match(/^\/[^\/]/)) {
-            var url = new URL(filename);
-            src = url.origin + src;
+          if (src.match(/^\/(?=[^\/]|$)/)) {
+            src = document.location.origin.replace(/.*?\/\//,'//') + src.replace(/\/$/,'');
+            // var url = new URL(filename);
+            // src = startsrc.replace(/(\.github\.io).*/,'$1') + src.replace(/\/$/,'');
+            // console.error(1, filename, startsrc, src)
           } else {
+            // console.error(2, filename, src)
             var url = new URL(src, filename.replace(/[^\/]+$/,''));
             src = url.origin + url.pathname;
           }
-          var url = new URL(src);
-          if (url.pathname.match(/\.\w+$/)) {
+          // var url = new URL(src);
+          if (src.match(/\.\w+$/)) {
             $(elem).href(src).target('site')
           } else {
             setsrc(src);
