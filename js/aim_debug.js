@@ -6589,13 +6589,17 @@ eol = '\n';
           return html;
   			};
         function toCodeHtml (codeString) {
+          // console.log(codeString);
           if (codeString) {
             codeString = codeString.replace(/```(.*?)\n(.+?)```/gs, (s,type,codeString) => {
+              // return codeString;
+              type = type.toLowerCase().trim();
+              console.log('type', type)
               codeString = codeString.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\t/g, '  ');
-              codeString = $.String[type.toLowerCase()] ? $.String[type.toLowerCase()](codeString.trim()) : codeString.trim();
+              codeString = $.String[type] ? $.String[type](codeString) : codeString;
               return [
                 '\r\n',
-                type ? `<div class="code-header row"><span class="aco">${type.toUpperCase()}</span></div>\r\n` : '',
+                type ? `<div class="code-header row"><span class="aco">${type}</span></div>\r\n` : '',
                 `<div class="code">${codeString}</div>`,
               ].join('\n');
             });
@@ -15578,7 +15582,10 @@ eol = '\n';
       // const homePath = $().ref.home;
       // const wikiPath = $().ref.wiki;
       const homePath = document.location.origin;
-      const wikiPath = document.location.origin + '/wiki';
+      var url = new URL(src, document.location);
+      var match = url.href.match(/^.*?\/wiki/);
+      const wikiPath = match ? match[0] : url.origin + '/wiki';
+      console.log(wikiPath);
       // const wikiPath = document.location.hostname.match(/aliconnect\.nl&/) ? document.location.origin + '/wiki' : ;
 
       src += src.match(/\/wiki/) ? '.md' : '/README.md';
@@ -15604,16 +15611,27 @@ eol = '\n';
             $(elem).href('?md='+src);
           }
           let src = elem.getAttribute('href')||'';
+          if (src.match(/^http/)) {
+            return $(elem).target('site')
+          }
+          if (src.match(/:/)) {
+            return;
+          }
           if (src.match(/\?md=/)) {
-            $(elem).href(src.replace(/.*(?=\?md=)/,''));
-          } else if (src.match(/^http/)) {
-            $(elem).target('site')
-          } else if (src.match(/^\/[^\/]/)) {
-            const url = new URL(filename);
-            setsrc(url.origin + src);
+            return $(elem).href(src.replace(/.*(?=\?md=)/,''));
+          }
+          if (src.match(/^\/[^\/]/)) {
+            var url = new URL(filename);
+            src = url.origin + src;
           } else {
-            const url = new URL(src, filename.replace(/[^\/]+$/,''));
-            setsrc(url.origin + url.pathname);
+            var url = new URL(src, filename.replace(/[^\/]+$/,''));
+            src = url.origin + url.pathname;
+          }
+          var url = new URL(src);
+          if (url.pathname.match(/\./)) {
+            $(elem).href(src).target('site')
+          } else {
+            setsrc(src);
           }
         });
         [...elem.elem.getElementsByTagName('IMG')].forEach(elem => {
@@ -15651,7 +15669,7 @@ eol = '\n';
   				let content = event.target.responseText;
 
           var title = event.target.responseURL.replace(/\/\//g,'/');
-          const match = content.match(/^#\s(.*)/);
+          var match = content.match(/^#\s(.*)/);
           if (match) {
             content = content.replace(/^#.*/,'');
             title = match[1];
