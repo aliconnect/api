@@ -15587,28 +15587,36 @@ eol = '\n';
       console.warn(src);
 
       const homePath = document.location.origin;
+      console.warn(src);
+      src = src.replace(/\/wiki$/, '/wiki/Home');
+      src = src.replace(/\/$/,'') + (src.match(/\/wiki/) ? '.md' : '/README.md');
+      src = src.replace(/github.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
       var url = new URL(src, document.location);
+
+
       if (url.pathname.match(/\/wiki$/)) {
 
       } else {
-        var match = url.hostname.match(/(.*)\.github\.io/);
         var wikiPath;
-        if (match) {
+        var match;
+        if (match = url.hostname.match(/(.*)\.github\.io/)) {
           var wikiPath = `https://raw.githubusercontent.com/wiki/${match[1]}/${match[1]}.github.io`
-        } else {
-          var match = url.hostname.match(/(.*)aliconnect\.nl/);
-          if (match) {
-            var wikiPath = url.origin + '/wiki';
-          }
+        } else if (match = url.hostname.match(/(.*)aliconnect\.nl/)) {
+          var wikiPath = url.origin + '/wiki';
+        } else if (match = url.href.match(/(.*\/wiki\/.*)\/.*?\..*/)) {
+          var wikiPath = match[1];
         }
       }
+      console.log('wikiPath', wikiPath);
 
+      src = url.toString();
+      console.warn(src);
       // var match = url.href.match(/^.*?\/wiki/);
       // const wikiPath = match ? match[0] : url.origin + '/wiki';
-      console.log(wikiPath);
       // const wikiPath = document.location.hostname.match(/aliconnect\.nl&/) ? document.location.origin + '/wiki' : ;
 
-      src = src.replace(/\/$/,'') + (src.match(/\/wiki/) ? '.md' : '/README.md');
+      // src = src.replace(/\/wiki$/, '/wiki/Home');
+      // src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
 
       this.text('').append(
         $('div').class('row doc aco').append(
@@ -15625,9 +15633,9 @@ eol = '\n';
         const filename = event.target.responseURL;
         [...elem.elem.getElementsByTagName('A')].forEach(elem => {
           function setsrc(src){
-            src = src.replace(/\/wiki$/, '/wiki/Home');
+            // src = src.replace(/\/wiki$/, '/wiki/Home');
             // src = src.replace(/github.com/, 'raw.githubusercontent.com');
-            src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
+            // src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
             src = src.replace(/\/tree|\/blob/, '');
             $(elem).href('?md='+src);
           }
