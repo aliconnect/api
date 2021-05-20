@@ -15626,7 +15626,7 @@ eol = '\n';
         [...elem.elem.getElementsByTagName('A')].forEach(elem => {
           function setsrc(src){
             src = src.replace(/\/wiki$/, '/wiki/Home');
-            src = src.replace(/github.com/, 'raw.githubusercontent.com');
+            // src = src.replace(/github.com/, 'raw.githubusercontent.com');
             src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
             src = src.replace(/\/tree|\/blob/, '');
             $(elem).href('?md='+src);
