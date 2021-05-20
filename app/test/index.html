@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="app aliconnect">
+<head>
+	<title>TEST</title>
+	<script src="/v1/dapi/js/aim.js?libraries=web"></script>
+	<script>
+	(function(){
+		AIM.extend({
+			on:{
+				load(){
+					const query = {
+						origin: document.location.href,
+						base_path: document.location.pathname.split(/\/(api|docs|om)/)[0],
+						// client_id: AIM.config.client_id || '',
+						// script: AIM.config.script,
+						// client_id: AIM.config.client_id,
+						// hostname: AIM.config.hostname,
+						// headers: AIM.auth.getHeader(),
+					};
+					new AIM.HttpRequest(
+						'get',
+						'https://aliconnect.nl/v1/api/',
+						'/',
+						query,
+						{ headers: {Authorization: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJzaGEyNTYifQ.eyJpE1M30.V-Btxqk9v3kmB5tze-qoPBoxutXprjQbfSMk1-f26qI" } },
+						event => {
+							console.log(event.target.responseText);
+						}
+					);
+				}
+			}
+		})
+	})()
+	</script>
+</head>
+<body class="auth">
+</body>
+</html>
