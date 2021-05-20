@@ -15580,22 +15580,26 @@ eol = '\n';
 
       console.warn(src);
 
-      'https://schiphol-nl.github.io'
-      'https://raw.githubusercontent.com/wiki/schiphol-nl/schiphol-nl.github.io/Home.md'
+      // 'https://schiphol-nl.github.io'
+      // 'https://raw.githubusercontent.com/wiki/schiphol-nl/schiphol-nl.github.io/Home.md'
 
       // src = src.replace(/\/\/github.com/, '//raw.githubusercontent.com');
       console.warn(src);
 
       const homePath = document.location.origin;
       var url = new URL(src, document.location);
-      var match = url.hostname.match(/(.*)\.github\.io/);
-      var wikiPath;
-      if (match) {
-        var wikiPath = `https://raw.githubusercontent.com/wiki/${match[1]}/${match[1]}.github.io`
+      if (url.pathname.match(/\/wiki$/)) {
+
       } else {
-        var match = url.hostname.match(/(.*)aliconnect\.nl/);
+        var match = url.hostname.match(/(.*)\.github\.io/);
+        var wikiPath;
         if (match) {
-          var wikiPath = url.origin + '/wiki';
+          var wikiPath = `https://raw.githubusercontent.com/wiki/${match[1]}/${match[1]}.github.io`
+        } else {
+          var match = url.hostname.match(/(.*)aliconnect\.nl/);
+          if (match) {
+            var wikiPath = url.origin + '/wiki';
+          }
         }
       }
 
@@ -15645,7 +15649,7 @@ eol = '\n';
             src = url.origin + url.pathname;
           }
           var url = new URL(src);
-          if (url.pathname.match(/\./)) {
+          if (url.pathname.match(/\.\w+$/)) {
             $(elem).href(src).target('site')
           } else {
             setsrc(src);
