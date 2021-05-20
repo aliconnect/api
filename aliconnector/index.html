@@ -5,90 +5,9 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE9" />
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <!-- <link rel="manifest" href="/om/manifest.json" crossorigin="anonymous"> -->
-  <!-- <link rel="stylesheet" href="/api/debug/css/web.css" /> -->
-  <link rel="stylesheet" href="/v1/api/css/icon.css" />
-  <!-- <link rel="stylesheet" href="css/aliconnector.css" /> -->
-  <script type="text/javascript" charset="UTF-8" src="js/aliconnector.js"></script>
-  <style>
-  * {
-    box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    -webkit-box-sizing: border-box;
-    position: relative;
-  }
-  html,body,table {
-  	margin: 0;
-  	padding: 0;
-  	width: 100%;
-  	height: 100%;
-    background: rgb(40,40,40);
-    color: white;
-  }
-  body {
-    font-family: Arial;
-    overflow: hidden;
-  }
-  table{
-    height:100%;
-    table-layout: inherit;
-    border-collapse: collapse;
-  }
-  td{
-    vertical-align: top;
-    overflow: hidden;
-    padding: 10px 14px 0 14px;
-  }
-  button {
-    display: inline-block;
-    text-align: left;
-    width: 88px;
-    height: 64px;
-    margin: 0 2px;
-    border: solid 1px transparent;
-    padding: 0;
-    cursor: pointer;
-    background-color: rgb(80,80,80);
-    text-decoration: none;
-    color: #ccc;
-    font-size: 12px;
-  }
-  button:hover {
-    border-color: white;
-  }
-  button>span {
-    display:inline-block;
-    position:absolute;
-    margin:auto;
-    bottom:0;
-    left:0;
-    right:0;
-    padding:2px;
-  }
-  label {
-    display: block;
-    font-size: 0.8em;
-    color: #999;
-  }
-  input {
-    width: 100%;
-    border:none;
-    /* line-height:26px; */
-    height:30px;
-    padding: 2px 10px;
-    background: rgba(255,255,255,0.5);
-  }
-  #input {
-    display:inline-block;
-    position:fixed;
-    top:0;
-    right:0;
-    width:20px;
-    height:20px;
-    cursor:default;
-    text-align: right;
-  }
-</style>
+  <link href="/api/css/icon.css" rel="stylesheet" />
+  <link href="css/aliconnector.css" rel="stylesheet" />
+  <script src="js/aliconnector.js" ></script>
 </head>
 <body class="col aliconnector" id="aliconnector">
   <table>
@@ -99,7 +18,8 @@
     </tr>
     <tr height=100%>
       <td>
-        <div id="cons"></div>
+        <pre id="state"></pre>
+        <pre id="console"></pre>
       </td>
     </tr>
     <tr>

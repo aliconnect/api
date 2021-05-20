@@ -1977,11 +1977,7 @@ eol = '\n';
       }
       Object.entries(this.URL.headers).forEach(entry => xhr.setRequestHeader(...entry));
       xhr.startTime = new Date();
-      try {
-        xhr.send(this.input.data);
-      } catch(err) {
-
-      }
+      xhr.send(this.input.data);
       // return xhr;
       // $().status('main', url);
       // xhr.withCredentials = url.includes(document.location.origin);
