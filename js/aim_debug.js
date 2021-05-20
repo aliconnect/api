@@ -5486,8 +5486,8 @@ eol = '\n';
 
           // console.log(document.location.application_path);
           $().application_path = $().application_path || '/';
-          if (document.location.pathname === $().application_path && !document.location.search && $().ref && $().ref.home) {
-            window.history.replaceState('page', 'PAGINA', '?md='+$().ref.home);
+          if (document.location.pathname === $().application_path && !document.location.search) {
+            window.history.replaceState('page', 'PAGINA', '?md='+($().ref && $().ref.home ? $().ref.home : document.location.origin));
             // $(window).emit('popstate');
           }
 
@@ -15577,14 +15577,35 @@ eol = '\n';
       }
       // const homePath = $().ref.home;
       // const wikiPath = $().ref.wiki;
+
+      console.warn(src);
+
+      'https://schiphol-nl.github.io'
+      'https://raw.githubusercontent.com/wiki/schiphol-nl/schiphol-nl.github.io/Home.md'
+
+      // src = src.replace(/\/\/github.com/, '//raw.githubusercontent.com');
+      console.warn(src);
+
       const homePath = document.location.origin;
       var url = new URL(src, document.location);
-      var match = url.href.match(/^.*?\/wiki/);
-      const wikiPath = match ? match[0] : url.origin + '/wiki';
+      var match = url.hostname.match(/(.*)\.github\.io/);
+      var wikiPath;
+      if (match) {
+        var wikiPath = `https://raw.githubusercontent.com/wiki/${match[1]}/${match[1]}.github.io`
+      } else {
+        var match = url.hostname.match(/(.*)aliconnect\.nl/);
+        if (match) {
+          var wikiPath = url.origin + '/wiki';
+        }
+      }
+
+      // var match = url.href.match(/^.*?\/wiki/);
+      // const wikiPath = match ? match[0] : url.origin + '/wiki';
       console.log(wikiPath);
       // const wikiPath = document.location.hostname.match(/aliconnect\.nl&/) ? document.location.origin + '/wiki' : ;
 
-      src += src.match(/\/wiki/) ? '.md' : '/README.md';
+      src = src.replace(/\/$/,'') + (src.match(/\/wiki/) ? '.md' : '/README.md');
+
       this.text('').append(
         $('div').class('row doc aco').append(
           this.homeElem = $('div').class('mc-menu left np oa').append(
