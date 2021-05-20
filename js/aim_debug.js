@@ -5486,7 +5486,7 @@ eol = '\n';
 
           // console.log(document.location.application_path);
           $().application_path = $().application_path || '/';
-          if (document.location.pathname === $().application_path && !document.location.search && $().ref.home) {
+          if (document.location.pathname === $().application_path && !document.location.search && $().ref && $().ref.home) {
             window.history.replaceState('page', 'PAGINA', '?md='+$().ref.home);
             // $(window).emit('popstate');
           }
