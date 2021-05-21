@@ -3586,18 +3586,9 @@ eol = '\n';
             // console.log('CLICK MAIN', elem.href.includes('/wiki/'), elem.getAttribute('href'));
             if (elem.getAttribute('href').match(/^\/\//)) {
               event.preventDefault();
-              window.history.pushState('page', 'test1', '?md='+elem.getAttribute('href'));
-              $(window).emit('popstate');
+              $('list').load(elem.getAttribute('href'))
               return;
             }
-            var url = new URL(elem.href);
-            if (url.searchParams.has('md')) {
-              event.preventDefault();
-              window.history.pushState('page', 'test1', elem.href);
-              $(window).emit('popstate');
-              return;
-            }
-            // event.preventDefault();
             if (window.colpage) {
               if (elem.getAttribute('href')[0] === '#' && elem.getAttribute('href')[1] === '/') {
                 return $().exec(elem.getAttribute('href').substr(1));
@@ -15485,7 +15476,9 @@ eol = '\n';
     item(item, name) {
       if (item) {
         if (name) {
+          // console.log(item.elems);
           item.elems = item.elems || new Map();
+          // console.log(item.elems, Map, new Map());
           item.elems.set(name, this);
         }
         this.elem.item = item;
@@ -15602,10 +15595,11 @@ eol = '\n';
       // console.warn(src, origin);
       src = src.replace(/\/wiki$/, '/wiki/Home');
       src = src.replace(/\/tree|\/blob/, '');
-      src = src.replace(/\/$/,'') + (src.match(/\/wiki/) ? '.md' : '/README.md');
+      // src = src.replace(/\/$/,'') + (src.match(/\/wiki/) ? '.md' : '/README.md');
       src = src.replace(/github.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
       var url = new URL(src, document.location);
 
+      console.warn(src);
 
       if (url.pathname.match(/\/wiki$/)) {
 
@@ -15616,8 +15610,12 @@ eol = '\n';
           var wikiPath = `https://raw.githubusercontent.com/wiki/${match[1]}/${match[1]}.github.io`
         } else if (match = url.hostname.match(/(.*)aliconnect\.nl/)) {
           var wikiPath = url.origin + '/wiki';
-        } else if (match = url.href.match(/(.*\/wiki\/.*)\/.*?\..*/)) {
+        } else if (match = url.href.match(/(.*\/wiki\/.*)\/\w+$/)) {
           var wikiPath = match[1];
+          // console.log(2, 'wikiPath', wikiPath);
+        // } else if (match = url.href.match(/(.*\/wiki\/.*)\/.*?\..*/)) {
+        //   var wikiPath = match[1];
+        //   console.log(1, 'wikiPath', wikiPath);
         }
       }
       // console.log('wikiPath', wikiPath);
@@ -15631,17 +15629,6 @@ eol = '\n';
       // src = src.replace(/\/wiki$/, '/wiki/Home');
       // src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
 
-      this.text('').append(
-        $('div').class('row doc aco').append(
-          this.homeElem = $('div').class('mc-menu left np oa').append(
-          ),
-          this.docElem = $('div').class('aco col doc-content oa'),
-          $('div').class('mc-menu right np oa').append(
-            $('div').class('ac-header').text('Table of contents'),
-            this.indexElem = $('ul')
-          ),
-        )
-      );
       function mdRewriteRef (event, elem) {
         const filename = event.target.responseURL;
         [...elem.elem.getElementsByTagName('A')].forEach(elem => {
@@ -15676,7 +15663,7 @@ eol = '\n';
           }
           // var url = new URL(src);
 
-          console.log(src);
+          // console.log(src);
           if (src.match(/\.\w+$/)) {
             $(elem).href(new URL(src, document.location).href).target('site')
           } else {
@@ -15703,18 +15690,25 @@ eol = '\n';
         });
       }
 
-      if (wikiPath) {
-        $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
-        .then(event => mdRewriteRef(event, this.homeElem.md(event.target.responseText)))
-        .catch(console.error);
-      }
       const contentLoad = src => {
   			$()
-        .url(src)
+        .url(src.replace(/\/$/,'') + (src.match(/\/wiki/) ? '.md' : '/README.md'))
         .accept('text/markdown')
         .get()
-        .catch(err => console.log(err))
         .then(event => {
+          window.history.pushState('page', 'test1', '?md='+startsrc);
+          this.text('').append(
+            $('div').class('row doc aco').append(
+              this.homeElem = $('div').class('mc-menu left np oa').append(
+              ),
+              this.docElem = $('div').class('aco col doc-content oa'),
+              $('div').class('mc-menu right np oa').append(
+                $('div').class('ac-header').text('Table of contents'),
+                this.indexElem = $('ul')
+              ),
+            )
+          );
+
   				let content = event.target.responseText;
 
           var title = event.target.responseURL.replace(/\/\//g,'/');
@@ -15789,11 +15783,16 @@ eol = '\n';
   					)
   				});
           if (wikiPath) {
+            console.log(wikiPath);
+            $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
+            .then(event => mdRewriteRef(event, this.homeElem.md(event.target.responseText)))
+            .catch(console.error);
             $().url(wikiPath+'/_Footer.md').accept('text/markdown').get()
             .then(event => mdRewriteRef(event, $('section').class('footer').parent(this.docElem).md(event.target.responseText)))
             .catch(console.error);
           }
-  			});
+  			})
+        .catch(err => window.open(src, 'site'));
       };
       contentLoad(src);
       return this;
