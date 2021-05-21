@@ -5180,7 +5180,7 @@ eol = '\n';
           // console.log($().server.url);
 
           // await $().url($().server.url+'/').get().then(event => $().extend(event.body)).catch(console.error);
-          await $().url($().server.url+'/').get().then(event => console.log(JSON.stringify(JSON.parse(event.target.responseText),null,2).replace(/"(\w+)"(?=: )/gs,'$1'))).catch(console.error);
+          // await $().url($().server.url+'/').get().then(event => console.log(JSON.stringify(JSON.parse(event.target.responseText),null,2).replace(/"(\w+)"(?=: )/gs,'$1'))).catch(console.error);
           await $().translate();
           // await $().getApi(document.location.origin+'/api/');
 
