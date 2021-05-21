@@ -15663,7 +15663,9 @@ eol = '\n';
             return $(elem).href(src.replace(/.*(?=\?md=)/,''));
           }
           if (src.match(/^\/(?=[^\/]|$)/)) {
-            src = document.location.origin.replace(/.*?\/\//,'//') + src.replace(/\/$/,'');
+            console.log(1, filename, src);
+            // var url = new URL(filename);
+            src = '//' + new URL(filename).hostname + src.replace(/\/$/,'');
             // var url = new URL(filename);
             // src = startsrc.replace(/(\.github\.io).*/,'$1') + src.replace(/\/$/,'');
             // console.error(1, filename, startsrc, src)
@@ -15673,8 +15675,10 @@ eol = '\n';
             src = url.origin + url.pathname;
           }
           // var url = new URL(src);
+
+          console.log(src);
           if (src.match(/\.\w+$/)) {
-            $(elem).href(src).target('site')
+            $(elem).href(new URL(src, document.location).href).target('site')
           } else {
             setsrc(src);
           }
