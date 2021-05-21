@@ -694,14 +694,14 @@ eol = '\n';
   }
   AuthProvider.prototype = {
     get client_id(){
-        return this.auth.client_id || this.auth.clientId
+        return $().client_id
       },
     getAccessToken(options){
       if (options){
         options = Object.assign({
           grant_type: 'authorization_code',
           // code: options.code, // default, overide by params
-          client_id: this.client_id, // default, overide by params
+          client_id: $().client_id,
           // 'client_secret' => $this->client_secret,
           access_type: 'offline', // only if access to client data is needed when user is not logged in
         }, options);
@@ -843,7 +843,7 @@ eol = '\n';
       this.refreshTokenHandle = new $.Client('https://login.aliconnect.nl/api/token').post({
         grant_type: 'refresh_token',
         refresh_token: $.cookie.refresh_token,
-        client_id: $.config.$.client_id,
+        client_id: $().client_id,
         // 'redirect_uri' => self::$redirect_uri,
         // 'client_secret' => $this->client_secret,
       }).then(event => {
@@ -2490,6 +2490,9 @@ eol = '\n';
     },
     components(components){
       return this.extend(components)
+    },
+    config(context){
+      $().extend(context);
     },
     connector(){
       Object.assign(this, {
@@ -4901,7 +4904,7 @@ eol = '\n';
             if ($.auth.request) {
               new $.WebsocketRequest({
                 to: { sid: $.WebsocketClient.responseBody.from_id },
-                path: '/?prompt=accept&client_id=' + $.config.$.client_id,
+                path: '/?prompt=accept&client_id=' + $().client_id,
                 body: {
                   scope: $.auth.request,
                   url: document.location.href,
@@ -4910,7 +4913,7 @@ eol = '\n';
             } else {
               new $.WebsocketRequest({
                 to: { sid: $.WebsocketClient.responseBody.from_id },
-                path: '/?prompt=ws_get_id_token&client_id=' + $.config.$.client_id,
+                path: '/?prompt=ws_get_id_token&client_id=' + $().client_id,
               });
             }
           },
@@ -4923,7 +4926,7 @@ eol = '\n';
           ws_login_code() {
             // return //console.log($.WebsocketClient.responseBody.body, $.auth.login.callback);
             // let body = $.WebsocketClient.responseBody.body;
-            $.WebsocketClient.responseBody.body.client_id = $.config.$.client_id;
+            $.WebsocketClient.responseBody.body.client_id = $().client_id;
             $.WebsocketClient.responseBody.body.redirect_uri = document.location.origin + document.location.pathname;
             // return //console.debug('https://login.aliconnect.nl/api/oauth?' + new URLSearchParams($.WebsocketClient.responseBody.body).toString());
             document.location.href = 'https://login.aliconnect.nl/api/oauth?' + new URLSearchParams($.WebsocketClient.responseBody.body).toString();
@@ -5176,7 +5179,8 @@ eol = '\n';
           ($().server = $().server || {}).url = $().server.url || ('//' + document.location.hostname.split('.')[0] + '.aliconnect.nl/api');
           // console.log($().server.url);
 
-          await $().url($().server.url+'/').get().then(event => $().extend(event.body)).catch(console.error);
+          // await $().url($().server.url+'/').get().then(event => $().extend(event.body)).catch(console.error);
+          await $().url($().server.url+'/').get().then(event => console.log(JSON.stringify(JSON.parse(event.target.responseText),null,2).replace(/"(\w+)"(?=: )/gs,'$1'))).catch(console.error);
           await $().translate();
           // await $().getApi(document.location.origin+'/api/');
 
@@ -16384,7 +16388,7 @@ eol = '\n';
 					this.headers = {
 						"Authorization": "Bearer " + this.userdata.access_token,
 						"Accept": "application/json",
-						"client-request-id": this.userdata.client_id,
+						"client-request-id": $().client_id,
 						"return-client-request-id": "true",
 						"X-AnchorMailbox": this.userdata.preferred_username,
 					};
@@ -19360,7 +19364,7 @@ eol = '\n';
       // url.searchParams.set('post_logout_redirect_uri', config.redirectUri);
       url.searchParams.set('redirect_uri', config.auth.redirectUri);
       // url.searchParams.set('client-request-id', config.auth.clientId);
-      url.searchParams.set('client_id', config.auth.clientId);
+      url.searchParams.set('client_id', $().client_id);
       // return console.log(url.toString());
       document.location.href = url.toString();
     };
@@ -19380,7 +19384,7 @@ eol = '\n';
             const state = Math.ceil(Math.random() * 99999);
             const query = {
               response_type: 'code',
-              client_id: config.auth.client_id || config.auth.clientId,
+              client_id: $().client_id,//config.auth.client_id || config.auth.clientId,
               redirect_uri: config.auth.redirect_uri || config.auth.redirectUri || document.location.origin,
               state: state,
               scope: aimRequest.scopes.join(' '),
