@@ -2716,6 +2716,7 @@ eol = '\n';
         var refurl = new URL(url.searchParams.get('l'));
         if (refurl.pathname.match(/^\/api\//)) {
           const client = clients.get(refurl.hostname);
+          // console.log(clients);
           refurl.pathname += '/children';
           client
           .api(refurl.href)
@@ -7047,7 +7048,7 @@ eol = '\n';
 		},
     translate: new Map(),
     replaceUrl(selector, context){
-      console.log('replaceUrl', selector, context);
+      console.error('replaceUrl', selector, context);
       if (window.history){
         if (typeof selector === 'object'){
           Object.entries(selector).forEach(entry => arguments.callee(...entry));
@@ -15794,9 +15795,9 @@ eol = '\n';
         .get()
         .then(event => {
 
-          const url = new URL(document.location);
-          url.searchParams.set('p', startsrc);
-          $.replaceUrl(url.toString());
+          // const url = new URL(document.location);
+          // url.searchParams.set('p', startsrc);
+          // $.replaceUrl(url.toString());
 
           // window.history.pushState('page', 'test1', '?md='+startsrc);
           this.text('').append(
