@@ -1602,7 +1602,7 @@ eol = '\n';
           return $[key].apply($, value ? value.split(', ') : []) || true;
         }
       };
-      // console.error('EXEC', this);
+      console.error('EXEC', this.URL.pathname);
       // return;
       const getPathname = path => {
         var [dummy, basePath, folder, sep, id] = path.match(/(.*?\/om|\/api|^)(\/.*?)(\/id\/|$)(.*)/);
@@ -1665,6 +1665,9 @@ eol = '\n';
             // 	currentPath.join(''),
             // 	replacePath,
             // );
+
+
+
             $.replaceUrl( replacePath);
           }
         }
@@ -2310,6 +2313,8 @@ eol = '\n';
     },
   };
 
+  const clients = new Map();
+
   Aim = function Aim (selector, context){
     if(selector instanceof Elem) return selector;
     if(!(this instanceof $)) return new $(...arguments);
@@ -2423,7 +2428,10 @@ eol = '\n';
       const client = this.client();
       const access_token = client.authProvider && client.authProvider.getAccessToken ? client.authProvider.getAccessToken() : null;
       if (!client.url) throw 'No api url specified';
-      const url = this.url(client.url + path);
+      // const pathUrl = new URL(path, client.url);
+      // console.error(''+pathUrl);
+      const url = this.url(client.url + path.replace(/.*\/api/,''));
+      // const url = this.url(pathUrl);
       // console.debug('aa', access_token, client.authProvider);
       return access_token ? url.headers('Authorization', 'Bearer ' + access_token) : url;
       // return this.client().api(path);
@@ -2683,6 +2691,80 @@ eol = '\n';
       Aim.extend(this.elem || this.selector || this, ...arguments);
       return this;
     },
+    execQuery(selector, context){
+      $.url = $.url || new URL(document.location.origin);
+      var url = new URL(document.location);
+      if (typeof selector === 'object') {
+        Object.entries(selector).forEach(entry => url.searchParams.set(...entry));
+      } else {
+        url.searchParams.set(selector, context);
+      }
+      if ($.url.href !== url.href) {
+        this.execUrl(url.href);
+        window.history.pushState('page', '', url.href);
+      }
+      return this;
+    },
+    execUrl(url){
+      $.url = $.url || new URL(document.location.origin);
+      var url = new URL(url, document.location);
+      if (document.location.hash && $[document.location.hash.substr(1)]) {
+        return $[document.location.hash.substr(1)]();
+      }
+      if (url.searchParams.get('l') !== $.url.searchParams.get('l')) {
+        $.url.searchParams.set('l', url.searchParams.get('l'));
+        var refurl = new URL(url.searchParams.get('l'));
+        if (refurl.pathname.match(/^\/api\//)) {
+          const client = clients.get(refurl.hostname);
+          refurl.pathname += '/children';
+          client
+          .api(refurl.href)
+          .filter('FinishDateTime eq NULL')
+          .select($.LIST_ATTRIBUTES)
+          .get().then(async event => {
+            if (event.body){
+              const items = event.body.value || await event.body.children;
+              $().list(items);
+            }
+          });
+        } else {
+          $('list').load(url.searchParams.get('l'));
+        }
+      }
+      if (url.searchParams.get('v') !== $.url.searchParams.get('v')) {
+        $.url.searchParams.set('v', url.searchParams.get('v'));
+        if (url.searchParams.get('v')) {
+          var refurl = new URL(url.searchParams.get('v'));
+          if (refurl.pathname.match(/^\/api\//)) {
+            const client = clients.get(refurl.hostname);
+            client.api(refurl.href).get().then(async event => {
+              $('view').show(event.body);
+            });
+          }
+        } else {
+          $('view').text('');
+        }
+      }
+      // if (url.searchParams.get('id')) {
+      //   var refurl = new URL(atob(url.searchParams.get('id')));
+      //   if (refurl.pathname.match(/^\/api\//)) {
+      //     $().url(refurl.href).get().then(async event => {
+      //       $('view').show(event.body);
+      //     });
+      //   }
+      // }
+      // return;
+      // if (!$().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec()) {
+      //   if (url.searchParams.get('p')) {
+      //     return $('list').load(url.searchParams.get('p'));
+      //   }
+      // }
+
+
+      // console.log('POPSTATE2', document.location.pathname);
+
+
+    },
     forEach(selector, context, fn){
       if (selector instanceof Object){
         Object.entries(selector).forEach(entry => fn.call(this, ...entry));
@@ -2753,7 +2835,11 @@ eol = '\n';
       return this;
     },
     async login(){
+      const url = new URL(this.server.url, document.location);
+      // console.error(this, url.hostname);
+      clients.set(url.hostname, this);
       // return console.debug(this.ws());
+      // clients.set()
 
       if (this.ws().url){
         await this.ws().connect()
@@ -4282,25 +4368,9 @@ eol = '\n';
       })
       .on('paste', event => handleData($.nav.itemFocussed, event))
       .on('popstate', event => {
-        var url = new URL(document.location);
-        // console.log('POPSTATE', url.searchParams.get('md'));
         event.preventDefault();
-        // return;
-        // if (document.location.pathname.includes('wiki/')) {
-        //   return $('list').load(document.location.pathname+'.md');
-        // }
-        if (document.location.hash && $[document.location.hash.substr(1)]) {
-          return $[document.location.hash.substr(1)]();
-        }
-        if (!$().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec()) {
-          if (url.searchParams.get('md')) {
-            return $('list').load(url.searchParams.get('md'));
-          }
-        }
-
-
-        // console.log('POPSTATE2', document.location.pathname);
-
+        // console.log('POPSTATE', document.location.href);
+        $().execUrl(document.location.href, true);
       })
       .on('resize', event => {
 
@@ -5490,10 +5560,14 @@ eol = '\n';
 
           // console.log(document.location.application_path);
           $().application_path = $().application_path || '/';
-          if (document.location.pathname === $().application_path && !document.location.search) {
-            window.history.replaceState('page', 'PAGINA', '?md='+($().ref && $().ref.home ? $().ref.home : document.location.origin));
-            // $(window).emit('popstate');
+          var url = new URL(document.location);
+          if (!url.searchParams.has('l')) {
+            $().execQuery('l', $().ref && $().ref.home ? $().ref.home : document.location.origin);
           }
+          // if (document.location.pathname === $().application_path && !document.location.search) {
+          //   window.history.replaceState('page', 'PAGINA', '?p='+($().ref && $().ref.home ? $().ref.home : document.location.origin));
+          //   // $(window).emit('popstate');
+          // }
 
           // $(document.body).cookieWarning();
           function response(event) {
@@ -6989,7 +7063,7 @@ eol = '\n';
           var url = new URL(selector, document.location.origin);
         }
         url = url.pathname.replace(/^\/\//,'/') + url.search;
-        window.history.replaceState('page', 'PAGINA', url);
+        window.history.replaceState('page', '', url);
       }
     },
     set: $.prototype.set,
@@ -10260,7 +10334,11 @@ eol = '\n';
 			// $.nav.setItem([item], 'checked', '');
 			// this.focus(item);
 			this.setFocusElement(item.elemListLi.elem, event);
-			$('view').show(item);
+      $().execQuery({
+        v:item.data['@id'],
+      });
+      //
+			// $('view').show(item);
 		},
     set(set) {
       //// //console.debug('LIST SET', this.get.filter, set);
@@ -10334,12 +10412,22 @@ eol = '\n';
 				this.title = path || '';
         this.tag = ((this.items.url||'').match(/\w+\(\d+\)/)||[''])[0];
 				if (this.items.url) {
-          const url = new URL(this.items.url, document.location.origin);
-          url.hostname = document.location.hostname;
-          this.title = url.pathname = url.pathname.replace(/.*(?=\b\w+\()/,'');
-          url.pathname += document.location.pathname.replace(/.*(?=\/id\/)/,'');
-          // console.log('show', this.title, this.items.url);
-          $.replaceUrl(url.toString())
+
+          // const url = new URL(document.location);
+          // console.log('this.items.url', this.items.url, document.location.href);
+          // url.searchParams.set('p', this.items.url);
+          // window.history.pushState('page', '', url);
+
+          // $.replaceUrl(url.toString());
+
+          //
+          // const url = new URL(this.items.url, document.location.origin);
+          // url.searchParams.set('p', )
+          // url.hostname = document.location.hostname;
+          // this.title = url.pathname = url.pathname.replace(/.*(?=\b\w+\()/,'');
+          // url.pathname += document.location.pathname.replace(/.*(?=\/id\/)/,'');
+          // // console.log('show', this.title, this.items.url);
+          // $.replaceUrl(url.toString())
 
 					// this.title = this.items.url.replace(/.*\/api/,'');
 					// const url = new URL(this.items.url.replace(/.*\/api/,''), document.location.origin);
@@ -10385,7 +10473,7 @@ eol = '\n';
         this.hasChartData = this.items.some(item => item.data.data && item.data.key);
         this.hasMapsData = this.items.some(item => item.data.Location);
         this.hasModelData = this.items.some(item => item.data.Title && item.data.linkto);
-        console.log('hasMapsData', this.hasMapsData, this.hasChartData);
+        // console.log('hasMapsData', this.hasMapsData, this.hasChartData);
 
 				this.items.forEach((row, i) => {
 					// row = row instanceof Item ? row : Item.get(row);
@@ -11378,6 +11466,12 @@ eol = '\n';
         return;
       }
       this.setFocusElement(item.elemTreeLi.elem, event);
+      // console.error(item);
+      $().execQuery({
+        l:item.data['@id'],
+        v:item.data['@id'],
+      });
+      return;
       $('view').show(item);
       $.nav.setItem([item], 'treeselect', '');
       const children = await item.children || [];
@@ -15599,23 +15693,26 @@ eol = '\n';
       src = src.replace(/github.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
       var url = new URL(src, document.location);
 
-      console.warn(src);
+      // console.warn(2, src);
 
       if (url.pathname.match(/\/wiki$/)) {
-
+        console.warn(3, src);
       } else {
         var wikiPath;
         var match;
         if (match = url.hostname.match(/(.*)\.github\.io/)) {
           var wikiPath = `https://raw.githubusercontent.com/wiki/${match[1]}/${match[1]}.github.io`
-        } else if (match = url.hostname.match(/(.*)aliconnect\.nl/)) {
-          var wikiPath = url.origin + '/wiki';
-        } else if (match = url.href.match(/(.*\/wiki\/.*)\/\w+$/)) {
+          // } else if (match = url.hostname.match(/(.*)aliconnect\.nl/)) {
+          //   var wikiPath = url.origin + '/wiki';
+        } else if (match = url.href.match(/(.*\/wiki.*)\/.+$/)) {
           var wikiPath = match[1];
-          // console.log(2, 'wikiPath', wikiPath);
-        // } else if (match = url.href.match(/(.*\/wiki\/.*)\/.*?\..*/)) {
-        //   var wikiPath = match[1];
-        //   console.log(1, 'wikiPath', wikiPath);
+          console.log(7, 'wikiPath', [url.href, wikiPath]);
+          // } else if (match = url.href.match(/(.*\/wiki\/.*)\/.*?\..*/)) {
+          //   var wikiPath = match[1];
+          //   console.log(1, 'wikiPath', wikiPath);
+        } else {
+          console.log(6, 'wikiPath', [url.href, wikiPath]);
+          var wikiPath = url.href.replace(/\/$/,'') + '/wiki';
         }
       }
       // console.log('wikiPath', wikiPath);
@@ -15696,7 +15793,12 @@ eol = '\n';
         .accept('text/markdown')
         .get()
         .then(event => {
-          window.history.pushState('page', 'test1', '?md='+startsrc);
+
+          const url = new URL(document.location);
+          url.searchParams.set('p', startsrc);
+          $.replaceUrl(url.toString());
+
+          // window.history.pushState('page', 'test1', '?md='+startsrc);
           this.text('').append(
             $('div').class('row doc aco').append(
               this.homeElem = $('div').class('mc-menu left np oa').append(
@@ -15782,8 +15884,8 @@ eol = '\n';
   						}),
   					)
   				});
+          console.log(wikiPath);
           if (wikiPath) {
-            console.log(wikiPath);
             $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
             .then(event => mdRewriteRef(event, this.homeElem.md(event.target.responseText)))
             .catch(console.error);
@@ -17869,9 +17971,13 @@ eol = '\n';
         this.item = item;
         document.title = item.header0;
         $().ga('send', 'pageview');
-        if (item.data.Id) {
-          $.replaceUrl(document.location.origin+document.location.pathname.replace(/\/id\/.*/,'')+'/id/'+item.data.Id+document.location.search)
-        }
+        // if (item.data.Id) {
+        //   const url = new URL(document.location);
+        //   url.searchParams.set('id', item.data.Id);
+        //   $.replaceUrl(url.toString());
+        //
+        //   // $.replaceUrl(document.location.origin+document.location.pathname.replace(/\/id\/.*/,'')+'/id/'+item.data.Id+document.location.search)
+        // }
         function logVisit() {
           if (item.data.ID) {
             clearTimeout($.viewTimeout);
