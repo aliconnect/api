@@ -1,3 +1,4 @@
+// main
 eol = '\n';
 (function(){
   // MAIN
