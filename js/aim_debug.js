@@ -1,3 +1,4 @@
+// main
 eol = '\n';
 (function(){
   const isModule = typeof module === "object" && typeof module.exports === "object";
