@@ -1,7 +1,5 @@
-// main
 eol = '\n';
 (function(){
-  // MAIN MAIN
   const isModule = typeof module === "object" && typeof module.exports === "object";
   window = isModule ? global : window;
   document = window.document;
@@ -2753,6 +2751,18 @@ eol = '\n';
           $('view').text('');
         }
       }
+      for ([key, value] of url.searchParams) {
+        if (typeof $[key] === 'function'){
+          return $[key].apply($, value ? value.split(', ') : []) || true;
+        }
+      };
+
+      // if (!$().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec()) {
+      //   if (url.searchParams.get('p')) {
+      //     return $('list').load(url.searchParams.get('p'));
+      //   }
+      // }
+
       // if (url.searchParams.get('id')) {
       //   var refurl = new URL(atob(url.searchParams.get('id')));
       //   if (refurl.pathname.match(/^\/api\//)) {
@@ -2762,11 +2772,6 @@ eol = '\n';
       //   }
       // }
       // return;
-      // if (!$().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec()) {
-      //   if (url.searchParams.get('p')) {
-      //     return $('list').load(url.searchParams.get('p'));
-      //   }
-      // }
 
 
       // console.log('POPSTATE2', document.location.pathname);
