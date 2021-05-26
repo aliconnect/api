@@ -2,6 +2,7 @@
 eol = '\n';
 (function(){
   // MAIN
+  // DEV
   const isModule = typeof module === "object" && typeof module.exports === "object";
   window = isModule ? global : window;
   document = window.document;
