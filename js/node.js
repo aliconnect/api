@@ -137,15 +137,25 @@ projectroot = process.cwd();
 
 // console.log(approot,projectroot,__dirname)
 
+const search_dirnames = [
+  __dirname + '/..',
+  __dirname + '/../..',
+  projectroot + '/webroot',
+  projectroot,
+  projectroot + '/..',
+  projectroot + '/../..',
+  projectroot + '/../../..',
+  approot + '/webroot',
+  approot,
+  approot + '/..',
+  approot + '/../..',
+  approot + '/../../..',
+  approot + '/node_modules/@aliconnect',
+];
+
+
 function getFileExists(basename) {
-  return [
-    projectroot + '/webroot',
-		projectroot,
-		approot + '/webroot',
-    approot,
-    approot + '/node_modules/@aliconnect',
-    approot + '/../../..',
-	]
+  return search_dirnames
   .map(path => path + basename)
   // .map(path => { console.log(path); return path; }) // DEBUG:
   .find(fname => fs.existsSync(fname) && (fileExists = fs.statSync(fname).isFile()))
@@ -205,13 +215,16 @@ function getData(fname) {
   return isFile(fname) ? require(fname) : {}
 }
 
+aimconfig = {};
 [
   { info:package = getData(approot + '/package.json')},
   getData(approot + '/config.json'),
   getData(projectroot + '/config.json'),
   getData(projectroot + '/secret.json'),
   minimist(process.argv.slice(2)),
-].forEach(config => $().extend(config));
+].forEach(config => $.extend(aimconfig, config));
+// console.log(aimconfig);
+$().extend(aimconfig);
 config = $().config;
 // console.debug(config);
 
@@ -346,6 +359,7 @@ function httpServerRequest (req, res) {
 	const cookies = parseCookies(req)
 	body = '';
 	req.on('data', function (chunk) { body += chunk.toString(); });
+  // console.debug('pathname', pathname, projectroot, approot, __dirname);
 	for (var i = 0, filename, fileNames = [
 		pathname,
 		pathname + '.html',
@@ -357,7 +371,7 @@ function httpServerRequest (req, res) {
 			break;
 		}
 	}
-	// console.debug(root);
+	// console.debug(filename);
 
 	if (!filename) {
 		if (root.includes('api')) {
@@ -450,10 +464,16 @@ function httpServerRequest (req, res) {
 				'Service-Worker-Allowed': '/',
 			},
 		};
-		const header = headers[filename.split('.').pop()];
+		const header = headers[ext];
 		for (var name in header) {
 			res.setHeader(name, header[name]);
 		}
+    if (ext === 'html') {
+      // console.log(data.toString());
+      // data = data.toString().replace(/github.io/gs, '');
+      data = data.toString().replace(/"\/\/.*?\//gs, '"/');
+    }
+    // console.log(1, filename);
 		res.write(data);
 		return res.end();
 	});
@@ -480,8 +500,20 @@ $.saveRequests = function (param) {
 
 $()
 .on('load', async event => {
+
+  // console.log('LOAD', $().authProvider());
+
   await $().login();
+  // $().client({
+  //   servers: [
+  //     {
+  //       url: 'https://rws-tms.aliconnect.nl/api',
+  //     },
+  //   ]
+  // });
+
   const sub = $().authProvider().sub;
+  // process.exit();
   // console.debug($().authProvider());
   // return;
   // data_filename = projectroot + `/data_${sub}.json`;
@@ -492,6 +524,7 @@ $()
     // require(projectroot + `/webroot/data1.js`);
     require(dataJsFilename);
   } else {
+    console.log('LOAD1', sub);
     $.log('GET', dataJsFilename)
     await $()
     .api('/')
@@ -535,7 +568,7 @@ $()
   $().emit('init');
 })
 .on('ready', event => {
-  console.log('READY')
+  // console.log('READY', config)
 	if (config.http) {
 		if (config.http.cert && fs.existsSync(process.cwd() + config.http.key)) {
 			HttpServer = require('https').createServer({

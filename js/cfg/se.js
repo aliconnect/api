@@ -1,5 +1,5 @@
 console.debug('Config SE');
-$().config({
+$().setconfig({
   components: {
     schemas: {
       Enterprise: {

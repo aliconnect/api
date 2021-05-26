@@ -2,7 +2,7 @@
   "name": "@aliconnect/sdk",
   "version": "0.0.1",
   "description": "AIM Automation Integration Manager Framework",
-  "main": "js/aim.js",
+  "main": "js/aim_debug.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aliconnect/sdk.git"

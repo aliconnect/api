@@ -7,8 +7,6 @@ eol = '\n';
   const meshitems = [];
 
   minimist = function (args, opts){
-    // console.log('minimist', args);
-
     if (!opts) opts = {};
     var flags = { bools: {}, strings: {}, unknownFn: null };
     if (typeof opts['unknown'] === 'function'){
@@ -725,6 +723,7 @@ eol = '\n';
       return this.access_token;
     },
     init(options){
+      console.debug('options', options);
 
       Object.assign(this, options);
       const auth = this.auth;
@@ -748,7 +747,7 @@ eol = '\n';
         // console.error(auth.id_token);
       }
       const access_token = auth.api_key || auth.access_token || auth.id_token;
-      // console.log([access_token, auth.api_key, auth.access_token, auth.id_token]);
+      console.log([access_token, auth.api_key, auth.access_token, auth.id_token]);
       if (access_token){
         try {
           // console.error(access_token);
@@ -1999,7 +1998,7 @@ eol = '\n';
         this.setState('CONNECTING', `Connecting ${this.url}`);
         if (this.WebSocket) return resolve(this);
         this.resolve = resolve;
-        // console.debug('connect');
+        console.debug('connect', this.url);
         Object.assign(this.WebSocket = new window.WebSocket(this.url), {
           messages: [],
           requests: {},
@@ -2407,21 +2406,21 @@ eol = '\n';
       // console.error(context);
       return this.get(AuthProvider, context);
     },
-    auth() {
-      console.log('AUTH');
-      $().on({
-        async ready() {
-          console.log('LOGIN READY', window[$.config.callback]);
-          await $().login();
-          // await $().login();
-          if (typeof window[$.config.callback] === 'function') {
-            window[$.config.callback]();
-          }
-        }
-      });
-    },
+    // auth() {
+    //   console.debug('AUTH');
+    //   $().on({
+    //     async ready() {
+    //       console.log('LOGIN READY', window[$.config.callback]);
+    //       await $().login();
+    //       // await $().login();
+    //       if (typeof window[$.config.callback] === 'function') {
+    //         window[$.config.callback]();
+    //       }
+    //     }
+    //   });
+    // },
     auth(context){
-      console.error(context);
+      console.error('AUTH', context);
       return this.get(AuthProvider, {auth: context});
     },
     api(path){
@@ -2430,9 +2429,13 @@ eol = '\n';
       if (!client.url) throw 'No api url specified';
       // const pathUrl = new URL(path, client.url);
       // console.error(''+pathUrl);
+      console.debug(client.url);
+      client.url = 'https://rws-tms.aliconnect.nl/api';
       const url = this.url(client.url + path.replace(/.*\/api/,''));
       // const url = this.url(pathUrl);
       // console.debug('aa', access_token, client.authProvider);
+      // console.debug('aa', client.authProvider);
+
       return access_token ? url.headers('Authorization', 'Bearer ' + access_token) : url;
       // return this.client().api(path);
       // return $().url(this.props('url') + path).header('access_token', this.props('access_token'));
@@ -2499,7 +2502,7 @@ eol = '\n';
     components(components){
       return this.extend(components)
     },
-    config(context){
+    setconfig(context){
       $().extend(context);
     },
     connector(){
@@ -2589,6 +2592,9 @@ eol = '\n';
     },
     client(options){
       return this.get(Client, options ? Object.assign(options,{authProvider: options.authProvider || this.authProvider()}) : null);
+    },
+    client_get(){
+      return clients;
     },
     css(selector, context) {
       if (document) {
@@ -2713,7 +2719,7 @@ eol = '\n';
       }
       if (url.searchParams.get('l') !== $.url.searchParams.get('l')) {
         $.url.searchParams.set('l', url.searchParams.get('l'));
-        var refurl = new URL(url.searchParams.get('l'));
+        var refurl = new URL(url.searchParams.get('l'), document.location);
         if (refurl.pathname.match(/^\/api\//)) {
           const client = clients.get(refurl.hostname);
           // console.log(clients);
@@ -2735,7 +2741,7 @@ eol = '\n';
       if (url.searchParams.get('v') !== $.url.searchParams.get('v')) {
         $.url.searchParams.set('v', url.searchParams.get('v'));
         if (url.searchParams.get('v')) {
-          var refurl = new URL(url.searchParams.get('v'));
+          var refurl = new URL(url.searchParams.get('v'), document.location);
           if (refurl.pathname.match(/^\/api\//)) {
             const client = clients.get(refurl.hostname);
             client.api(refurl.href).get().then(async event => {
@@ -2836,8 +2842,20 @@ eol = '\n';
       return this;
     },
     async login(){
-      const url = new URL(this.server.url, document.location);
-      // console.error(this, url.hostname);
+      // const url = new URL(this.server.url, document.location);
+      var url = new URL(this.server ? this.server.url : '/api', 'https://aliconnect.nl');
+      if (this.authProvider().access && this.authProvider().access.iss) {
+        url.hostname = this.authProvider().access.iss;
+        // url.hostname = 'rws-tms.aliconnect.nl';
+      }
+      // console.debug( url );
+      // return;
+      //
+      // var url = new URL(this.server ? this.server.url : this.authProvider().access.iss, 'https://aliconnect.nl/api');
+      //
+      // console.debug( this.authProvider().access.iss, url );
+      // return;
+
       clients.set(url.hostname, this);
       // return console.debug(this.ws());
       // clients.set()
@@ -3673,7 +3691,8 @@ eol = '\n';
             // console.log('CLICK MAIN', elem.href.includes('/wiki/'), elem.getAttribute('href'));
             if (elem.getAttribute('href').match(/^\/\//)) {
               event.preventDefault();
-              $('list').load(elem.getAttribute('href'))
+              $().execQuery('l', elem.getAttribute('href'));
+              // $('list').load(elem.getAttribute('href'))
               return;
             }
             if (window.colpage) {
@@ -6987,7 +7006,7 @@ eol = '\n';
     },
 
     log() {
-      if (document.getElementById('console')) {
+      if (window.document && document.getElementById('console')) {
         $('console').append($('div').text(...arguments))
       } else if ($().statusElem) {
         $().statusElem.text(...arguments);
@@ -15707,7 +15726,7 @@ eol = '\n';
           //   var wikiPath = url.origin + '/wiki';
         } else if (match = url.href.match(/(.*\/wiki.*)\/.+$/)) {
           var wikiPath = match[1];
-          console.log(7, 'wikiPath', [url.href, wikiPath]);
+          // console.log(7, 'wikiPath', [url.href, wikiPath]);
           // } else if (match = url.href.match(/(.*\/wiki\/.*)\/.*?\..*/)) {
           //   var wikiPath = match[1];
           //   console.log(1, 'wikiPath', wikiPath);
@@ -15885,7 +15904,7 @@ eol = '\n';
   						}),
   					)
   				});
-          console.log(wikiPath);
+          // console.log(wikiPath);
           if (wikiPath) {
             $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
             .then(event => mdRewriteRef(event, this.homeElem.md(event.target.responseText)))

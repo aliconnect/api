@@ -4590,9 +4590,12 @@ class request_type {
     die(json_encode($data));
   }
   public function build_node_data() {
+    // debug(1, aim()->access);
     // gebruikt door node.js, opbouwen data voor node
     ini_set('display_errors', 0);
     ini_set('log_errors', 1);
+    // $sub = aim()->access['sub'];
+    // $sub = $_GET['sub'];
     if (isset(aim()->access['sub'])) {
       $sub = aim()->access['sub'];
       $res = aim()->query("EXEC [item].[build_node_data] $sub");
@@ -4607,7 +4610,11 @@ class request_type {
       die(json_encode([
         'sub'=>$sub,
         'value'=>array_values((array)$items),
-      ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+      ]));
+      die(json_encode([
+        'sub'=>$sub,
+        'value'=>array_values((array)$items),
+      ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
     }
   }
   public function _build_map() {
