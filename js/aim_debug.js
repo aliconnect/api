@@ -2430,7 +2430,6 @@ eol = '\n';
       // const pathUrl = new URL(path, client.url);
       // console.error(''+pathUrl);
       console.debug(client.url);
-      client.url = 'https://rws-tms.aliconnect.nl/api';
       const url = this.url(client.url + path.replace(/.*\/api/,''));
       // const url = this.url(pathUrl);
       // console.debug('aa', access_token, client.authProvider);
@@ -2721,8 +2720,8 @@ eol = '\n';
         $.url.searchParams.set('l', url.searchParams.get('l'));
         var refurl = new URL(url.searchParams.get('l'), document.location);
         if (refurl.pathname.match(/^\/api\//)) {
-          const client = clients.get(refurl.hostname);
-          // console.log(clients);
+          const client = clients.get(refurl.hostname) || $();
+          console.log('CLIENT',client,refurl.hostname);
           refurl.pathname += '/children';
           client
           .api(refurl.href)
@@ -2743,7 +2742,7 @@ eol = '\n';
         if (url.searchParams.get('v')) {
           var refurl = new URL(url.searchParams.get('v'), document.location);
           if (refurl.pathname.match(/^\/api\//)) {
-            const client = clients.get(refurl.hostname);
+            const client = clients.get(refurl.hostname) || $();
             client.api(refurl.href).get().then(async event => {
               $('view').show(event.body);
             });
@@ -2846,7 +2845,6 @@ eol = '\n';
       var url = new URL(this.server ? this.server.url : '/api', 'https://aliconnect.nl');
       if (this.authProvider().access && this.authProvider().access.iss) {
         url.hostname = this.authProvider().access.iss;
-        // url.hostname = 'rws-tms.aliconnect.nl';
       }
       // console.debug( url );
       // return;
