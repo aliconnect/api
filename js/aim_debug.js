@@ -1,7 +1,7 @@
 // main
 eol = '\n';
 (function(){
-  // MAIN
+  // MAIN MAIN
   const isModule = typeof module === "object" && typeof module.exports === "object";
   window = isModule ? global : window;
   document = window.document;
