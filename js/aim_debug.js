@@ -3483,7 +3483,7 @@ eol = '\n';
           // window.focus();
         });
 
-    		navigator.serviceWorker.register('/api/js/sw.js', { scope: '/' }).then(function(registration) {
+    		navigator.serviceWorker.register('js/sw.js', { scope: '/js/' }).then(function(registration) {
     			// console.log('Registration successful, scope is:', registration.scope, navigator.serviceWorker);
           $().sw = registration;
           return;
@@ -19708,6 +19708,19 @@ eol = '\n';
   [...document.currentScript.attributes].forEach(attribute => $.extend($.config, minimist([attribute.name, attribute.value])));
   (new URLSearchParams(document.location.search)).forEach((value,key)=>$.extend($.config, minimist([key,value])));
   $().extend($.config);
+
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the mini-infobar from appearing on mobile
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    // deferredPrompt = e;
+    // Update UI notify the user they can install the PWA
+    // showInstallPromotion();
+    // Optionally, send analytics event that PWA install promo was shown.
+    console.error(`LETOP 'beforeinstallprompt' event was fired.`);
+  });
+
 
   // (new URLSearchParams(document.location.search)).forEach((value,key)=>$().extend(minimist([key,value])));
   // (new URL(document.currentScript.src)).searchParams.forEach((value, key) => $.config[key] = value);
