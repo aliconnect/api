@@ -2711,12 +2711,20 @@ eol = '\n';
       return this;
     },
     execUrl(url){
+      console.log('execUrl', url);
       $.url = $.url || new URL(document.location.origin);
       var url = new URL(url, document.location);
-      if (document.location.hash && $[document.location.hash.substr(1)]) {
-        return $[document.location.hash.substr(1)]();
+      console.log(url.hash, url.searchParams.get('l'), $.url.searchParams.get('l'));
+      if (url.hash) {
+        if (this.execUrl(url.hash.substr(1))) {
+          return;
+        }
+        // if ($[url.hash.substr(1)]) {
+        //   return $[url.hash.substr(1)]();
+        // }
+        // this.execUrl(url.hash.substr(1));
       }
-      if (url.searchParams.get('l') !== $.url.searchParams.get('l')) {
+      if (url.searchParams.get('l') && url.searchParams.get('l') !== $.url.searchParams.get('l')) {
         $.url.searchParams.set('l', url.searchParams.get('l'));
         var refurl = new URL(url.searchParams.get('l'), document.location);
         if (refurl.pathname.match(/^\/api\//)) {
@@ -2737,7 +2745,7 @@ eol = '\n';
           $('list').load(url.searchParams.get('l'));
         }
       }
-      if (url.searchParams.get('v') !== $.url.searchParams.get('v')) {
+      if (url.searchParams.get('v') && url.searchParams.get('v') !== $.url.searchParams.get('v')) {
         $.url.searchParams.set('v', url.searchParams.get('v'));
         if (url.searchParams.get('v')) {
           var refurl = new URL(url.searchParams.get('v'), document.location);
@@ -4510,7 +4518,7 @@ eol = '\n';
             if ($().authProvider().sub) {
               $('div').class('menu').parent(this.is.text('')).append(
                 $('h1').text('Account'),
-                $('div').class('col').prompts(...$.const.prompt.account.prompts),
+                $('div').class('col').prompts(...$.const.prompt.account.prompts).prompts('account_domain_delete'),
               )
             } else {
               $('div').class('menu').parent(this.is.text('')).append(
@@ -4550,9 +4558,25 @@ eol = '\n';
           config() {
             $('div').class('menu').parent(this.is.text(''))
             .append(
-              $('h1').text('Config'),
-              $('div').class('col').prompts(...$.const.prompt.config.prompts),
+              $('h1').text('Settings'),
+              this.divElem = $('div').class('col').prompts(...$.const.prompt.config.prompts).prompts('domain'),
             )
+          },
+          domain() {
+            $('prompt').attr('open', null);
+            return;
+            // console.log();
+
+            $('list').text('').append(
+              $('div').class('col').append(
+                $('h1').text('Settings'),
+                $('form').append(
+                  $('input').value(document.location.hostname.split(/\./)[0]),
+                  $('input').type('submit').value('Rename'),
+                ),
+              ),
+            );
+            // setTimeout(() => $('prompt').attr('open', null), 100);
           },
           account_profile() {},
           contact_profile() {},
@@ -4692,15 +4716,18 @@ eol = '\n';
                   domain_name: { value: (searchParams.get('domain')||'').split(/\./)[0]},
                 }).btns({
                   next: { type:'submit', default:1 },
-                }).on('submit', event => $().api('/account/account_domain').post(event).data(data => {
+                }).on('submit', event => $().api('/account/account_domain').post(event).then(event => {
+                  const data = event.body;
                   this.elemMessage.html(data.msg || '');
                   if (data.url) {
+                    // return console.error(data.url, data);
+
                     const url = $()
                     .url('https://login.aliconnect.nl/')
                     .query({
                       prompt: 'login',
                       response_type: 'code',
-                      // client_id: config.auth.client_id || config.auth.clientId,
+                      client_id: data.client_id,
                       redirect_uri: data.url,
                       // state: state,
                       scope: $().scope,//('all'),
@@ -4715,6 +4742,32 @@ eol = '\n';
                   // this.is.text('').append(
                   //   $('h1').ttext('Domain created')
                   // );
+                }))
+              )
+            }
+          },
+          account_domain_delete() {
+            const searchParams = new URLSearchParams(document.location.search);
+            this.is.text('').append(
+              $('h1').ttext('Account domain delete'),
+              $('p').ttext(`Delete the domain ${searchParams.get('domain')||''}.`),
+            );
+            if ($().authProvider().sub) {
+              this.is.text('').append(
+                $('p').ttext(`If you want to delete this domain select next?`),
+                this.elemMessage = $('div').class('msg'),
+                $('form').class('col').properties({
+                  // domain_name: { value: (searchParams.get('domain')||'').split(/\./)[0]},
+                })
+                .btns({
+                  next: { type:'submit', default:1 },
+                })
+                .on('submit', event => $().api('/account/account_domain_delete').post(event).then(event => {
+                  const data = event.body;
+                  if (data.url) {
+                    return document.location.href = data.url;
+                  }
+                  return console.error(data);
                 }))
               )
             }
@@ -5263,10 +5316,14 @@ eol = '\n';
           $(document.body).messagesPanel();
           // console.log(document.location.hostname.split('.')[0]);
           ($().server = $().server || {}).url = $().server.url || ('//' + document.location.hostname.split('.')[0] + '.aliconnect.nl/api');
-          // console.log($().server.url);
 
-          // await $().url($().server.url+'/').get().then(event => $().extend(event.body)).catch(console.error);
-          // await $().url($().server.url+'/').get().then(event => console.log(JSON.stringify(JSON.parse(event.target.responseText),null,2).replace(/"(\w+)"(?=: )/gs,'$1'))).catch(console.error);
+          console.warn($().server.url, $().client_id);
+          if (!$().client_id) {
+            await $().url($().server.url+'/').get().then(event => $().extend(event.body)).catch(console.error);
+            // await $().url($().server.url+'/').get().then(event => console.log(JSON.stringify(JSON.parse(event.target.responseText),null,2).replace(/"(\w+)"(?=: )/gs,'$1'))).catch(console.error);
+          }
+          console.warn($().server.url, $());
+
           await $().translate();
           // await $().getApi(document.location.origin+'/api/');
 
@@ -5585,8 +5642,8 @@ eol = '\n';
 
           // console.log(document.location.application_path);
           $().application_path = $().application_path || '/';
-          var url = new URL(document.location);
-          if (!url.searchParams.has('l')) {
+          // var url = new URL(document.location);
+          if (!document.location.search) {
             $().execQuery('l', $().ref && $().ref.home ? $().ref.home : document.location.origin);
           }
           // if (document.location.pathname === $().application_path && !document.location.search) {

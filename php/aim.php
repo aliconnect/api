@@ -2542,30 +2542,30 @@ class account {
     return $this;
   }
   public function account_domain($options = []) {
-    $domain_name = $_POST['domain_name'];
+    $domain_name = strtolower($_POST['domain_name']);
     $sub = aim()->access['sub'];
     if ($sub) {
       $account = sqlsrv_fetch_object(aim()->query("EXEC account.get @hostname='$domain_name'"));
+      if (!file_exists($root = $_SERVER['DOCUMENT_ROOT']."/$domain_name")) {
+        mkdir($root, 0777, true);
+      }
+      // if (!file_exists($fname = $root."/config.yaml")) {
+      $config = yaml_parse_file($_SERVER['DOCUMENT_ROOT']."/aliconnect/config.local.yaml");
+      $config['client'] = [
+        'servers'=> [
+          [
+            'url'=> "https://$domain_name.aliconnect.nl/api"
+          ]
+        ]
+      ];
+      yaml_emit_file($root."/config.yaml", $config);
+      // }
+      // return;
       if ($account) {
         return [
           'msg'=> 'domain not available',
         ];
       }
-      if (!file_exists($root = $_SERVER['DOCUMENT_ROOT']."/$domain_name")) {
-        mkdir($root, 0777, true);
-      }
-      // if (!file_exists($fname = $root."/config.yaml")) {
-        $config = yaml_parse_file($_SERVER['DOCUMENT_ROOT']."/aliconnect/config.local.yaml");
-        $config['client'] = [
-          'servers'=> [
-            [
-              'url'=> "https://$domain_name.aliconnect.nl/api"
-            ]
-          ]
-        ];
-        yaml_emit_file($root."/config.yaml", $config);
-			// }
-      // return;
 
       aim()->query(
         "INSERT INTO item.dt (hostId) VALUES(1)
@@ -2573,17 +2573,20 @@ class account {
         SET @id=scope_identity()
         EXEC item.attr @itemId=@id, @name='Class', @linkId=1002
         EXEC item.attr @itemId=@id, @name='user', @linkId=$sub
+        EXEC item.attr @itemId=@id, @name='owner', @linkId=$sub
         EXEC item.attr @itemId=@id, @name='keyname', @value='$domain_name'
-        EXEC item.attr @itemId=@id, @name='redirect_uri', @value = 'https://$domain_name.aliconnect.nl/'
-        EXEC item.attr @itemId=@id, @name='redirect_uri', @value = 'https://$domain_name.aliconnect.nl'
+        EXEC item.attr @itemId=@id, @name='redirect_uri', @max=999, @value = 'https://$domain_name.aliconnect.nl'
+        EXEC item.attr @itemId=@id, @name='redirect_uri', @max=999, @value = 'http://$domain_name.aliconnect.localhost'
         INSERT INTO item.dt (hostId) VALUES (@id)
         SET @id=scope_identity()
         EXEC item.attr @itemId=@id, @name='Class', @linkId=1004
         EXEC item.attr @itemId=@id, @name='Src', @linkId=$sub
         "
       );
+      $account = sqlsrv_fetch_object(aim()->query("EXEC account.get @hostname='$domain_name'"));
       return [
         'url'=> "https://$domain_name.aliconnect.nl",
+        'client_id'=> $account->client_id,
         'domain_name'=> $domain_name,
       ];
     }
@@ -2593,6 +2596,26 @@ class account {
       'msg'=> 'not logged in',
     ];
   }
+  public function account_domain_delete($options = []) {
+    // $domain_name = strtolower($_POST['domain_name']);
+    $access = aim()->access['sub'];
+    if (aim()->access['sub'] && aim()->access['iss']) {
+      $account = sqlsrv_fetch_object(aim()->query("EXEC account.get @hostname=%s", aim()->access['client_id']));
+      if (1 || aim()->access['sub'] == $account->ownerId) {
+        rename($_SERVER['DOCUMENT_ROOT']."/".AIM_DOMAIN, $_SERVER['DOCUMENT_ROOT']."/archive/".$account->clientId);
+        aim()->query("UPDATE item.dt SET deletedDateTime = GETDATE() WHERE id = %s", $account->clientId);
+      }
+      return [
+        'url'=> "https://aliconnect.nl",
+      ];
+      // debug(aim()->access['sub'], $account->ownerId, aim()->access['sub'] == $account->ownerId, $account, aim()->access);
+    }
+    // debug(1);
+
+    // throw new Exception('STOP');
+  }
+
+
 
   public function get($selector) {
     if (isset($this->data->$selector)) {
@@ -4151,8 +4174,11 @@ class aim {
       $schemaKeys = array_keys((array)$this->api->components->schemas);
       $keys = implode("','",$schemaKeys);
       if (empty($this->hostId)) {
-        $this->hostId = sqlsrv_fetch_object($this->query("SELECT id FROM item.dv WHERE hostId=1 AND classID=1002 AND keyname = '$this->hostname'"))->id;
-        // debug($this->hostId);
+        $account = sqlsrv_fetch_object($this->query("EXEC account.get @hostname='$this->hostname'"));
+        $this->api->client_id = $account->client_id;
+        // debug($account);
+        $row = sqlsrv_fetch_object($this->query("SELECT id,uid FROM item.dv WHERE hostId=1 AND classID=1002 AND keyname = '$this->hostname'"));
+        $this->hostId = $row->id;
       }
       $res = $this->query("
       SET NOCOUNT ON
@@ -4220,7 +4246,7 @@ class aim {
           }
         }
       }
-      // debug();
+      // debug(1);
       header('Content-Type: application/json');
       die(json_encode($this->api));
 		}
