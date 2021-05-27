@@ -5645,6 +5645,7 @@ eol = '\n';
           // var url = new URL(document.location);
           if (!document.location.search) {
             $().execQuery('l', $().ref && $().ref.home ? $().ref.home : document.location.origin);
+            // $().execQuery('l', document.location.origin);
           }
           // if (document.location.pathname === $().application_path && !document.location.search) {
           //   window.history.replaceState('page', 'PAGINA', '?p='+($().ref && $().ref.home ? $().ref.home : document.location.origin));

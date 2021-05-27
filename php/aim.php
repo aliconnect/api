@@ -1236,13 +1236,13 @@ class item {
       $item->uid,
       // empty($_GET['uid']) ? uniqid() : $_GET['uid'],
     ]);
-    if (!is_dir($_SERVER['DOCUMENT_ROOT'].$path)) {
-      mkdir($_SERVER['DOCUMENT_ROOT'].$path,0777,true);
+    if (!is_dir($_SERVER['DOCUMENT_ROOT'].'/../fs1'.$path)) {
+      mkdir($_SERVER['DOCUMENT_ROOT'].'/../fs1'.$path,0777,true);
     }
     $filename = pathinfo($_GET['name'], PATHINFO_FILENAME);
     $ext = pathinfo($_GET['name'], PATHINFO_EXTENSION);
     $i=0;
-    while (is_file($fname = $_SERVER['DOCUMENT_ROOT'].( $_GET['src'] = $path."/".$filename.($i?$i:'').".$ext" ))) {
+    while (is_file($fname = $_SERVER['DOCUMENT_ROOT'].'/../fs1'.( $src = $path."/".$filename.($i?$i:'').".$ext" ))) {
       $i++;
     }
     if (strstr($_GET['type'],'openxmlformats')) {
@@ -1286,6 +1286,7 @@ class item {
     } else {
       file_put_contents($fname, file_get_contents('php://input'));
     }
+    $_GET['src'] = 'https://fs1.aliconnect.nl'. $src;
     return $_GET;
 
 
