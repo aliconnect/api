@@ -1,6 +1,6 @@
 eol = '\n';
 (function(){
-  const isModule = typeof module === "object" && typeof module.exports === "object";
+  const isModule = typeof module === "object" && typeof exports === "object";
   window = isModule ? global : window;
   document = window.document;
   console.msg = console.msg || console.info;
@@ -723,7 +723,7 @@ eol = '\n';
       return this.access_token;
     },
     init(options){
-      console.debug('options', options);
+      // console.debug('options', options);
 
       Object.assign(this, options);
       const auth = this.auth;
@@ -747,7 +747,7 @@ eol = '\n';
         // console.error(auth.id_token);
       }
       const access_token = auth.api_key || auth.access_token || auth.id_token;
-      console.log([access_token, auth.api_key, auth.access_token, auth.id_token]);
+      // console.log([access_token, auth.api_key, auth.access_token, auth.id_token]);
       if (access_token){
         try {
           // console.error(access_token);
@@ -1998,7 +1998,7 @@ eol = '\n';
         this.setState('CONNECTING', `Connecting ${this.url}`);
         if (this.WebSocket) return resolve(this);
         this.resolve = resolve;
-        console.debug('connect', this.url);
+        // console.debug('connect', this.url);
         Object.assign(this.WebSocket = new window.WebSocket(this.url), {
           messages: [],
           requests: {},
@@ -2429,7 +2429,7 @@ eol = '\n';
       if (!client.url) throw 'No api url specified';
       // const pathUrl = new URL(path, client.url);
       // console.error(''+pathUrl);
-      console.debug(client.url);
+      console.warn(client);
       const url = this.url(client.url + path.replace(/.*\/api/,''));
       // const url = this.url(pathUrl);
       // console.debug('aa', access_token, client.authProvider);
@@ -2711,10 +2711,10 @@ eol = '\n';
       return this;
     },
     execUrl(url){
-      console.log('execUrl', url);
+      // console.log('execUrl', url);
       $.url = $.url || new URL(document.location.origin);
       var url = new URL(url, document.location);
-      console.log(url.hash, url.searchParams.get('l'), $.url.searchParams.get('l'));
+      // console.log(url.hash, url.searchParams.get('l'), $.url.searchParams.get('l'));
       if (url.hash) {
         if (this.execUrl(url.hash.substr(1))) {
           return;
@@ -2729,7 +2729,7 @@ eol = '\n';
         var refurl = new URL(url.searchParams.get('l'), document.location);
         if (refurl.pathname.match(/^\/api\//)) {
           const client = clients.get(refurl.hostname) || $();
-          console.log('CLIENT',client,refurl.hostname);
+          // console.log('CLIENT',client,refurl.hostname);
           refurl.pathname += '/children';
           client
           .api(refurl.href)
@@ -3457,14 +3457,14 @@ eol = '\n';
     libraries() {
       // console.log('LIBRARIES', ...arguments);
     },
-    qrcode() {
-      const elem = document.head.appendChild(document.createElement('script'));
-      elem.setAttribute('src', $.apiPath + '/js/qrcode.js');
-    },
-    qrscan() {
-      const elem = document.head.appendChild(document.createElement('script'));
-      elem.setAttribute('src', $.apiPath + '/js/qrscan.js');
-    },
+    // qrcode() {
+    //   const elem = document.head.appendChild(document.createElement('script'));
+    //   elem.setAttribute('src', $.apiPath + '/js/qrcode.js');
+    // },
+    // qrscan() {
+    //   const elem = document.head.appendChild(document.createElement('script'));
+    //   elem.setAttribute('src', $.apiPath + '/js/qrscan.js');
+    // },
     cam() {
       const elem = document.head.appendChild(document.createElement('script'));
       elem.setAttribute('src', $.apiPath + '/js/cam.js');
@@ -3483,7 +3483,7 @@ eol = '\n';
           // window.focus();
         });
 
-    		navigator.serviceWorker.register('js/sw.js', { scope: '/js/' }).then(function(registration) {
+    		navigator.serviceWorker.register('sw.js', { scope: '/' }).then(function(registration) {
     			// console.log('Registration successful, scope is:', registration.scope, navigator.serviceWorker);
           $().sw = registration;
           return;
@@ -5092,69 +5092,76 @@ eol = '\n';
             ).btns({
               back: { href: '#?prompt=login'}
             });
-            video.is.attr('playsinline', '');
-            const canvasElement = $('canvas').style('display:none').elem;
-            const canvas = canvasElement.getContext("2d");
-      			function drawLine(begin, end, color) {
-      				canvas.beginPath();
-      				canvas.moveTo(begin.x, begin.y);
-      				canvas.lineTo(end.x, end.y);
-      				canvas.lineWidth = 4;
-      				canvas.strokeStyle = color;
-      				canvas.stroke();
-      			}
-      			navigator.mediaDevices.getUserMedia({
-      				video: {
-      					facingMode: "environment",
-      					frameRate: {
-      						ideal: 5,
-      						max: 10
-      					}
-      				}
-      			}).then(function (stream) {
-      				// navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (stream) {
-      				videostream = video.srcObject = stream;
-      				video.is.attr("playsinline", true); // required to tell iOS safari we don't want fullscreen
-      				video.play();
-      				requestAnimationFrame(tick);
-      			});
-      			function tick() {
-      				if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      					canvasElement.hidden = false;
-      					canvasElement.height = video.videoHeight;
-      					canvasElement.width = video.videoWidth;
-      					canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
-      					var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
-      					var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert", });
-      					if (code && code.data) {
-                  if (code.data.includes('aliconnect.nl')) {
-                    videostream.getTracks().forEach(track => track.stop());
-                    canvas.clearRect(0, 0, canvasElement.width, canvasElement.height);
-                    canvasElement.hidden = true;
-                    canvasElement.style.display = 'none';
-                    $().ws().sendto(code.data.split('s=').pop(), {
-                      path: '/?prompt=mobile',
-                    }).then(body => {
-                      if (body === 'request_id_token') {
-                        $().ws().reply({
-                          id_token: window.localStorage.getItem('id_token'),
-                        }).then(body => {
-                          if (body.prompt) {
-                            panel = $().prompt(body.prompt);//.show(body.par);
-                            panel.append(
-                              $('div').text('JA NU LUKT HET, VRAAG OM ACCEPT'),
-                            )
-                          } else {
-                            $().prompt('');
-                          }
-                        });
-                      }
-                    });
+            (async function () {
+              // console.log($.apiPath + '/js/qrscan.js');
+              // console.log(1,window.jsQR);
+              await $.script($.apiPath + '/js/qrscan.js');
+              // console.log(2,window.jsQR);
+              // return;
+              video.is.attr('playsinline', '');
+              const canvasElement = $('canvas').style('display:none').elem;
+              const canvas = canvasElement.getContext("2d");
+              function drawLine(begin, end, color) {
+                canvas.beginPath();
+                canvas.moveTo(begin.x, begin.y);
+                canvas.lineTo(end.x, end.y);
+                canvas.lineWidth = 4;
+                canvas.strokeStyle = color;
+                canvas.stroke();
+              }
+              navigator.mediaDevices.getUserMedia({
+                video: {
+                  facingMode: "environment",
+                  frameRate: {
+                    ideal: 5,
+                    max: 10
                   }
-      					}
-      				}
-      				requestAnimationFrame(tick);
-      			}
+                }
+              }).then(function (stream) {
+                // navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (stream) {
+                videostream = video.srcObject = stream;
+                video.is.attr("playsinline", true); // required to tell iOS safari we don't want fullscreen
+                video.play();
+                requestAnimationFrame(tick);
+              });
+              function tick() {
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                  canvasElement.hidden = false;
+                  canvasElement.height = video.videoHeight;
+                  canvasElement.width = video.videoWidth;
+                  canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+                  var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                  var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert", });
+                  if (code && code.data) {
+                    if (code.data.includes('aliconnect.nl')) {
+                      videostream.getTracks().forEach(track => track.stop());
+                      canvas.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                      canvasElement.hidden = true;
+                      canvasElement.style.display = 'none';
+                      $().ws().sendto(code.data.split('s=').pop(), {
+                        path: '/?prompt=mobile',
+                      }).then(body => {
+                        if (body === 'request_id_token') {
+                          $().ws().reply({
+                            id_token: window.localStorage.getItem('id_token'),
+                          }).then(body => {
+                            if (body.prompt) {
+                              panel = $().prompt(body.prompt);//.show(body.par);
+                              panel.append(
+                                $('div').text('JA NU LUKT HET, VRAAG OM ACCEPT'),
+                              )
+                            } else {
+                              $().prompt('');
+                            }
+                          });
+                        }
+                      });
+                    }
+                  }
+                }
+                requestAnimationFrame(tick);
+              }
+            }())
           },
         });
 
@@ -5317,12 +5324,13 @@ eol = '\n';
           // console.log(document.location.hostname.split('.')[0]);
           ($().server = $().server || {}).url = $().server.url || ('//' + document.location.hostname.split('.')[0] + '.aliconnect.nl/api');
 
-          console.warn($().server.url, $().client_id);
           if (!$().client_id) {
+            console.warn($().server.url);
             await $().url($().server.url+'/').get().then(event => $().extend(event.body)).catch(console.error);
+            console.warn(1, $().api('/').toString());
             // await $().url($().server.url+'/').get().then(event => console.log(JSON.stringify(JSON.parse(event.target.responseText),null,2).replace(/"(\w+)"(?=: )/gs,'$1'))).catch(console.error);
           }
-          console.warn($().server.url, $());
+          // console.warn($().server.url, $());
 
           await $().translate();
           // await $().getApi(document.location.origin+'/api/');
@@ -7440,20 +7448,28 @@ eol = '\n';
 
 		},
     script(src) {
+      // console.log('SCRIPT', src);
       return $.promise('script', callback => {
+        // console.log(2, 'SCRIPT', src);
         function loaded(event) {
-          event.target.loaded = true;
+          event.target.loading = false;
+          // console.log('LOADED');
           callback();
         }
         for (let script of [...document.getElementsByTagName('SCRIPT')]) {
           if (script.getAttribute('src') === src) {
-            if (!script.loaded) {
+            // console.log(3, 'SCRIPT', src);
+            if (script.loading) {
+              // console.log(4, 'SCRIPT', src);
               return $(script).on('load', loaded);
             }
+            // console.log(4, 'SCRIPT', src);
             return callback();
           }
         }
-        $('script').src(src).parent(document.head).on('load', loaded);
+        var el = $('script').src(src).parent(document.head).on('load', loaded);
+        el.elem.loading = true;
+        // console.log('SCRIPT', el);
       });
     },
     copyToClipboard(obj) {
@@ -7486,6 +7502,8 @@ eol = '\n';
 
     },
   });
+
+
 
   Object.assign(Item = function () {}, {
     get(selector, schemaName){
@@ -9620,7 +9638,7 @@ eol = '\n';
 		construct(selector) {
 			this.selector = selector;
 			const elem = this.elem = this.selector.elem;
-			self = this;
+			const self = this;
       this.menu = {
         items: {
           previous: {
@@ -9838,7 +9856,7 @@ eol = '\n';
 			}
 		},
 	};
-	function Listview (selector) {
+	function Listview(selector) {
     selector.class('row aco listview');
 		this.construct(...arguments);
 		const elem = this.elem;
@@ -13216,6 +13234,7 @@ eol = '\n';
 		}
 	};
 
+
   function Chatroom(params, pageElement) {
 		const MESSAGE_TYPE = {
 			SDP: 'SDP',
@@ -14321,6 +14340,9 @@ eol = '\n';
     files(item, attributeName){
       this.item = item;
       this.files = item[attributeName];
+
+      // console.log('FILES', this.files);
+
       // this.files = [];
       if (this.files === 'string' && this.files[0] === '[') this.files = JSON.parse(this.files);
       if (this.files === 'string' && this.files[0] === '{') this.files = [JSON.parse(this.files)];
@@ -17778,11 +17800,16 @@ eol = '\n';
 		},
     qr(selector, context) {
 			const elem = this.elem;
-			new QRCode(elem, selector);
-			if (elem.tagName === 'IMG') {
+      (async function(){
+        if (!window.QRCode) {
+          await $.script($.apiPath + '/js/qrcode.js');
+        }
+        new QRCode(elem, selector);
+        if (elem.tagName === 'IMG') {
 				elem.src = elem.firstChild.toDataURL("image/png");
 				elem.firstChild.remove();
 			}
+      })()
 			return this;
 		},
     remove(selector) {
@@ -18530,6 +18557,14 @@ eol = '\n';
             )
           )
         );
+
+        // console.log('FILES',item, item.data.files);
+        //
+        //
+        // if (item.data.files) {
+        //   JSON.parse(item.data.files).forEach(item.elemFiles.appendFile)
+        // }
+
         // return console.log('SHOW', item);
         $.nav.setItem([item], 'selected', '');
         let link;
@@ -19719,7 +19754,11 @@ eol = '\n';
     // showInstallPromotion();
     // Optionally, send analytics event that PWA install promo was shown.
     console.error(`LETOP 'beforeinstallprompt' event was fired.`);
+    // alert('install');
   });
+  // alert('install1');
+
+
 
 
   // (new URLSearchParams(document.location.search)).forEach((value,key)=>$().extend(minimist([key,value])));
@@ -19728,7 +19767,7 @@ eol = '\n';
 
   $.apiPath = document.currentScript.src.split('/js')[0];
   if ($.config.libraries){
-    // console.log($.config.libraries);
+    console.log($.config.libraries);
     $.config.libraries.split(',').forEach(selector => $()[selector]());
 
     // (function recursive (name){
@@ -19773,7 +19812,11 @@ eol = '\n';
     // });
   }
   window.addEventListener('load', event => {
-    // console.debug('AIM LOAD');
+    console.debug('AIM LOAD');
+    $.script($.apiPath + '/js/qrscan.js')
+
+
+
     $().emit('load').then(event => {
       $().emit('ready').then(event => {
         // console.debug('AIM READY')

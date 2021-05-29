@@ -1,7 +1,7 @@
 html {
-  --basebg: linear-gradient(to right, rgb(59,125,237), rgb(43,162,76));
+  --basebg: linear-gradient(to right, rgb(66,133,244), rgb(52,168,83));
   --basefg: white;
-  --header-color: rgb(43,162,76);
+  --link: rgb(66,133,244);
+  --header-color: rgb(52,168,83);
   --header-font-family: "Segoe UI Light";
-  --link: rgb(59,125,237);
 }
