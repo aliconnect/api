@@ -5,7 +5,6 @@ eol = '\n';
   document = window.document;
   console.msg = console.msg || console.info;
   const meshitems = [];
-
   minimist = function (args, opts){
     if (!opts) opts = {};
     var flags = { bools: {}, strings: {}, unknownFn: null };
@@ -19,7 +18,6 @@ eol = '\n';
         flags.bools[key] = true;
       });
     }
-
     var aliases = {};
     Object.keys(opts.alias || {}).forEach(function (key){
       aliases[key] = [].concat(opts.alias[key]);
@@ -55,12 +53,10 @@ eol = '\n';
       if (arg && flags.unknownFn && !argDefined(key, arg)){
         if (flags.unknownFn(arg) === false) return;
       }
-
       var value = !flags.strings[key] && !isNaN(val)
       ? Number(val) : val
       ;
       setKey(argv, key.split('-'), value);
-
       (aliases[key] || []).forEach(function (x){
         setKey(argv, x.split('-'), value);
       });
@@ -123,29 +119,24 @@ eol = '\n';
       }
       else if (/^-[^-]+/.test(arg)){
         var letters = arg.slice(1, -1).split('');
-
         var broken = false;
         for (var j = 0; j < letters.length; j++){
           var next = arg.slice(j + 2);
-
           if (next === '-'){
             setArg(letters[j], next, arg);
             continue;
           }
-
           if (/[A-Za-z]/.test(letters[j]) && /=/.test(next)){
             setArg(letters[j], next.split('=')[1], arg);
             broken = true;
             break;
           }
-
           if (/[A-Za-z]/.test(letters[j])
           && /-?\d+(\.\d*)?(event-?\d+)?$/.test(next)){
             setArg(letters[j], next, arg);
             broken = true;
             break;
           }
-
           if (letters[j + 1] && letters[j + 1].match(/\W/)){
             setArg(letters[j], arg.slice(j + 2), arg);
             broken = true;
@@ -155,7 +146,6 @@ eol = '\n';
             setArg(letters[j], flags.strings[letters[j]] ? '' : true, arg);
           }
         }
-
         var key = arg.slice(-1)[0];
         if (!broken && key !== '-'){
           if (args[i + 1] && !/^(-|--)[^-]/.test(args[i + 1])
@@ -188,7 +178,6 @@ eol = '\n';
     Object.keys(defaults).forEach(function (key){
       if (!hasKey(argv, key.split('.'))){
         setKey(argv, key.split('.'), defaults[key]);
-
         (aliases[key] || []).forEach(function (x){
           setKey(argv, x.split('.'), defaults[key]);
         });
@@ -205,7 +194,6 @@ eol = '\n';
         argv._.push(key);
       });
     }
-
     return argv;
   };
   function createParam (param, splitter){
@@ -299,7 +287,6 @@ eol = '\n';
     .replace(/^\d|\.|\s|-|\(|\)|,/g,'')
     .replace(/\bLocation\b/,'Loc')
   }
-
   function aDate(d) {
 		if (!d) return new Date();
 		var resdate = new Date(d);
@@ -368,8 +355,6 @@ eol = '\n';
 		const path = `/${sub}/config.json`;
 		const config = {app:{nav:{items:{List:{items:{}}}}}};
 		// //console.error(importXlsFile);
-
-
 		// //console.error('IMPORT XLS', XLSX, file.name);
 		const reader = new FileReader();
 		reader.readAsBinaryString(file);
@@ -398,7 +383,6 @@ eol = '\n';
 					properties[cell.v] = properties[cell.v] || { type: types[cell.t] || 'string' }
 					// //console.log(cellstr, cell);
 				}
-
 				// var irows = Number(private.match(/\d+/g));
 				// //console.log(sheetname, wbsheet, ref, irows);
 			}
@@ -414,7 +398,6 @@ eol = '\n';
 			// 	//console.log(event.target.responseText);
 			// 	// $.SampleWindow('/om/?prompt=config_edit');
 			// }).send();
-
 			new $.HttpRequest($.config.$, 'post', '/').query({append: true}).input(config).send().onload = event => {
 				//console.log(event.target.responseText);
 			};
@@ -536,7 +519,6 @@ eol = '\n';
 			}
 		}
 	}
-
   function onkey(event) {
 		window.event = event;
 		event.keyPressed = [
@@ -546,7 +528,6 @@ eol = '\n';
 			event.code,
 		].join('');
 		private.keyEvent = null;
-
 		clearTimeout(private.keydownTimeout);
 		clearTimeout(private.keyupTimeout);
 		clearTimeout(private.keybufferTimeout);
@@ -554,7 +535,6 @@ eol = '\n';
 		private.keybuffer = private.keybuffer || [];
 		private.keybuffer.push(event.key);
 		event.keybuffer = private.keybuffer;
-
 		// if (document.activeElement !== document.body) {
 		// 	event.keyPressed += '_edit';
 		// }
@@ -566,7 +546,6 @@ eol = '\n';
 			event.clickEvent = private.clickEvent;
 		}
 	}
-
   function pageClose() {
 		colpage.innerText = '';
 		$.replaceUrl(document.location.href.replace(/\/id\/([^\?]*)/, ''));
@@ -624,7 +603,6 @@ eol = '\n';
   function getUid(id){
     return id.replace(/^\d+-/,'')
   }
-
   const private = {
     handlers: {},
     classes: {},
@@ -680,7 +658,6 @@ eol = '\n';
       return JSON.parse(atob(a[1] || a[0]));
     },
   };
-
   function AuthProvider (options){
     this.url = 'https://login.aliconnect.nl/api';
     this.authUrl = this.url + '/oauth';
@@ -724,14 +701,11 @@ eol = '\n';
     },
     init(options){
       // console.debug('options', options);
-
       Object.assign(this, options);
       const auth = this.auth;
       ['id_token', 'refresh_token', 'access_token'].forEach(token => $().storage(token, auth[token] = auth[token] || $().storage(token) || ''));
       // window.sessionStorage.clear();
       // window.localStorage.clear();
-
-
       if (auth.id_token){
         try {
           const id = this.id = this.auth.id = JSON.parse(atob(auth.id_token.split('.')[1]));
@@ -742,7 +716,6 @@ eol = '\n';
           this.trackLocalSession();
           this.trackSession();
         } catch (err){
-
         }
         // console.error(auth.id_token);
       }
@@ -754,12 +727,10 @@ eol = '\n';
           this.access = JSON.parse(atob(access_token.split('.')[1]));
           this.sub = this.access.sub;
           this.aud = this.access.aud;
-
           if (this.ws){
             this.send({ headers: {Authorization:'Bearer ' + $().authProvider().getAccessToken() } });
           }
         } catch (err){
-
         }
       }
       if (token = this.token(auth.api_key)){
@@ -848,7 +819,6 @@ eol = '\n';
       }).then(event => {
         // console.debug('REFR TOKEN',event);
         this.refreshTokenHandle = null;
-
         // var token = event.body.access_token;
         // var access = JSON.parse(atob(token.split('.')[1]));
         // var time = new Date().getTime()/1000;
@@ -864,7 +834,6 @@ eol = '\n';
         // console.error('RRRRRRRRRRRRefreshToken', expires_in, access);
         //
         return;
-
         $.cookie = {
           access_token: event.body.access_token
         };
@@ -888,7 +857,6 @@ eol = '\n';
     },
     trackLocalSession(){
       return;
-
       clearTimeout(arguments.callee.timeout);
       const cookie = $.cookie;
       // console.debug (`trackLocalSession`);
@@ -919,10 +887,8 @@ eol = '\n';
         // console.debug($.auth.id.nonce, event.target.status, event.target.responseText);
         if (event.target.status !== 200){
           window.removeEventListener('focus', arguments.callee);
-
           // return $.auth.logout();
         }
-
       });
     },
     // loginUrl(prompt = 'login'){
@@ -937,19 +903,15 @@ eol = '\n';
   };
   function Client(){
     // console.error(...arguments);
-
     // [...arguments].forEach($(this).extend)
     [...arguments].forEach(options => $(this).extend(options));
     // this.config = config;
     // console.debug(this.authProvider);
-
     // if (this.access_token = this.authProvider.getAccessToken()){
     // 	this.access = JSON.parse(atob(this.access_token.split('.')[1]));
     // 	this.sub = this.access.sub;
     // 	this.aud = this.access.aud;
     // }
-
-
     // private.dms = private.dms || [];
     // private.dms.push(this);
     // $().dms[selector] = this;
@@ -1000,7 +962,6 @@ eol = '\n';
       let url = 'https://login.aliconnect.nl?' + new URLSearchParams(params).toString();
       console.debug('LOGIN', url);
       // let login_window = window.open(url, 'login', 'top=0,left=0,width=300,height=300');
-
       // let loginElement = document.body.createElement('iframe', {src: url, style: 'position:fixed;margin:auto;width:100%;height:100%;top:50px;right:50px;bottom:50px;left:50px;'});
       let loginElement = document.body.createElement('DIV', { style: 'position:fixed;margin:auto;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.5);' }, [
         ['IFRAME', { src: url, style: 'position:fixed;margin:auto;top:0;right:0;bottom:0;left:0;width:100%;height:100%;max-width:500px;max-height:500px;border:none;' }]
@@ -1029,7 +990,6 @@ eol = '\n';
     },
     publish(){
       console.debug("PUBLISH");
-
       new $.HttpRequest($.config.$, 'POST', '/', aimapi, event => {
         console.debug("API", this.responseText );
         return;
@@ -1043,11 +1003,7 @@ eol = '\n';
         console.debug(onlineUrl, this.responseText);
         document.location.href = document.location.pathname;
       }).send();
-
       return;
-
-
-
       var def = {
         paths: {
           item: {
@@ -1081,10 +1037,8 @@ eol = '\n';
           }
         }
       };
-
       var api = JSON.parse(aimapi);
       api.paths = api.paths || {};
-
       for (var SchemaName in api.components.schemas){
         var schemaName = SchemaName, schema = api.components.schemas[SchemaName];
         (api.tags = api.tags || []).push({name:SchemaName});
@@ -1185,15 +1139,10 @@ eol = '\n';
         // }
         //api.components.schemas[SchemaName] = {properties: properties};
       }
-
       console.debug(api.paths);
       aimapi = JSON.stringify(api, null, 2);
-
-
       var js = $.operations ? JSON.stringify($.operations, function(key, value){ return typeof value == "function" ? value.toString() : value }, 4).replace(/\\r\\n/g, '\r\n').replace(/\\t/g, '    ').replace(/"function /g, 'function ').replace(/}"/g, '}') : "";
-
       //return;
-
       //console.debug("FN", "$.extend({operations: {\n" + fn.join(", \n") + "\n}});" );
       new $.HttpRequest($.config.$, 'POST', '/', aimapi, event => {
         console.debug("API", this.responseText );
@@ -1259,9 +1208,6 @@ eol = '\n';
       // Check if current logged in user is still logged in
       if (activestate == 'focus'){
         //if ('auth' in $) $.auth.check_state();
-
-
-
         // src='https://login.aliconnect.nl/api/v1/oauth/token/index.php';
         // src='https://login.aliconnect.nl/$-connect/$-api/v1/oauth/token/index.php';
         // new $.Client({
@@ -1279,7 +1225,6 @@ eol = '\n';
         // 		//// console.debug('api', this.data);
         // 	}
         // });
-
         return;
         ws.send({
           //broadcast: true,
@@ -1287,11 +1232,7 @@ eol = '\n';
           value: [{ id: $.Account.sub, values: { state: activestate } }, { id: $.client.account.id, values: { state: activestate } }]
         });
       }
-
-
       //return;
-
-
       //ws.send(data);
       //ws.send({ a: 'set', id: $.client.account.id, name: 'online', value: false });
       //ws.send({ a: 'blur' });
@@ -1348,7 +1289,6 @@ eol = '\n';
 					row.eventType = row.eventType || eventType;
 					////console.debug("UPDATE", eventType, row.eventType, row, targetItem, item);
 					if (!item) return;
-
 					switch (eventType || row.eventType) {
 						case 'copy':
 						targetItem.appendItem(null, { schema: item.schema, Title: item.Title, userID: 0, srcID: item.id }, null, true);
@@ -1356,9 +1296,7 @@ eol = '\n';
 						case 'link':
 						//console.debug('LINK', item);
 						new $.HttpRequest($.config.$, 'POST', '/' + targetItem.tag + '/link', { itemID: item.id } ).send();
-
 						// targetItem.appendChild(null, { schema: item.schema, Title: item.Title, detailID: item.id }, null, true);
-
 						break;
 						case 'cut':
 						////console.debug('CUT', row.masterID, item.masterID);
@@ -1372,10 +1310,8 @@ eol = '\n';
 						}
 						if (item.elemTreeLi) item.elemTreeLi.parentElement.removeChild(item.elemTreeLi);
 						if (item.elemListLi && item.elemListLi.parentElement) item.elemListLi.parentElement.removeChild(item.elemListLi);
-
 						if (targetItem) {
 							////console.debug('MOVE TO');
-
 							if (targetItem.masterID == targetItem.srcID) {
 								//target isClass en verplaatsen: ITEM wordt afgeleid van nieuwe CLASS
 								//item.masterID = item.srcID = row.srcID = row.masterID = targetItem.id;
@@ -1388,7 +1324,6 @@ eol = '\n';
 							else {
 								//console.debug('MOVE TO', targetItem.elLI, item.masterID = row.masterID = row[item.getPropertyAttributeName('masterID')] = targetItem.id, item.master);
 							}
-
 							////Item isClass en target !isClass, dus verplaatsen en ITEM wordt afgeleid van nieuwe CLASS
 							//if (row.masterID == row.srcID && targetItem.masterID != targetItem.srcID && eventType=="paste") item.masterID = item.srcID = row.srcID = row.masterID = targetItem.id;
 							//item.masterID = targetItem.id;
@@ -1406,7 +1341,6 @@ eol = '\n';
 						//		if (item.master) {
 						//			if (row.masterID == row.srcID && item.master.masterID == item.master.srcID);
 						//			if (row.masterID == row.srcID && item.master.masterID == item.master.srcID);
-
 						//			item.master.children.push(item);
 						//			if (item.master.elemTreeLi.elemTreeUl) item.appendTo(item.master.elemTreeLi.elemTreeUl);
 						//		}
@@ -1416,7 +1350,6 @@ eol = '\n';
 						break;
 					}
 				});
-
 				////console.debug('UPDATE', data);
 				//return true;
 				// @todo: mkan, versturen via ws
@@ -1442,7 +1375,6 @@ eol = '\n';
 				else document.location.reload();
 			},0);
 		},
-
 		// attr(items, attributeName, value) {
 		// 	//console.debug(items, attributeName, value, this[attributeName]);
 		// 	if (this[attributeName]) {
@@ -1455,8 +1387,6 @@ eol = '\n';
 		// 	})
 		// 	this[attributeName] = items;
 		// },
-
-
 		items: [],
 		setItem(item, attributeName, value) {
 			if (!item) throw 'no item';
@@ -1475,7 +1405,6 @@ eol = '\n';
 						if (event.ctrlKey) {
 							if (event.shiftKey) {
 								// !ALT+CTRL+SHIFT
-
 							} else {
 								// !ALT+CTRL+!SHIFT
 								items.push(item);
@@ -1522,7 +1451,6 @@ eol = '\n';
         return;
       }
       // console.log('CLIPBOARD', event.type, selection, selection.focusNode.nodeType, selection.focusNode, selection.ancherNode, selection.extendNode, selection.baseNode);
-
       if(document.activeElement.isContentEditable || ['INPUT'].includes(document.activeElement.tagName)) {
         return;
       }
@@ -1551,7 +1479,6 @@ eol = '\n';
 		},
 		remove(item) {
       console.debug('REMOVE');
-
 			if (this.items.includes(item)) {
 				this.items.splice(this.items.indexOf(item), 1);
 			}
@@ -1664,9 +1591,6 @@ eol = '\n';
             // 	currentPath.join(''),
             // 	replacePath,
             // );
-
-
-
             $.replaceUrl( replacePath);
           }
         }
@@ -1805,8 +1729,6 @@ eol = '\n';
       // const path = [req.params.basePath, req.params.path, req.params.search].filter(Boolean).join('');
       // const HTTP = window[protocol] = window[protocol] || require(protocol);
       const HTTP = require(protocol);
-
-
       // console.debug('NODE SEND');
       // let options = req.options;
       // { method: req.method, hostname:req.hostname, path: req.pathname, headers:req.headers};
@@ -1871,7 +1793,6 @@ eol = '\n';
     },
     onprogress(event){
       console.debug('onprogressssssssssssssssssssss', event.type, event);
-
       var msg = `%c${this.method} ${this.responseURL} ${this.status} (${this.statusText}) ${this.response.length} bytes ${new Date().valueOf() - this.startTime.valueOf()}ms`;
       if (this.elStatus){
         this.elStatus.innerText = decodeURIComponent(this.msg) + ' ' + event.loaded + 'Bytes';
@@ -2026,7 +1947,6 @@ eol = '\n';
               }
               : null
             }));
-
             // console.debug('ONOPEN', event.target, webSocket, this.ws);
             // resolve(webSocket);
           },
@@ -2066,7 +1986,6 @@ eol = '\n';
         // const request = new $().url(...arguments);
         // const res = request.req.res;
         // message = request.message;
-
         console.error('WebsocketRequest', par);
         // return;
         // if (req.message_id){
@@ -2099,6 +2018,7 @@ eol = '\n';
     onmessage(event){
       // console.debug('ws.onmessage', event.data);
       const ws = event.target;
+      // return;
       const config = this.config;
       let data = event.data;
       try {
@@ -2150,7 +2070,6 @@ eol = '\n';
                 //     // }
                 //   ]
                 // });
-
               }
             }
           }
@@ -2160,16 +2079,15 @@ eol = '\n';
           // console.log($().prompt('accept_scope'), $.get('accept_scope'));
         }
       }
-
       if (data.state === 'disconnect') {
         console.log('disconnect', $().aliconnector_id, data.from_id);
+        // return;
         if ($().aliconnector_id === data.from_id) {
           $().status('aliconnector', 'offline');
           $().aliconnector_id = null;
         }
       }
-
-
+      console.error(data);
       if (data.id_token) {
         const id = JSON.parse(atob(data.id_token.split('.')[1]));
         console.log(id, getId(id.sub), getUid(id.sub), $().authProvider().sub);
@@ -2177,8 +2095,6 @@ eol = '\n';
           return $().logout();
         }
       }
-
-
       // console.debug('ws.onmessage', data);
       if (this.clients.has(data.from_id)){
         console.log('REPLY FROM', data.from_id);
@@ -2186,8 +2102,6 @@ eol = '\n';
         this.clients.delete(data.from_id);
         return
       }
-
-
       if (data.from_id === $().aliconnector_id) {
         if (data.param) {
           if (data.param.filedownload) {
@@ -2198,7 +2112,6 @@ eol = '\n';
           }
         }
       }
-
       if ('userstate' in data){
         console.debug('userstate', data);
         console.debug(Item.items, Item.items.filter(item => item.ID == data.sub));
@@ -2239,8 +2152,7 @@ eol = '\n';
       } else {
         $.handleData(data);
       }
-
-
+      return;
       if (data.aliconnector) {
         console.log(data);
         if (data.aliconnector === 'online') {
@@ -2263,21 +2175,14 @@ eol = '\n';
       //     $.nav.reload();
       //   }
       // }
-
       return;
-
       if (((data.ref && data.ref.itemsModified) || data.forward) && data.from_id && this.wsServer){
         this.wsServer.forward(data, event.data, ws);
       }
-
       // return;
-
-
-
     },
     reply(message){
       console.debug('repl', message);
-
       return this.sendto(this.data.from_id, {body: message});
     },
     send(message){
@@ -2311,9 +2216,7 @@ eol = '\n';
       // }
     },
   };
-
   const clients = new Map();
-
   Aim = function Aim (selector, context){
     if(selector instanceof Elem) return selector;
     if(!(this instanceof $)) return new $(...arguments);
@@ -2396,7 +2299,6 @@ eol = '\n';
         } else {
           pdfjsLib.getDocument(selector).promise.then(read_pages);
         }
-
       });
     },
     access_token(){
@@ -2434,17 +2336,14 @@ eol = '\n';
       // const url = this.url(pathUrl);
       // console.debug('aa', access_token, client.authProvider);
       // console.debug('aa', client.authProvider);
-
       return access_token ? url.headers('Authorization', 'Bearer ' + access_token) : url;
       // return this.client().api(path);
       // return $().url(this.props('url') + path).header('access_token', this.props('access_token'));
     },
     copyFrom(source, master, index) {
       return $.promise( 'copyFrom', resolve => {
-
         // return;
         const [s,schemaName,sourceId] = source.tag.match(/(\w+)\((\d+)\)/);
-
         console.warn(schemaName, source, master);
         const item = {
           // schema: source.schema,
@@ -2466,7 +2365,6 @@ eol = '\n';
         console.debug('COPY START', item);
         $().api(`/${schemaName}`).input(item).post().then(event => {
           // console.debug('COPY DONE', event.target.responseText);
-
           const item = event.body;
           item.details().then(async item => {
             console.debug('COPY START', item);
@@ -2509,7 +2407,6 @@ eol = '\n';
         external(name, args, callback){
           let params = {to: { sid: $.Aliconnector.connector_id }, external: {} };
           // let args = [...arguments];
-
           params.external[name] = Array.isArray(args) ? args : (args ? [args] : []);
           $.Aliconnector.callback = callback;
           wsClient.send(JSON.stringify(params));
@@ -2583,7 +2480,6 @@ eol = '\n';
         // geturl(){},
         // getHtml(){},
       });
-
     },
     create(){
       this.selector = this.selector.createElement(...arguments);
@@ -2667,9 +2563,7 @@ eol = '\n';
         // // console.debug(data,config);
         //
         // this.extend(config);
-
         // console.debug('evalDataevalDataevalDataevalData', data);
-
         if (Array.isArray(data.value)){
           data.value = data.value.map(data => Item.get(data));
         } else if (data['@id']){
@@ -2764,13 +2658,11 @@ eol = '\n';
           return $[key].apply($, value ? value.split(', ') : []) || true;
         }
       };
-
       // if (!$().url(document.location.hash ? document.location.hash.substr(1) : document.location.href).exec()) {
       //   if (url.searchParams.get('p')) {
       //     return $('list').load(url.searchParams.get('p'));
       //   }
       // }
-
       // if (url.searchParams.get('id')) {
       //   var refurl = new URL(atob(url.searchParams.get('id')));
       //   if (refurl.pathname.match(/^\/api\//)) {
@@ -2780,11 +2672,7 @@ eol = '\n';
       //   }
       // }
       // return;
-
-
       // console.log('POPSTATE2', document.location.pathname);
-
-
     },
     forEach(selector, context, fn){
       if (selector instanceof Object){
@@ -2834,7 +2722,6 @@ eol = '\n';
         })
       )
     },
-
     getObject(name, constructor, args) {
       const props = this.props = this.props || new Map();
       if (!props.has(name)) {
@@ -2868,11 +2755,9 @@ eol = '\n';
       //
       // console.debug( this.authProvider().access.iss, url );
       // return;
-
       clients.set(url.hostname, this);
       // return console.debug(this.ws());
       // clients.set()
-
       if (this.ws().url){
         await this.ws().connect()
       }
@@ -2928,10 +2813,8 @@ eol = '\n';
       //   test: 'ja',
       // })
       return;
-
       if ("Notification" in window) {
         if (Notification.permission === "granted") {
-
           // $().sw.showNotification(title, {
           //   body: `Bla Bla`,
           //   // url: 'https://moba.aliconnect.nl',
@@ -3090,24 +2973,23 @@ eol = '\n';
 				//	// //console.debug('SET STATE', this.item);
 				//	this.item.set({ state: $.Object.findFieldValue(this.item.attributes.state.options, 'Title', this.menuitem.Title) });
 				//};
-
 				itemmenu.state.menu = item.attributes.state.options;
 			}
 			return itemmenu;
 		},
     prompt(selector, context) {
-      // console.warn(selector);
       const is = $.has('prompt') ? $('prompt') : $('section').parent(document.body).class('prompt').id('prompt').append(
         $('button').class('abtn abs close').attr('open', '').on('click', event => $().prompt(''))
       );
       // if (!is.elem) return;
+      const promptSelector = 'prompt-'+selector;
 			if (context) {
-        $.set(selector, $('div')
+        $.set(promptSelector, $('div')
         .parent(is)
         .class('col')
         // .attr('id', selector)
         .on('open', typeof context === 'function' ? context : function () {
-          //console.log('OPEN', this, selector);
+          // console.log('OPEN', this, selector);
           this.is.text('').append(
             $('h1').ttext(selector),
             $('form').class('col')
@@ -3122,19 +3004,23 @@ eol = '\n';
 			}
 			is.attr('open', selector ? selector : null);
 			$.replaceUrl('prompt', selector);
-      const dialog = selector && $.has(selector) ? $.get(selector) : null;
+      const dialog = selector && $.has(promptSelector) ? $.get(promptSelector) : null;
       const dialogElem = dialog ? dialog.elem : null;
       const index = dialog ? [...is.elem.children].indexOf(dialog.elem) : 0;
       [...is.elem.children].filter(elem => elem !== dialogElem && elem.innerText).forEach(elem => setTimeout(() => elem.innerText = '', 100));
       [...is.elem.children].forEach((elem, i) => $(elem).attr('pos', i < index ? 'l' : 'r'));
       if (dialog && dialog.attr) {
         setTimeout(() => dialog.attr('pos', 'm'));
+        // console.warn(selector, context);
         dialog.emit('open');
         return dialog;
       }
       return this;
 		},
     promptform(url, prompt, title = '', options = {}){
+      options.description = options.description || $.translate.get('prompt-'+title+'-description') || '';
+      title = $.translate.get('prompt-'+title+'-title') || title;
+      console.log([title, options.description]);
       options.properties = options.properties || {};
       // Object.entries($.sessionPost).forEach(([key,value])=>Object.assign(options.properties[key] = options.properties[key] || {type:'hidden'}, {value: value, checked: ''}));
       $.sessionPost = $.sessionPost || {};
@@ -3142,7 +3028,7 @@ eol = '\n';
       Object.entries($.sessionPost).forEach(([selector,value])=>Object.assign(selector = (options.properties[selector] = options.properties[selector] || {type:'hidden'}), {value: selector.value || value, checked: ''}));
       return prompt.form = $('form').parent(prompt.is.text('')).class('col aco').append(
         $('h1').ttext(title),
-        prompt.div = $('div').ttext(options.description || ''),
+        prompt.div = $('div').md(options.description),
       )
       .properties(options.properties)
       .append(options.append)
@@ -3157,10 +3043,9 @@ eol = '\n';
           $().send({ to: { nonce: $.sessionPost.nonce }, id_token: $.sessionPost.id_token });
         }
         if ($.sessionPost.prompt) prompt = $().prompt($.sessionPost.prompt);
-        if ($.sessionPost.msg && prompt) prompt.div.text('').html($.sessionPost.msg);
+        if ($.sessionPost.msg && prompt && prompt.div) prompt.div.text('').html($.sessionPost.msg);
         if ($.sessionPost.socket_id) return $().send({to:{sid:$.sessionPost.socket_id}, body:$.sessionPost});
         if ($.sessionPost.url) document.location.href = $.sessionPost.url;
-
         // return;
         // // //console.log(event.target.responseText);
         // if (!event.body) return;
@@ -3223,7 +3108,6 @@ eol = '\n';
             }
           });
           // const allOf = [selector];
-
           context.allOf=context.allOf||['Item'];
           const allContext = {};
           // for (let name of context.allOf) {
@@ -3310,7 +3194,6 @@ eol = '\n';
                   $.forward = null;
                   operation.apply(item, arguments);
                 }
-
               } else {
                 if (typeof operation === 'function'){
                   constructor.prototype[operationName] = operation;
@@ -3472,7 +3355,6 @@ eol = '\n';
     sw() {
       // return;
       if ('serviceWorker' in navigator) {
-
         navigator.serviceWorker.addEventListener('message', event => {
           console.log('MESSAGE', event);
           if (event.data && event.data.url) {
@@ -3482,29 +3364,19 @@ eol = '\n';
           // alert('sadfasdfa');
           // window.focus();
         });
-
     		navigator.serviceWorker.register('sw.js', { scope: '/' }).then(function(registration) {
     			// console.log('Registration successful, scope is:', registration.scope, navigator.serviceWorker);
           $().sw = registration;
           return;
-
           // registration.showNotification('sfasdfa');
-
-
     			registration.pushManager
           .subscribe({ userVisibleOnly: true })
           .then(function(sub) {
-
-
-
             // From your client pages:
             const channel = new BroadcastChannel('sw-messages');
             channel.addEventListener('message', event => {
               console.log('Received', event.data);
             });
-
-
-
     				console.log('SW', sub);
             // $().sw = registration.active;
     				$().sw.active.postMessage(
@@ -3523,7 +3395,6 @@ eol = '\n';
     			// //console.log('Service worker registration failed, error:', error);
     		});
     	}
-
     },
     extendConfig(yaml){
       // console.log(yaml);
@@ -3570,12 +3441,10 @@ eol = '\n';
     			});
     		});
     	})([Element.prototype, Document.prototype, DocumentFragment.prototype]);
-
     	let match = document.location.pathname.match(/(.*)(api|docs|omd|om)(?=\/)/);
     	if (match) {
     		$.basePath = match[0];
     	}
-
       localAttr.set = function(id, selector, context) {
         localAttr[id] = localAttr[id] || {};
         if (context === null) {
@@ -3585,13 +3454,10 @@ eol = '\n';
         }
         window.localStorage.setItem('attr', JSON.stringify(localAttr));
       };
-
       $(window)
       .on('afterprint', event => {
         //var event = Listview.elOa;
         ////console.debug('BEFORE PRINT'); //items.printiframe(Listview.elOa);
-
-
         //if ($.elPrintDiv) $.elPrintDiv.innerText = '';
       })
       .on('beforeunload', event => {
@@ -3604,7 +3470,6 @@ eol = '\n';
           $.printElement = document.body.createElement('DIV', 'doc-content printablediv' ); //document.body.createElement('table', { className: 'printablediv', style: 'width:100%;' });
         }
         //$.elPrintDiv.innerHTML = $.printdiv.innerHTML;
-
         with ($.printElement) {
           //console.debug($.printSource, $.printHeader);
           innerText = '';
@@ -3654,25 +3519,19 @@ eol = '\n';
           };
           return path;
         } (event.target);
-
         // //console.log($('colpanel'));
         if (document.getElementById('colpanel') && !private.clickPath.includes($('colpanel'))) {
           // $.request('?prompt=');
         }
-
-
         // const itemElement = event.path.find(itemElement => itemElement.item);
         // if (itemElement) {
         // 	$.nav.setItem(itemElement.item);
         // }
-
-
         let elem = event.target;
         // //console.debug('CLICK', el, el.$infoID);
         //if (this.printable) $.printdiv = this;
         // //console.log(this);
         //// //console.debug('CLICK', this.get);
-
         // if (el.hasAttribute('accept') && el.tagName !== 'INPUT') {
         // 	//console.log('ACCEPT', itemElement.item);
         // 	if (itemElement.files) {
@@ -3684,14 +3543,9 @@ eol = '\n';
         // if (elem.hasAttribute('open')) {
         //   $(elem).select();
         // }
-
         // if (elem = event.path.find(elem => elem instanceof Element && elem.hasAttribute('open'))) {
         // 	$.el.select.call(elem);
         // }
-
-
-
-
         if (!event.ctrlKey && !event.shiftKey && !event.altKey) {
           for (let elem of event.path.filter(elem => elem instanceof Element)) {
           if (elem.is && elem.is.has('ofile') && elem.is.get('ofile').src.match(/\.(jpg|png|bmp|jpeg|gif|bin|mp4|webm|mov|3ds)/i)) {
@@ -3726,10 +3580,7 @@ eol = '\n';
             }
           }
         }
-
         }
-
-
         if ($.mainPopup) {
           $.mainPopup.close();
           $.subPopup.close();
@@ -3737,9 +3588,7 @@ eol = '\n';
         //if (window.colpanel && ref.clickPath.indexOf(colpanel) == -1) $.prompt.open();
         //alert(ref.clickPath);
         // //console.log(1, event.target);
-
         for (var i = 0, el; el = private.clickPath[i]; i++) {
-
           if (el.itemID) {
             console.debug('itemID');
             var item = $.getItem(el.itemID);
@@ -3777,15 +3626,11 @@ eol = '\n';
           }
           else if (el.elClose) el.elClose.parentElement.removeChild(el.elClose);
           // else if (el.get) $().exec(el.get);//$.url.set(typeof this.get == 'function' ? this.get() : this.get);
-
-
-
           if ($.targetItem = el.item) {
             break;
           }
         }
         // //console.log('ONCLICK MAIN', event.target);
-
         // //if ($.targetItem && $.targetItem.focus) $.targetItem.focus(event);
         //
         // // if ($.prompt.panelName) {
@@ -3885,7 +3730,6 @@ eol = '\n';
         // letop ook files selecteren in AIm.Selection gebaseerd op ofile in path
         // console.log(event.type);
         $().status('source', private.sourceType = eventKeyState(private.keyEvent));
-
         var elem = event.path.find(elem => elem.ofile);
         if (elem) {
           var dragItems = $.nav.items.includes(elem.ofile) ? $.nav.items : [elem];
@@ -3906,7 +3750,6 @@ eol = '\n';
       .on('drop', event => private.targetItemElement ? handleData(private.targetItemElement.item, event) : null)
       .on('focus', event => {
         // console.log('FOCUS');
-
         if ($().authProvider().access_token) {
           // console.log('JE BENT INGELOGT, DUS CONTROLEREN OF TOKEN NOG OK IS ALS HET EEN INLOG TOKEN IS');
           const access = $().authProvider().access;
@@ -3923,27 +3766,19 @@ eol = '\n';
             });
           }
           // console.log($().authProvider());
-
         }
-
         if (!$.focussed) {
           $.focussed = true;
           document.body.removeAttribute('blur');
           $().state('available');
-
           // $.send();
           // setTimeout(function() { $.auth.setstate('focus'); }, 100);
           // if ($.user.sub) $.auth.check_state();
-
-
           ////if (!$.app.user) return;
           //var data = { activestate: 'focus', accountID: $.client.account.id, userID: $.auth.sub, to: [$.key] };
           //ItemSetAttribute(data.userID, 'activestate', data.activestate);
           //ItemSetAttribute(data.accountID, 'activestate', data.activestate);
           //ws.send(data);
-
-
-
           ////// //console.debug('onfocus start');
           ////msg.check(true); HOEFT NIET GEBEURD VIA EVENT RT SERVER
           //new $.HttpRequest({
@@ -4008,7 +3843,6 @@ eol = '\n';
           // 		return $.pageItem.PageEditElement();
           // 	}
           // },
-
           // pv: {
           // 	EscEdit: function(event) {
           // 		if ($.pageItem && $.pageItem.editing) {
@@ -4079,17 +3913,11 @@ eol = '\n';
           // //KeyCCtrl: function(event) {
           // //    return $.nav.copy();
           // //},
-
         }
       })
       .on('keydown', event => {
-
-
-
-
         // //console.log(event, window.event);
         $().state('available');
-
         // 	if (key == 'Enter') {
         // 		if ($.setting.keybuf.length == 10 && !isNaN($.setting.keybuf)) return auth.keyloggin($.setting.keybuf);
         // 		$.setting.keybuf = $.setting.keybuf.split('CapsLockCapsLock');
@@ -4103,7 +3931,6 @@ eol = '\n';
         // 	} else {
         // 		$.setting.keybuf += event.key;
         // 	}
-
         // onkey(event);
         private.keyEvent = event;
         if (event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
@@ -4145,8 +3972,6 @@ eol = '\n';
         // 	// });
         // 	//
         // }
-
-
         // var data = event.body;
         // if (!data) return;
         // //console.debug('ON MESSAGE WEB DATA', event);
@@ -4160,23 +3985,18 @@ eol = '\n';
             })
           }
         }
-
         // if (data.changeData) {
         // 	return changeData(data.changeData);
         // }
-
         if (data.state && data.description && document.getElementById('aimStatusMsg'))
         document.getElementById('aimStatusMsg').innerText = data.description;
-
         switch (data.state) {
           case 'datatransfered':
           for (var name in data.values) {
             for (var c = document.getElementsByName(name), el, i = 0; el = c[i]; i++) el.Value = data.values[name];
-
           }
           break;
         }
-
         if (data.systemalert) {
           // //console.debug('ONMESSAGE ALERT', data);
           if (!document.getElementById('alertpanel')) return;
@@ -4201,13 +4021,7 @@ eol = '\n';
           });
           Object.assign($.alerts[data.systemalert.id], data.systemalert).onchange();
         }
-
-
-
-
-
         return;
-
         if (data.itemID && data.attributeName && ('value' in data)) {
           c = document.getElementsByName([data.itemID, data.attributeName].join('.'));
           for (var i = 0, event; event = c[i]; i++) event.setAttribute('value', data.Value);
@@ -4242,14 +4056,11 @@ eol = '\n';
             }
           }
         }
-
         return;
         //console.debug('message', event.body);
         if (event.body) $.data.update(event.body);
         // var data = event.body;
         if (data.Value)
-
-
         ////console.debug('ONMESSAGE OM', this, event);
         ////console.debug('onreceive', this.data);
         //if (data.Notification) $.Notification.create(data.Notification);
@@ -4262,7 +4073,6 @@ eol = '\n';
           // }
           if (data.state == 'connected') {
             //$.hasConnector=true;
-
             //document.body.style.color='green';
             if (!data.ack) ws.send({ to: { client: data.fraim.client }, state: 'connected', ack: 1 });
             if (data.fraim.device != $.client.device.id) {
@@ -4272,8 +4082,6 @@ eol = '\n';
             }
           }
         }
-
-
         //{
         //	//console.debug('Notification', data.Notification);
         //	$.Notification.Notify(data.Notification.Title, data.Notification.options);
@@ -4287,9 +4095,7 @@ eol = '\n';
         //	//});
         //}
         //if (data.Value) data.Value.forEach(function(item) {
-
         //});
-
         ////console.debug('OnReceive', data);
         ////console.debug(data);
         //if (data.supportmessage) $.Notification.create(data.supportmessage);
@@ -4322,7 +4128,6 @@ eol = '\n';
           ////console.debug('ONLINE SERVICE', data);
           //document.body.setAttribute('aliconnector', 'online');
         }
-
         //if (msg.post && msg.post.item && $.ref[msg.post.item.id]) {
         //    var item = $.ref[msg.post.item.id];
         //    //console.debug(document.location.href);
@@ -4333,10 +4138,6 @@ eol = '\n';
         //    //    data: { id: item.id, url: document.location.href },
         //    //});
         //}
-
-
-
-
         if (data.editfiledone) {
           var c = document.getElementsByName(data.editfiledone);
           for (var i = 0, event; event = c[i]; i++) event.setAttribute('state', '');
@@ -4346,13 +4147,8 @@ eol = '\n';
           var c = document.getElementsByName(data.editfile);
           for (var i = 0, event; event = c[i]; i++) event.setAttribute('state', 'editing');
         }
-
-
         //if ($.ref[data.id]) ItemSetAttribute(data.id, data.name, data.Value);
-
-
         //if (msg.items) itemset(msg.items);//for (var id in msg.items) if ($.ref[id]) { msg.items[id].id = id; itemset(msg.items[id]); }
-
         //if (data.activestate) {
         //    ItemSetAttribute(data.userID, 'activestate', data.activestate);
         //    ItemSetAttribute(data.accountID, 'activestate', data.activestate);
@@ -4369,12 +4165,7 @@ eol = '\n';
         //    for (var i = 0, event; event = c[i]; i++) event.setAttribute('state', 'offline');
         //    if ($.ref[data.accountID]) $.ref[data.accountID].onlinestate = 'offline';
         //}
-
-
-
         if (data.alert) alert(data.alert);
-
-
         //if (data.deviceUID == $.deviceUID) {
         return;
         //}
@@ -4390,12 +4181,10 @@ eol = '\n';
           msg.check();
           //}
         }
-
       })
       .on('mousemove', event => {
         private.clickPath = event.path;
         $().state('available');
-
         // if (event.target.item) // //console.log(event.target.tagName, event.target.item);
         // if (!private.clickPath.includes($)) private.clickPath.push($);
       })
@@ -4406,7 +4195,6 @@ eol = '\n';
         $().execUrl(document.location.href, true);
       })
       .on('resize', event => {
-
         if ($.mainPopup) {
           $.mainPopup.close();
           $.subPopup.close();
@@ -4422,7 +4210,6 @@ eol = '\n';
           $.mainPopup.close();
           $.subPopup.close();
         }
-
         var st = window.pageYOffset || document.documentElement.scrollTop;
         var scrolldir = st > 50 && st > $.lastScrollTop ? 'down' : 'up';
         if (private.body) private.body.setAttribute('scroll', scrolldir);
@@ -4438,8 +4225,6 @@ eol = '\n';
               elHFocus = elNext;
             }
             elHFocus = elHFocus || elNext;
-
-
             var c = Element.iv.getElementsByTagName('LI');
             ////console.debug(c);
             //var elFocus = null, elPrev = null;
@@ -4449,7 +4234,6 @@ eol = '\n';
               if (event.hasAttribute('open')) event.setAttribute('open', 0);
               event.removeAttribute('focus');
             }
-
             ////console.debug(elHFocus.innerText, elHFocus.elemTreeLi);
             Element.iv.style.paddingTop = Math.max(0, st - ot + 50) + 'px';
             if (elHFocus) {
@@ -4470,11 +4254,8 @@ eol = '\n';
               //    otf += elFocus.offsetTop;
               //}
               //console.debug('TOTAL', Element.iv.firstChild.getBoundingClientRect().top, elFocus.getBoundingClientRect().top);
-
               ////console.debug(elPar.innerText, elPar.offsetTop);
               //otf += elPar.offsetTop;
-
-
               //elFocus.scrollIntoView({ block: "nearest", inline: "nearest" });
               //var br = Element.iv.getBoundingClientRect();
               //var bre = elFocus.getBoundingClientRect();
@@ -4483,21 +4264,15 @@ eol = '\n';
               ////console.debug(st, bre.top, elHFocus.offsetTop);
             }
           }, 300);
-
         }
-
-
         // $.player.onscroll();
         ////console.debug(document.documentElement.clientHeight, Element.iv.clientHeight, Element.iv.firstChild.clientHeight, document.documentElement.clientHeight);
         //Element.iv.style.paddingTop = Math.min(Element.iv.clientHeight - Element.iv.firstChild.clientHeight - 300, Math.max(0, document.documentElement.scrollTop - 300)) + 'px';
-
       })
       .on('unload', event => {
         // $.api.setactivestate('offline');
       });
-
     	$(document.documentElement).attr('lang', navigator.language);
-
       $().on('ready', async event => {
         //console.log('web ready');
         $.prompt({
@@ -4566,7 +4341,6 @@ eol = '\n';
             $('prompt').attr('open', null);
             return;
             // console.log();
-
             $('list').text('').append(
               $('div').class('col').append(
                 $('h1').text('Settings'),
@@ -4639,7 +4413,10 @@ eol = '\n';
                       },
                     }).btns({
                       next: { type:'submit', default: true, tabindex: 2 },
-                    }).on('submit', event => $().api('/' + item.tag).query('prompt', 'account_delete').post(event).then(event => {
+                    }).on('submit', event => $().api('/').query('prompt', 'account_delete').post(event).then(event => {
+                      $().logout();
+                      document.location.href = '/';
+                      return;
                       this.is.text('').append(
                         $('h1').ttext('prompt-account_delete-done-title'),
                         $('div').ttext('prompt-account_delete-done-description'),
@@ -4721,7 +4498,6 @@ eol = '\n';
                   this.elemMessage.html(data.msg || '');
                   if (data.url) {
                     // return console.error(data.url, data);
-
                     const url = $()
                     .url('https://login.aliconnect.nl/')
                     .query({
@@ -4733,9 +4509,7 @@ eol = '\n';
                       scope: $().scope,//('all'),
                       // socket_id: data.socket_id,
                     });
-
                     return document.location.href = url.toString();
-
                     // return document.location.href = data.url;
                   }
                   console.log('DONE', data);
@@ -4895,7 +4669,6 @@ eol = '\n';
           login() {
             document.location.href = $().loginUrl().toString();
             return;
-
             console.log('PROMPT LOGIN', $())
             $().authProvider().login({
               scope: $.config.scope || "",//'name email phone_number',
@@ -4939,15 +4712,12 @@ eol = '\n';
           },
           terms_of_use() {
             // ['termsOfUse', 'https://aliconnect.aliconnect.nl/docs/index/1-Explore/9-TermsOfUse'],
-
           },
           privacy_policy() {
             // ['Privacy policy', 'https://aliconnect.nl/docs/index/1-Explore/9-TermsOfUse/Privacypolicy'],
-
           },
           cookie_policy() {
             // ['Cookie policy', 'https://aliconnect.nl/docs/index/1-Explore/9-TermsOfUse/Cookiepolicy'],
-
           },
           upload_datafile() {
             // $('a').ttext('Upload datafile').href('#/Upload/show()'),
@@ -5004,7 +4774,6 @@ eol = '\n';
             // this.on('open', event => {
             //   alert('OPEN');
             // });
-
             // this.show = par => {
             //   alert('SHOW');
             // };
@@ -5030,8 +4799,6 @@ eol = '\n';
           //     }
           //   }).append(qr())
           // },
-
-
           ws_socket_id() {
             //console.log('ws_socket_id', $.WebsocketClient.responseBody, $.auth.request);
             // return;
@@ -5164,24 +4931,17 @@ eol = '\n';
             }())
           },
         });
-
-
         // await $().emit('ready');
         // //console.log('web ready2',$(), $().ws());
         // $.prompt('TEST', event => {
         // 	alert(1);
         // });
         // $.prompt('TEST');
-
-
-
-
         // return;
         initConfigCss();
         loadStoredCss();
         // loadStoredAttr();
         // initAllSeperators()
-
         if (document.getElementById('colpage')) {
           Object.assign(document.getElementById('colpage'), {
             cancel(event) {
@@ -5204,10 +4964,7 @@ eol = '\n';
         // })
         //console.log('web ready done')
       });
-
       // this.sw();
-
-
     },
     start() {
       // console.log('START');
@@ -5257,6 +5014,13 @@ eol = '\n';
       }
       $().on({
         async load() {
+          ($().server = $().server || {}).url = $().server.url || ('//' + document.location.hostname.split('.')[0] + '.aliconnect.nl/api');
+          if (!$().client_id) {
+            console.warn($().server.url);
+            await $().url($().server.url+'/').get().then(event => $().extend(event.body)).catch(console.error);
+            console.warn(1, $().api('/').toString());
+            // await $().url($().server.url+'/').get().then(event => console.log(JSON.stringify(JSON.parse(event.target.responseText),null,2).replace(/"(\w+)"(?=: )/gs,'$1'))).catch(console.error);
+          }
           $(document.documentElement).class('app');
           $(document.body).class('col aim om bg').id('body').append(
             $.elemNavtop = $('header').id('navtop').class('row top bar noselect np').append(
@@ -5322,27 +5086,13 @@ eol = '\n';
           );
           $(document.body).messagesPanel();
           // console.log(document.location.hostname.split('.')[0]);
-          ($().server = $().server || {}).url = $().server.url || ('//' + document.location.hostname.split('.')[0] + '.aliconnect.nl/api');
-
-          if (!$().client_id) {
-            console.warn($().server.url);
-            await $().url($().server.url+'/').get().then(event => $().extend(event.body)).catch(console.error);
-            console.warn(1, $().api('/').toString());
-            // await $().url($().server.url+'/').get().then(event => console.log(JSON.stringify(JSON.parse(event.target.responseText),null,2).replace(/"(\w+)"(?=: )/gs,'$1'))).catch(console.error);
-          }
           // console.warn($().server.url, $());
-
           await $().translate();
           // await $().getApi(document.location.origin+'/api/');
-
           await $().login();
-
           if ($().authProvider().sub) {
-
             // await $().api('/').get().then(event => $($()).extend(event.body));
-
             // await $().url($().server.url+`/config/${$().authProvider().sub}/api.json`).get().then(event => $().extend(event.body));
-
             if ('Notification' in window) {
               var permission = Notification.permission;
               // const notificationPermission = Notification.permission.toString();
@@ -5421,7 +5171,6 @@ eol = '\n';
                     // parentFolderId: {},
                     // fileAs: {},
                     // categories: {},
-
                     DisplayName: {
                       legend: 'Personalia',
                     },
@@ -5441,7 +5190,6 @@ eol = '\n';
                     // yomiSurname: {},
                     // yomiCompanyName: {},
                     // imAddresses: {},
-
                     companyName: {
                       legend: 'Business',
                     },
@@ -5502,9 +5250,7 @@ eol = '\n';
                     // createdDateTime: {},
                     // lastModifiedDateTime: {},
                     // id: {},
-
                     // changeKey: {},
-
                     // hasAttachments: {},
                     // isDeliveryReceiptRequested: {},
                     // isReadReceiptRequested: {},
@@ -5528,7 +5274,6 @@ eol = '\n';
                     // replyTo: {},
                     // webLink: {},
                     // categories: {},
-
                     subject: {},
                     body: {},
                   }
@@ -5550,7 +5295,6 @@ eol = '\n';
                     // id: {},
                     isDefault: {},
                     isShared: {},
-
                     self: {},
                     displayName: {},
                     userRole: {},
@@ -5587,7 +5331,6 @@ eol = '\n';
             .append(
               $('a').class('abtn login').text('Aanmelden').href($().loginUrl().query('prompt', 'login').toString()),
             );
-
             // $(document.documentElement).class('site');
             //
             // $('navtop').append(
@@ -5616,7 +5359,6 @@ eol = '\n';
             // );
             //
           }
-
           // if ($().schemas()) {
           //   const itemItem = $().schemas().get('Item');
           //   if (itemItem) {
@@ -5638,28 +5380,24 @@ eol = '\n';
           //     $().api(`/Equipment`).select($.LIST_ATTRIBUTES).top(10000).filter('keyID IS NOT NULL').get()
           //   }
           // }
-
           if ($().aud) {
             // console.log($().aud, $({tag: `Company(${$().aud})`}));
             $().elemMenu.showMenuTop($({tag: `Company(${$().aud})`}));
           }
-
           if ($().info) {
             $('toptitle').text(document.title = $().info.title).title([$().info.description,$().info.version,$().info.lastModifiedDateTime].join(' '));
           }
-
           // console.log(document.location.application_path);
           $().application_path = $().application_path || '/';
           // var url = new URL(document.location);
           if (!document.location.search) {
-            $().execQuery('l', $().ref && $().ref.home ? $().ref.home : document.location.origin);
+            $().execQuery('l', $().ref && $().ref.home ? $().ref.home : document.location.origin + '/wiki/Home' );
             // $().execQuery('l', document.location.origin);
           }
           // if (document.location.pathname === $().application_path && !document.location.search) {
           //   window.history.replaceState('page', 'PAGINA', '?p='+($().ref && $().ref.home ? $().ref.home : document.location.origin));
           //   // $(window).emit('popstate');
           // }
-
           // $(document.body).cookieWarning();
           function response(event) {
             console.log(event.target.responseText);
@@ -5668,7 +5406,6 @@ eol = '\n';
         async ready() {
           // alert('om ready');
           // console.log($());
-
           // const msalConfig = {
           //   auth: {
           //     clientId: '4573bb93-5012-4c50-9cc5-562ac8f9a626',
@@ -5807,7 +5544,6 @@ eol = '\n';
       .class('aco oa col')
       .css('margin:auto;position:absolute;top:0;bottom:0;left:0;right:0;')
       .css('background-color:var(--bg);');
-
       const configText = $('pre').parent(page)
       .class('aco')
       .css('margin:0;padding:0 10px;outline:none;')
@@ -5825,7 +5561,6 @@ eol = '\n';
         }
       });
       const configInput = $('input').parent(page).name('config').type('hidden');
-
       function focus () {
         [...pageControl.elem.children].forEach(elem => elem.style.display = 'none');
         page.elem.style.display = '';
@@ -6147,36 +5882,28 @@ eol = '\n';
             END_PROGRAM: '',
             VAR: '',
             END_VAR: '',
-
             IF: 'Provides one or more options and selects one (or none) of its statement components for execution. ELEIF and ELSE are optional.',
             THEN: '',
             ELSEIF: '',
             ELSIF: '',
             ELSE: '',
             END_IF: '',
-
             CASE: 'Select one of several alternative program sections. ELSE are optional.',
             OF: '',
             END_CASE: '',
-
             FOR: 'Repeat a sequence of statements as long as a control variable is within the specified range of values',
             TO: '',
             BY: '',
             DO: '',
             END_FOR: '',
-
             REPEAT: 'Repeat a sequence of statements until condition(S) is true. Note minimum one execution.',
             UNTIL: '',
             END_REPEAT: '',
-
             WHILE: 'Repeat a sequence of statements as long as condition(S) is true.',
             // DO: '',
             END_WHILE: '',
-
             EXIT: 'Terminates the FOR, WHILE or REPEAT loop in which it resides without regard to any condition',
-
             RETURN: 'Terminates Program, Function block call',
-
             ADD: '',
             SQRT: '',
             SIN: '',
@@ -6276,19 +6003,16 @@ eol = '\n';
             ACOS: 'Arc Cosine',
             ATAN: 'Arc Tangent',
             EXPT: 'IN1 to the power of IN2',
-
             '<': 'Less than',
             '>': 'Greather than',
             '<=': 'Less than or equal to',
             '>=': 'Greater than or equal to',
             '=': 'Equal to',
             '<>': 'Not equal to',
-
             NOT: 'Negation',
             AND: 'And',
             XOR: 'Exclusive or',
             OR: 'Or',
-
             ':=': 'Assignment',
             '\\*': 'Multiplication',
             '/': 'Division',
@@ -6403,9 +6127,7 @@ eol = '\n';
           // '(\')([^\']*)(\'=&gt;)': '$1<span class="hl-attr">$2</span>$3',
           // '("[^"]+")(:)': '<span class="hl-attr">$1</span>$2',
           // '(\'[^\']+\')(:)': '<span class="hl-attr">$1</span>$2',
-
           // 'function\\s(\\w+)(\\s|)\\(': 'function <span class="hl-title">$1</span>$2(',
-
           // '(&lt;)([^\\s|^&]+)(\\s|&)': '$1<span class="hl-tag">$2</span>$3',
           // '&quot;(.*?)&quot;': '&quot;<span class="hl-string">$1</span>&quot;',
           // '&apos;(.*?)&apos;': '&apos;<span class="hl-string">$1</span>&apos;',
@@ -6437,9 +6159,6 @@ eol = '\n';
         .replace(/=/g, '&#61;')
         .replace(/\t/g, '  ')
         ;
-
-
-
         chars = line.split('');
         line = [];
         for (var i=0, specialChar;i<chars.length;i++){
@@ -6476,7 +6195,6 @@ eol = '\n';
         .replace(/(\/\*.*)/g, '<span class="hl-comt">$1')
         .replace(/(.*\*\/)/g, '$1</span>')
         ;
-
         line = this.replace(
           line,
           Object.assign(keywords, {
@@ -6698,8 +6416,6 @@ eol = '\n';
   				})
   				.join('\n')
           // .replace(/\r/gs, '')
-
-
           .replace(/\[ \]/gs, '&#9744;')
           .replace(/\[v\]/gs, '&#9745;')
           .replace(/\[x\]/gs, '&#9745;')
@@ -6708,36 +6424,27 @@ eol = '\n';
           // .replace(/\[x\]/gs, '&#9949;')
           // .replace(/\[x\]/gs, '&#9745;')
           .replace(/\^(.+?)\^/gs, '<sup>$1</sup>')
-
   				// .replace(/([^\w\*]|^)(\*\*)(?=(?:[^`]*`[^`]*`)*[^`]*$)(\w)/g, '$1<B>$3')
   				// .replace(/(\w)(\*\*)(?=(?:[^`]*`[^`]*`)*[^`]*$)([^\w\*]|$)/g, '$1</B>$3')
   				.replace(/(?=\B)(?:\*\*)(?=(?:[^`]*`[^`]*`)*[^`]*$)(?=\b)/g, '<B>')
   				.replace(/(?=\b)(?:\*\*)(?=(?:[^`]*`[^`]*`)*[^`]*$)(?=\B)/g, '</B>')
-
   				.replace(/(?=\b)(?:__)(?=(?:[^`]*`[^`]*`)*[^`]*$)(?=\B)/g, '<B>')
   				.replace(/(?=\B)(?:__)(?=(?:[^`]*`[^`]*`)*[^`]*$)(?=\b)/g, '</B>')
-
-
   				.replace(/(?=\b)(?:_)(?!_)(?=(?:[^`]*`[^`]*`)*[^`]*$)(?=\B)/g, '<I>')
   				.replace(/(?=\B)(?:_)(?!_)(?=(?:[^`]*`[^`]*`)*[^`]*$)(?=\b)/g, '</I>')
-
   				.replace(/((?=[^\*])\W|^)(?:\*)(?=(?:[^`]*`[^`]*`)*[^`]*$)(?=\w)/g, '$1<I>')
   				.replace(/(?=\b)(?:\*)(?=(?:[^`]*`[^`]*`)*[^`]*$)((?=[^\*])\W|$)/g, '</I>$1')
-
   				// .replace(/([^\w\*]|^)(\*)(?=(?:[^`]*`[^`]*`)*[^`]*$)(\w)/g, '$1<I>$3')
   				// .replace(/(\w)(\*)(?=(?:[^`]*`[^`]*`)*[^`]*$)([^\w\*]|$)/g, '$1</I>$3')
-
   				// .replace(/([^\w_]|^)(__)(?=(?:[^`]*`[^`]*`)*[^`]*$)(\w)/g, '$1<B>$3')
   				// .replace(/(\w)(__)(?=(?:[^`]*`[^`]*`)*[^`]*$)([^\w_]|$)/g, '$1</B>$3')
   				// The _ is not a copy of the * line.
   				// .replace(/([^\w]|^)(_)(?=(?:[^`]*`[^`]*`)*[^`]*$)([^\W_])/g, '$1<I>$3')
   				// .replace(/([^\W_])(_)(?=(?:[^`]*`[^`]*`)*[^`]*$)([^\w]|$)/g, '$1</I>$3')
-
   				.replace(/([^\w]|^)(~~)(?=(?:[^`]*`[^`]*`)*[^`]*$)(\w)/g, '$1<DEL>$3')
   				.replace(/(\w)(~~)(?=(?:[^`]*`[^`]*`)*[^`]*$)([^\w]|$)/g, '$1</DEL>$3')
   				.replace(/([^\w]|^)(~)(?=(?:[^`]*`[^`]*`)*[^`]*$)(\w)/g, '$1<U>$3')
   				.replace(/(\w)(~)(?=(?:[^`]*`[^`]*`)*[^`]*$)([^\w]|$)/g, '$1</U>$3')
-
   				.replace(/!\[([^\]]+)\]\((([^\)]+))\)(?=(?:(?:[^`]*`){2})*[^`]*$)/g, '<img src="$2" alt="$1">')
   				.replace(/\[([^\]]+)\]\(([^\)]+)\)(?=(?:(?:[^`]*`){2})*[^`]*$)/g, '<a href="$2">$1</a>')
   				.replace(/([^\S]|^)(((https?\:\/\/)|(www\.))(\S+))(?=(?:(?:[^`]*`){2})*[^`]*$)/gi, function(match, space, url){
@@ -6870,7 +6577,6 @@ eol = '\n';
     },
     _promiseTimeout(selector, fn, msError = 5000) {
       const messageElem = $().procMessage(selector);
-
       // const to = setTimeout()
       if (Aim.LOGPROMISE) {
         console.debug(selector, 'start');
@@ -6966,7 +6672,6 @@ eol = '\n';
         if (data.path){
           $().url(data.path).setmethod(data.method).exec();
         }
-
         const body = data.body;
         if (body){
           const reindex = [];
@@ -7066,7 +6771,6 @@ eol = '\n';
       });
     },
     has: $.prototype.has,
-
     isImg(src) { return src.match(/jpg|png|bmp|jpeg|gif|bin/i) },
 		isImgSrc(src) {
 			if (src) for (var i = 0, ext; ext = ['.jpg', '.png', '.bmp', '.jpeg', '.gif', '.bin'][i]; i++) if (src.toLowerCase().indexOf(ext) != -1) return true;
@@ -7075,7 +6779,6 @@ eol = '\n';
     keys(){
       return map.keys(...arguments)
     },
-
     log() {
       if (window.document && document.getElementById('console')) {
         $('console').append($('div').text(...arguments))
@@ -7373,8 +7076,6 @@ eol = '\n';
 			(action ? $().url(action) : $().api())
 			.post(formData).then(event => form.emit('response', event));
 			return;
-
-
 			// //console.log('ONSUBMIT', par.res, par.action);
 			// document.body.setAttribute('busy', Number(document.body.getAttribute('busy')) + 1 );
 			// messageElement.innerText = '';
@@ -7390,33 +7091,21 @@ eol = '\n';
 				//console.log('pair', pair[0]+ ', '+ pair[1]);
 			}
 			//console.log('formDataformData END');
-
-
-
 			let submitter = event.submitter || el.submitter;
 			formData.append(submitter.name, submitter.name);
 			// let url = new URL(par.action);
 			// url.searchParams.set('submitter', submitter.name);
 			// par.action = url.toString();
-
 			// query.push([submitter.name] + '=' + submitter.value);
 			// query.push('submitter=' + submitter.name);
 			// post[submitter.name] = submitter.value;
-
 			let callback = (event) => {
 				event.submitter = submitter;
 				par.res.call(el, event);
 			};
 			var xhr = null;
-
 			// //console.log('el.isModified', el.isModified);
-
-
-
 			//console.log('formDataformData', formData, el);
-
-
-
 			if (method === 'get') {
 				var xhr = new $.HttpRequest(par.client, 'get', par.action, {
 					onloadend: onloadend,
@@ -7426,8 +7115,6 @@ eol = '\n';
 				// var xhr = new $.HttpRequest(par.client, 'post', par.action, formData, callback).send();
 				// xhr.onloadend = onloadend;
 				$.url(par.action).post(formData).then(callback);
-
-
 			} else {
 				//console.log('STARTLOAD GGGG', par);
 				callback(el, event);
@@ -7437,15 +7124,11 @@ eol = '\n';
 			}
 			// conn.urlComponents.method = 'GET';
 			// //console.log(query);
-
-
 			//.res = par.res.bind(this);
 			// $.client.init($.auth).api(par.action).post(event.target).res = par.res.bind(this);
 			// $.client.init($.auth).api(par.action).post(event.target).res = par.res.bind(this);
 			// $.client.init($.auth).api(par.action).post(event.target).res = par.res.bind(this);
-
 			// new $.HttpRequest(par.action, {form: event.target }, par.res.bind(this) );
-
 		},
     script(src) {
       // console.log('SCRIPT', src);
@@ -7483,8 +7166,6 @@ eol = '\n';
       // window.addEventListener('copy', el);
       document.execCommand('copy');
       // window.removeEventListener('copy', el);
-
-
       // const el = $('input')
       // .parent(document.body)
       // // .value(JSON.stringify(obj))
@@ -7499,15 +7180,10 @@ eol = '\n';
       // document.execCommand('copy');
       // el.remove();
       // // window.removeEventListener('copy', el, true);
-
     },
   });
-
-
-
   Object.assign(Item = function () {}, {
     get(selector, schemaName){
-
       // console.log(selector.schemaName);
       // iii++;
       // if (iii>1000) throw 'STOP';
@@ -7552,7 +7228,6 @@ eol = '\n';
         // console.debug(schemaName, window[schemaName]);
         // if (!window[schemaName]) return console.warn(schemaName, 'not exists');
         // console.log(schemaName, window[schemaName]);
-
         var item = window[schemaName] ? new window[schemaName]() : new Item();
         // console.debug(selector, item.schema, window[schemaName].prototype);
         // console.log(selector.properties);
@@ -7590,8 +7265,6 @@ eol = '\n';
         // });
       }
       return item;
-
-
       Object.entries(item.data).forEach(([propertyName,property]) => {
         // console.log(propertyName,property, item.hasOwnProperty(propertyName));
         if (!item.hasOwnProperty(propertyName)) {
@@ -7652,16 +7325,9 @@ eol = '\n';
               item.setAttribute(name, item.properties[name].initvalue);
             }
           }
-
-
           $.url.set({ schema: item.schema, id: item.id });
-
-
-
-
           //// console.debug('LV', $.listview);
           //$.listview.elItems.insertBefore($.listview.items.appendListitem(item), $.listview.elItems.firstChild);
-
           //$.show({ id: item.id });
         }).send();
         resolve('ja');
@@ -7715,7 +7381,6 @@ eol = '\n';
           let data = values[attributeName] = values[attributeName] || {};
           data = [].concat(data);
           data = data.filter(data => !data.SrcID || data.SrcID == item.ID);
-
           if (typeof value !== 'object' || value === null) {
             value = { Value: value };//values[attributeName] = values[attributeName] || value;
           }
@@ -7740,8 +7405,6 @@ eol = '\n';
           //   console.debug('attr2', attributeName, value);
           //   return resolve(item);
           // }
-
-
           if (typeof data !== 'object' || data === null){
             data = values[attributeName] = { Value: data };
           }
@@ -7789,10 +7452,8 @@ eol = '\n';
               // return;
             }
           }
-
           const currentJson = [data.AttributeID,data.Value,data.HostID,data.Data,data.LinkID].join();
           const newJson = [value.AttributeID,value.Value,value.HostID,value.Data,value.LinkID].join();
-
           if (value.max) {
             delete value.AttributeID;
           } else if (currentJson === newJson){
@@ -7801,18 +7462,12 @@ eol = '\n';
             // console.log(attributeName,currentJson,newJson,value,data);
           }
           // console.debug(attributeName, value);
-
-
           if ($.threeObjects && $.threeObjects[item.tag] && $.threeObjects[item.tag].obj.onchange){
             $.threeObjects[item.tag].obj.onchange(attributeName, value.Value);
           }
           item['@id'] = item['@id'] || item.tag;
-
           // console.debug(attributeName, value);
-
           Object.assign(data, value);
-
-
           if (item.elems) {
             item.elems.forEach(elem => {
               var displayvalue = newvalue = typeof value === 'object' ? value.Value : value;
@@ -7825,20 +7480,16 @@ eol = '\n';
               // if (property.type === 'datetime'){
               // 	newvalue = new Date(newvalue).toISOString().substr(0,19);
               // }
-
               // Do not update if type in files
               // if (!['files','radio','select'].includes(property.format)){
-
               // displayvalue = String(displayvalue).split('-').length == 3 && String(displayvalue).split(':').length == 3 && new Date(displayvalue) !== "Invalid Date" && !isNaN(new Date(displayvalue)) ? new Date(displayvalue).toISOString().substr(0, 19).replace(/T/, ' ') : displayvalue;
               // if (displayvalue && !isNaN(displayvalue)){
               // 	displayvalue = Math.round(displayvalue * 100) / 100;
               // }
-
               if (el.hasAttribute(attributeName) && el.getAttribute(attributeName) != newvalue){
                 el.setAttribute(attributeName, newvalue);
                 el.setAttribute('modified', new Date().toLocaleString());
               }
-
               // [...el.getElementsByClassName(attributeName)].forEach((attributeElement, i) => {
               //   // if (attributeElement.noupdate) return;
               //   // if (attributeElement === document.activeElement) return;
@@ -7885,13 +7536,11 @@ eol = '\n';
             })
           }
           if (!private.noPost && postdata){
-
             // console.error(arguments);
             // for (var callee = arguments.callee, caller = callee.caller;caller;caller = caller.caller){
             // 	console.debug(caller);
             // }
             // return;
-
             const itemModified = private.itemsModified[item['@id']] = private.itemsModified[item['@id']] || {
               ID: item.data.ID ? item.data.ID.Value || item.data.ID : null,
               method: 'patch',
@@ -7916,7 +7565,6 @@ eol = '\n';
               }
             }
             // if (value.LinkID === null) return console.warn(value,updateProperty);
-
             let values = Object.values(private.itemsModified);
             if (values.length){
               clearTimeout(private.itemsModifiedTimeout);
@@ -7929,7 +7577,6 @@ eol = '\n';
                 if ($.config && $.config.dbs) {
                   $.saveRequests(param.requests);
                 } else if (this.schema.table) {
-
                 } else {
                   $().send({
                     to: { aud: $.aud, sub: $.aud },
@@ -8363,7 +8010,6 @@ eol = '\n';
         // console.debug(headerValue, value)
         if (headerValue != value) {
           // console.warn([headerValue, value]);
-
           this.attr(name, headerValue, true);
         }
       }
@@ -8466,7 +8112,6 @@ eol = '\n';
         action: 'move',
       });
       // return this.parent.append(this, this.index - 1);
-
       // if (this.index > 0){
       //   this.movetoidx(this.parent, this.index - 1);
       // }
@@ -8543,7 +8188,6 @@ eol = '\n';
       if (this.createTreenode) this.createTreenode();
     },
     refreshAttribute(attributeName){
-
     },
     refreshAttributes(){
       var s = new Date();
@@ -8622,7 +8266,6 @@ eol = '\n';
       return (this.data||{}).color || (this.schema||{}).color || '';
     },
     set(values, onload){
-
       api.request({
         put: { value: [{ schema: this.schema, id: this.detailID || this.id, values: values }] },
         item: this
@@ -8671,7 +8314,6 @@ eol = '\n';
       }[value]();
       this.rewriteElements();
       // values[value]();
-
       // let id = this.tag;
       // private.fav.splice(private.fav.indexOf(id), 1);
       // if (value){
@@ -8712,7 +8354,6 @@ eol = '\n';
       var index = 0;
       for (var i = 0, item; item = this.master.Children[i]; i++){
         if ('selected' in item && item.selected == 0) continue;
-
         if (item.srcID == this.srcID) index++;
         if (item == this) return index;
       }
@@ -8931,7 +8572,6 @@ eol = '\n';
 				return this.item.selectitem();
 			}
 			this.selectitemset(this.elemTreeLi.getAttribute('sel') ^ 1);
-
 		},
     selectitemcheckchildren(value) {
 			if (isnull(this.selected, false) !== false) {
@@ -9046,7 +8686,6 @@ eol = '\n';
 					actions: [ {action: "open_url", title: "Read Now"} ],
 				}]
 			});
-
 			// (new $.showNotification(this.Title, {
 			// 	// title: 'Come',
 			// 	tag: this.ID,
@@ -9055,9 +8694,6 @@ eol = '\n';
 			// 	data: { click_action: document.location.href },
 			// 	actions: [ {action: "open_url", title: "Read Now"} ],
 			// })).send();
-
-
-
 			//// //console.debug('item.submit', document.activeElement);
 			this.editclose();
 			setTimeout(function(item) {
@@ -9132,7 +8768,6 @@ eol = '\n';
 			//});
 		},
   };
-
   $.extend(Array.prototype, {
     unique(){
       return this.filter((e,i,arr) => arr.indexOf(e) === i)
@@ -9178,7 +8813,6 @@ eol = '\n';
           __('week'),
           this.getWeek(),
         ].filter(Boolean).join(' ');
-
         // res += '-'+this.toISOString();
         //var t = this.toLocaleTimeString().substr(0, 5);
         //if (t != '00:00') res += ' ' + t;
@@ -9246,17 +8880,14 @@ eol = '\n';
       return this.replace(/(<([^>]+)>)/gi, "");
     },
   });
-
   if (!window.document) {
     require("./node.js");
     setTimeout(async event => await $().emit('load') && await $().emit('ready'));
     return module.exports = $;
   }
   require = function () {};
-
   let localAttr = window.localStorage.getItem('attr');
   $.localAttr = localAttr = localAttr ? JSON.parse(localAttr) : {};
-
   $().on({
     connect: handleEvent,
     message(event){
@@ -9274,7 +8905,6 @@ eol = '\n';
     //   }).toString());
     // },
   });
-
 	const TAGNAMES = 'a,abbr,address,area,article,aside,audio,b,base,bdi,bdo,blockquote,body,br,button,canvas,caption,cite,code,col,colgroup,data,datalist,dd,del,details,dfn,dialog,div,dl,dt,em,embed,fieldset,figcaption,figure,footer,form,h1,h2,h3,h4,h5,h6,head,header,hgroup,hr,html,i,iframe,img,input,ins,kbd,label,legend,li,link,main,map,mark,menu,meta,meter,nav,noscript,object,ol,optgroup,option,output,p,param,picture,pre,progress,q,rp,rt,ruby,s,samp,script,section,select,slot,small,source,span,strong,style,sub,summary,sup,table,tbody,td,template,textarea,tfoot,th,thead,time,title,tr,track,u,ul,var,video,wbr'.split(',');
 	const zoneMappings = {
 	  "Dateline Standard Time": "Etc/GMT+12",
@@ -9422,7 +9052,6 @@ eol = '\n';
   today = new Date();
 	dstart = 0;
 	maxdate = 0;
-
   function Doc(){}
   Doc.prototype = {
     extend(index){
@@ -9438,7 +9067,6 @@ eol = '\n';
       const mydocs = {
         prototype: $.prototype
       };
-
       const doc = (function recursive (obj){
         const entries = [];
         Object.keys(obj).forEach(key => {
@@ -9473,7 +9101,6 @@ eol = '\n';
           // 	__descriptor: descriptor,
           // };
           // doc[key] = item;
-
           if (!descriptor.get){
             let type = descriptor.type = Array.isArray(obj[key]) ? 'array' : typeof obj[key];
             if (type === 'function'){
@@ -9520,7 +9147,6 @@ eol = '\n';
             }
           }
         });
-
         // for (let key in obj){
         // 	let val;
         // 	if (typeof obj[key] === 'function'){
@@ -9593,8 +9219,6 @@ eol = '\n';
         return entries.length ? Object.fromEntries(entries.sort(comp)) : null;
       })(mydocs);
       return JSON.stringify(doc);
-
-
       function sortObject(obj){
         arr = [];
         for (const name in obj){
@@ -9627,13 +9251,11 @@ eol = '\n';
           // 	}
         }
         return val;
-
       });
       // console.debug(docs, JSON.stringify(docs, val => typeof val === 'function' ? String(val) : val));
       // return JSON.stringify(docs, val => typeof val === 'function' ? String(val) : val);
     }
   };
-
 	const TreeListview = {
 		construct(selector) {
 			this.selector = selector;
@@ -9724,7 +9346,6 @@ eol = '\n';
       console.log(event.target.parentElement);
       const itemElem = event.path.find(el => el.item);
       this.setFocusElement(itemElem);
-
       if (this.focusElement) {
         event.preventDefault();
         event.stopPropagation();
@@ -9747,8 +9368,6 @@ eol = '\n';
           console.log('move done', item, item.elemTreeLi.elem);
           this.setFocusElement(item.elemTreeLi.elem);
         });
-
-
       // }).then(item => this.setFocusElement(event.target.parentElement)item.elemTreeLi.elemTreeDiv.scrollIntoView());
 			}
     },
@@ -9927,7 +9546,6 @@ eol = '\n';
     },
 		set data(data) {
 			if (Array.isArray(data)) {
-
 			}
 			if (typeof data === 'string')
 			this.show(data);
@@ -9978,7 +9596,6 @@ eol = '\n';
 			this.div.text('').append(
 				this.mapElem = $('div').class('googlemap').css('width:100%;height:100%;'),
 			);
-
 			const maps = await $.maps();
 			const mapOptions = {
 				zoom: 10,
@@ -10005,9 +9622,7 @@ eol = '\n';
         //     ]
         //   }
         // ],
-
         // https://mapstyle.withgoogle.com/
-
         styles: $().maps.styles,
 			};
 			const map = new maps.Map(this.mapElem.elem, mapOptions);
@@ -10032,7 +9647,6 @@ eol = '\n';
         dataItems.forEach(item => item.scale = 1 + 2 / maxValue * item.value);
       }
       this.itemsVisible.filter(item => item.data.colorid && item.schema.colorid).forEach(item => item.color = item.schema.colorid[item.data.colorid] || item.schema.colorid.default);
-
       this.itemsVisible.filter(item => item.data.Location).forEach(item => {
         const loc = item.data.Location.split(',');
         const marker = new maps.Marker({
@@ -10137,7 +9751,6 @@ eol = '\n';
 			// 	}
 			// },
       this.itemsVisible = this.items.filter(item => !item.hidden);
-
 			this.selector.text('')
       .attr('hidefilter', $().storage('hidefilter'))
       .append(
@@ -10279,7 +9892,6 @@ eol = '\n';
             if (a.cnt === 0 && b.cnt > 0) return 1;
             return a.value.localeCompare(b.value, {}, 'numeric');
           });
-
           filterfield.listItemElement = filterElement.createElement('LI', 'col', {
             cnt: filterfield.cnt || 0,
             checked: filterfield.checked || 0,
@@ -10293,12 +9905,10 @@ eol = '\n';
               ['SPAN', 'aco', __(filterfield.Title)]
             ]],
           ]);
-
           filterfield.listItemElement = filterfield.listItemElement.createElement('UL', {
             checked: filterfield.checked || 0,
             meer: filterfield.meer || 0
           });
-
           var ic = 0;
           for (var i = 0, field; field = filterfield.avalues[i]; i++) {
             if (!field.Title) continue;
@@ -10447,7 +10057,6 @@ eol = '\n';
       //if (!set.q) this.get = {};
       //'folder, function, q, filter, search, Title, id, child, select, src, master, users, link, refby, origin, source'.split(', ').forEach(function(name) { if (name in set) this.get[name] = set[name]; }, this);
       //$.url.sethis(this.get);
-
       //Object.assign(set, { id: '', schema: '', tv: '', lv: '', reload: '' , Title: '' });
       //Object.assign(set, { id: '', schema: '', reload: '' });
       //// //console.debug('LIST SET', set.Title, set.filter);
@@ -10455,24 +10064,17 @@ eol = '\n';
       if (!name) return;
       //// //console.debug('LIST SET', set);
       //// //console.debug(set);
-
       //// //console.debug('LIST SET', this.get.filter, set);
       Object.assign(this.get, set);
-
       //indien er een filter aanstaat en er een zoekopdracht wordt gegeven, schakelen we het filter uit. Zoeken vindt plaats op alle items van een masterclass
       //Voorbeeld is EWR moba. Filter is actief, alleen actieve items. Bij zoeken alle items.
       //if (this.get.q && this.get.q != '*' && this.get.filter) this.get.filter = '';
-
       this.schema = this.get.schema || ($.getItem(this.get.folder) ? $.getItem(this.get.folder).schema : null) || this.get.folder;
       this.childClasses = $.components.schemas[this.schema] && $.components.schemas[this.schema].childClasses ? $.components.schemas[this.schema].childClasses : [this.schema];
       //// //console.debug('SCHEMA', this.schema, this.childClasses);
-
-
       //// //console.debug('LIST SET', this.get.filter, set);
       for (var name in this.get) if (!this.get[name]) delete this.get[name];
-
       //// //console.debug('LIST SET', this.get.filter, set.filter);
-
       if (this.get.folder && Number(this.get.folder) && $.getItem(this.get.folder)) {
         $.getItem(this.get.folder).focus();
         if ($.getItem(this.get.folder).children.length) {
@@ -10480,29 +10082,19 @@ eol = '\n';
           return
         }
       }
-
       this.show(this.data[this.get.Title] || []);
-
       //// //console.debug('LIST SET', this.get);
-
       if (!this.get.q) return;
       //// //console.debug('LIST SET', this.get.filter, set.filter);
-
       var get = this.get;
       this.loadget = {};
       "folder, filter, child, q, select".split(", ").forEach(function(name) { if (get[name]) this.loadget[name] = get[name]; });
       delete this.loadget.select;
-
-
       new $.HttpRequest($.config.$, 'GET', this.loadget, event => {
         //// //console.debug('list_set', this.responseText, event.body);
         this.show(event.body.value);
       }).send();
-
-
-
       //if (!get.value) this.items = [];
-
       //var par = Object.assign($.url.par(document.location.search.substr(1)), { q: this.value, search: 'Title, Subject, Summary' }), get = {};
       //'folder, q, filter, search'.split(', ').forEach(function(name) { if (par[name]) get[name] = par[name]; });
       //$.url.set(get);
@@ -10513,14 +10105,11 @@ eol = '\n';
 				this.title = path || '';
         this.tag = ((this.items.url||'').match(/\w+\(\d+\)/)||[''])[0];
 				if (this.items.url) {
-
           // const url = new URL(document.location);
           // console.log('this.items.url', this.items.url, document.location.href);
           // url.searchParams.set('p', this.items.url);
           // window.history.pushState('page', '', url);
-
           // $.replaceUrl(url.toString());
-
           //
           // const url = new URL(this.items.url, document.location.origin);
           // url.searchParams.set('p', )
@@ -10529,10 +10118,8 @@ eol = '\n';
           // url.pathname += document.location.pathname.replace(/.*(?=\/id\/)/,'');
           // // console.log('show', this.title, this.items.url);
           // $.replaceUrl(url.toString())
-
 					// this.title = this.items.url.replace(/.*\/api/,'');
 					// const url = new URL(this.items.url.replace(/.*\/api/,''), document.location.origin);
-
 					// TODO: werkt niet altijd
           // const match = document.location.pathname.match(/(\/id\/.*)/);
           // if (match) {
@@ -10543,7 +10130,6 @@ eol = '\n';
 				itemsVisible = [];
 				this.elMeer = null;
 				this.filterAttributes = {};
-
 				if (document.getElementById('elBanner')) {
 					document.getElementById('elBanner').style.display = 'none';
 				}
@@ -10557,25 +10143,20 @@ eol = '\n';
 						if (item && item.elemTreeLi) ($.navtree.elSelected = item.elemTreeLi).setAttribute('selected', '');
 					}
 				}
-
 				// const this.viewType = document.body.getAttribute('view');
 				// if (this.get.function && this.get.folder && $.components.schemas[this.get.folder] && $.components.schemas[this.get.folder][this.get.function]) {
 				// 	$.components.schemas[this.get.folder][this.get.function](this.items);
 				// }
-
 				// this.items.sort((a, b) => { return a.index > b.index ? 1 : a.index < b.index ? -1 : 0; });
 				// //console.error(this.items);
-
 				this.items = this.items.filter(Boolean).map(item => item instanceof Item ? item : Item.get(item));
         // console.log(this.items);
-
         this.hasDateData = this.items.some(item => item.data.EndDateTime && item.data.StartDateTime);
         // this.hasChartData = this.items.some(item => item.data.data || (item.data.key && item.data.category && item.data.value));
         this.hasChartData = this.items.some(item => item.data.data && item.data.key);
         this.hasMapsData = this.items.some(item => item.data.Location);
         this.hasModelData = this.items.some(item => item.data.Title && item.data.linkto);
         // console.log('hasMapsData', this.hasMapsData, this.hasChartData);
-
 				this.items.forEach((row, i) => {
 					// row = row instanceof Item ? row : Item.get(row);
 					// if (row.EndDateTime && row.StartDateTime) this.viewMap.set('ganth', true);
@@ -10605,7 +10186,6 @@ eol = '\n';
 					// var cfgclass = $.components.schemas[$.api.find(row.classID)], filterfields = {};
 					$.components = $.components || {};
 					$.components.schemas = $.components.schemas || {};
-
 					var cfgclass = $.components.schemas[row.schema] || {};
 					var filterfields = {};
 					row.filtervalues = [];
@@ -10690,53 +10270,43 @@ eol = '\n';
       }
       if (a.prio && b.prio && a.prio < b.prio) return -1;
       if (a.prio && b.prio && a.prio > b.prio) return 1;
-
       if (a.FinishDateTime && !b.FinishDateTime) return 1;
       if (!a.FinishDateTime && b.FinishDateTime) return -1;
       if (a.FinishDateTime && b.FinishDateTime) {
         if (a.FinishDateTime < b.FinishDateTime) return -1;
         if (a.FinishDateTime > b.FinishDateTime) return 1;
       }
-
       if (a.fav && !b.fav) return -1;
       if (!a.fav && b.fav) return 1;
-
       //// //console.debug(a, b);
-
       if (a.lastvisitDT && !b.lastvisitDT) return -1;
       if (!a.lastvisitDT && b.lastvisitDT) return 1;
       if (a.lastvisitDT && b.lastvisitDT) {
         if (a.lastvisitDT.substr(0, 10) < b.lastvisitDT.substr(0, 10)) return -1;
         if (a.lastvisitDT.substr(0, 10) > b.lastvisitDT.substr(0, 10)) return 1;
       }
-
       if (a.accountprice && !b.accountprice) return -1;
       if (!a.accountprice && b.accountprice) return 1;
-
       //if (sortname) {
       //    if (a[sortname].value < b[sortname].value) return -1;
       //    if (a[sortname].value > b[sortname].value) return 1;
       //}
-
       //if (a.EndDateTime && !b.EndDateTime) return -1;
       //if (!a.EndDateTime && b.EndDateTime) return 1;
       if (a.EndDateTime && b.EndDateTime) {
         if (a.EndDateTime < b.EndDateTime) return -1;
         if (a.EndDateTime > b.EndDateTime) return 1;
       }
-
       //if (a.StartDateTime && !b.StartDateTime) return 1;
       //if (!a.StartDateTime && b.StartDateTime) return -1;
       if (a.StartDateTime && b.StartDateTime) {
         if (a.StartDateTime < b.StartDateTime) return -1;
         if (a.StartDateTime > b.StartDateTime) return 1;
       }
-
       //if (a.lastvisitDT && b.lastvisitDT) {
       //    if (a.lastvisitDT < b.lastvisitDT) return -1;
       //    if (a.lastvisitDT > b.lastvisitDT) return 1;
       //}
-
       if (a.searchname && b.searchname) {
         var awords = a.searchname.match(/\w+/g),
         bwords = b.searchname.match(/\w+/g),
@@ -10759,7 +10329,6 @@ eol = '\n';
           //ib += word.indexOf(private.search.value) || word.length;
         }
         //// //console.debug(a, a.searchname, ia, b, b.searchname, ib);
-
         //var ia = a.searchname.indexOf(private.search.value);
         //var ib = b.searchname.indexOf(private.search.value);
         //if (ia == -1 && ib != -1) return 1;
@@ -10869,7 +10438,6 @@ eol = '\n';
   						const rect = this.getBoundingClientRect();
   						// //console.log(window.innerHeight,rect.top,li.elemStateUl.elem,li.elemStateUl.elem.clientHeight);
   						// setTimeout(() => //console.log(window.innerHeight,rect.top,li.elemStateUl.elem,li.elemStateUl.elem.clientHeight));
-
   						li.elemStateUl.css('top', Math.min(rect.top, window.innerHeight-li.elemStateUl.elem.clientHeight-20)+'px').css('left', rect.left+'px');
   					}),
             // $('i', 'stateicon')
@@ -10878,9 +10446,7 @@ eol = '\n';
             // .append(
             // 	$('i').css(item.stateColor ? { style: 'background-color:' + item.stateColor } : null),
             // ),
-
             // ...item.schemaPath.toLowerCase().split(':'),
-
   					$('div')
             .class('icn itemicon', item.className)
             .css('color', item.schemaColor)
@@ -10967,7 +10533,6 @@ eol = '\n';
               await $().translate();
               await $().getApi(document.location.origin+'/api/');
               await $().login();
-
               if (aim().menuChildren) {
                 $().tree(...aim().menuChildren);
               }
@@ -11027,12 +10592,10 @@ eol = '\n';
         // 		item.elemTreeLi.removeAttribute('checked');
         // 	}
         // });
-
         // $.targetItem = $.selectEndItem = self.focusItem = this;
         if (!event || event.type !== 'mousemove') {
           $.scrollIntoView(self.focusElement.elemTreeLi.elemTreeDiv.elem);
         }
-
         if (self.focusElement.elemTreeLi) {
           self.focusElement.elemTreeLi.setAttribute('focus', '');
           //if (!event) return;
@@ -11298,7 +10861,6 @@ eol = '\n';
       .on('keydown', event => {
         // console.log('kd', event);
         // if (event.target.tagName === 'INPUT') return event.preventDefault();
-
         const keydown = {
           Space: event => {
         		if (this.focusElement) {
@@ -11313,7 +10875,6 @@ eol = '\n';
           // shift_alt_ArrowUp: event => this.moveUp(event),
           // ctrl_ArrowDown: event => this.moveDown(event),
           // ctrl_ArrowUp: event => this.moveUp(event),
-
           ArrowLeft: event => {
             if (this.focusElement) {
               const item = this.focusElement.item;
@@ -11375,7 +10936,6 @@ eol = '\n';
               current: this.focusElement.parentElement.item,
               action: 'move',
             }).then(item => this.setFocusElement(nextElement))
-
           },
           ctrl_Backspace(event) {
             if (self.focusElement) {
@@ -11461,7 +11021,6 @@ eol = '\n';
           }
         };
         // //console.log('DETAILS KEYDOWN', event.keyPressed, this.focusElement, keydown[event.keyPressed]);
-
         if (this.focusElement && keydown[event.keyPressed]) {
           event.stopPropagation();
           event.preventDefault();
@@ -11483,7 +11042,6 @@ eol = '\n';
           $('i').class('icn folder', child.className)
           // .src(child.data.src),
           .css('color', child.schemaColor),
-
           child.elemTreeTitle = $('span').class('title row aco')
           // .caption(child.header0)
 					.attr('schemaPath', ((child.data||{}).schemaPath || '').split(':').slice(0,-1).join(' :'))
@@ -11517,7 +11075,6 @@ eol = '\n';
 		async ident(event) {
       event.preventDefault();
       this.focusElement.previousElementSibling.open = true;
-
       $.link({
         name: 'Master',
         item: this.focusElement.item,
@@ -11636,7 +11193,6 @@ eol = '\n';
     this._handleTouchMove = function(event) {
 			// Prevent scrolling.
 			event.preventDefault();
-
 			var touch = event.targetTouches[0];
 			self._strokeUpdate(touch);
 		};
@@ -11678,7 +11234,6 @@ eol = '\n';
 		clear : function() {
 			var ctx = this._ctx,
 			canvas = this._canvas;
-
 			ctx.fillStyle = this.backgroundColor;
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -11694,7 +11249,6 @@ eol = '\n';
 			ratio = window.devicePixelRatio || 1,
 			width = this._canvas.width / ratio,
 			height = this._canvas.height / ratio;
-
 			this._reset();
 			image.src = dataUrl;
 			image.onload = function() {
@@ -11716,7 +11270,6 @@ eol = '\n';
 		_strokeDraw : function(point) {
 			var ctx = this._ctx,
 			dotSize = typeof (this.dotSize) === 'function' ? this.dotSize() : this.dotSize;
-
 			ctx.beginPath();
 			this._drawPoint(point.x, point.y, dotSize);
 			ctx.closePath();
@@ -11725,7 +11278,6 @@ eol = '\n';
 		_strokeEnd : function(event) {
 			var canDrawCurve = this.points.length > 2,
 			point = this.points[0];
-
 			if (!canDrawCurve && point) {
 				this._strokeDraw(point);
 			}
@@ -11735,7 +11287,6 @@ eol = '\n';
 		},
 		_handleMouseEvents : function() {
 			this._mouseButtonDown = false;
-
 			this._canvas.addEventListener("mousedown", this._handleMouseDown);
 			this._canvas.addEventListener("mousemove", this._handleMouseMove);
 			document.addEventListener("mouseup", this._handleMouseUp);
@@ -11743,7 +11294,6 @@ eol = '\n';
 		_handleTouchEvents : function() {
 			// Pass touch events to canvas elem on mobile IE.
 			this._canvas.style.msTouchAction = 'none';
-
 			this._canvas.addEventListener("touchstart", this._handleTouchStart);
 			this._canvas.addEventListener("touchmove", this._handleTouchMove);
 			document.addEventListener("touchend", this._handleTouchEnd);
@@ -11756,7 +11306,6 @@ eol = '\n';
 			this._canvas.removeEventListener("mousedown", this._handleMouseDown);
 			this._canvas.removeEventListener("mousemove", this._handleMouseMove);
 			document.removeEventListener("mouseup", this._handleMouseUp);
-
 			this._canvas.removeEventListener("touchstart", this._handleTouchStart);
 			this._canvas.removeEventListener("touchmove", this._handleTouchMove);
 			document.removeEventListener("touchend", this._handleTouchEnd);
@@ -11782,21 +11331,17 @@ eol = '\n';
 			var points = this.points,
 			c2, c3,
 			curve, tmp;
-
 			points.push(point);
-
 			if (points.length > 2) {
 				// To reduce the initial lag make it work with 3 points
 				// by copying the first point to the beginning.
 				if (points.length === 3) points.unshift(points[0]);
-
 				tmp = this._calculateCurveControlPoints(points[0], points[1], points[2]);
 				c2 = tmp.c2;
 				tmp = this._calculateCurveControlPoints(points[1], points[2], points[3]);
 				c3 = tmp.c1;
 				curve = new Bezier(points[1], c2, c3, points[2]);
 				this._addCurve(curve);
-
 				// Remove the first elem from the list,
 				// so that we always have no more than 4 points in points array.
 				points.shift();
@@ -11805,22 +11350,16 @@ eol = '\n';
 		_calculateCurveControlPoints : function(s1, s2, s3) {
 			var dx1 = s1.x - s2.x, dy1 = s1.y - s2.y,
 			dx2 = s2.x - s3.x, dy2 = s2.y - s3.y,
-
 			m1 = { x: (s1.x + s2.x) / 2.0, y: (s1.y + s2.y) / 2.0 },
 			m2 = { x: (s2.x + s3.x) / 2.0, y: (s2.y + s3.y) / 2.0 },
-
 			l1 = Math.sqrt(dx1 * dx1 + dy1 * dy1),
 			l2 = Math.sqrt(dx2 * dx2 + dy2 * dy2),
-
 			dxm = (m1.x - m2.x),
 			dym = (m1.y - m2.y),
-
 			k = l2 / (l1 + l2),
 			cm = { x: m2.x + dxm * k, y: m2.y + dym * k },
-
 			tx = s2.x - cm.x,
 			ty = s2.y - cm.y;
-
 			return {
 				c1: new Point(m1.x + tx, m1.y + ty),
 				c2: new Point(m2.x + tx, m2.y + ty)
@@ -11830,20 +11369,16 @@ eol = '\n';
 			var startPoint = curve.startPoint,
 			endPoint = curve.endPoint,
 			velocity, newWidth;
-
 			velocity = endPoint.velocityFrom(startPoint);
 			velocity = this.velocityFilterWeight * velocity
 			+ (1 - this.velocityFilterWeight) * this._lastVelocity;
-
 			newWidth = this._strokeWidth(velocity);
 			this._drawCurve(curve, this._lastWidth, newWidth);
-
 			this._lastVelocity = velocity;
 			this._lastWidth = newWidth;
 		},
 		_drawPoint : function(x, y, size) {
 			var ctx = this._ctx;
-
 			ctx.moveTo(x, y);
 			ctx.arc(x, y, size, 0, 2 * Math.PI, false);
 			this._isEmpty = false;
@@ -11852,7 +11387,6 @@ eol = '\n';
 			var ctx = this._ctx,
 			widthDelta = endWidth - startWidth,
 			drawSteps, width, i, t, tt, ttt, u, uu, uuu, x, y;
-
 			drawSteps = Math.floor(curve.length());
 			ctx.beginPath();
 			for (i = 0; i < drawSteps; i++) {
@@ -11863,17 +11397,14 @@ eol = '\n';
 				u = 1 - t;
 				uu = u * u;
 				uuu = uu * u;
-
 				x = uuu * curve.startPoint.x;
 				x += 3 * uu * t * curve.control1.x;
 				x += 3 * u * tt * curve.control2.x;
 				x += ttt * curve.endPoint.x;
-
 				y = uuu * curve.startPoint.y;
 				y += 3 * uu * t * curve.control1.y;
 				y += 3 * u * tt * curve.control2.y;
 				y += ttt * curve.endPoint.y;
-
 				width = startWidth + ttt * widthDelta;
 				this._drawPoint(x, y, width);
 			}
@@ -11908,7 +11439,6 @@ eol = '\n';
 			var steps = 10,
 					length = 0,
 					i, t, cx, cy, px, py, xdiff, ydiff;
-
 			for (i = 0; i <= steps; i++) {
 				t = i / steps;
 				cx = this._point(t, this.startPoint.x, this.control1.x, this.control2.x, this.endPoint.x);
@@ -11930,7 +11460,6 @@ eol = '\n';
 						 + end * t * t * t;
 		},
 	};
-
 	ScriptLoader = function() {
 		let loaded = [];
 		let loading = [];
@@ -11959,10 +11488,7 @@ eol = '\n';
 	};
 	scriptLoader = new ScriptLoader();
 	Popup = function(event) {
-
-
 		// //console.log('POPUP');
-
 		event = event || window.event;
 		let targetElement = event.path.find(targetElement => targetElement.popupmenu || targetElement.contextmenu);
 		//console.error('POPUP', targetElement);
@@ -11991,11 +11517,6 @@ eol = '\n';
 			menuElement.remove();
 			window.removeEventListener('click', this.close, true);
 		};
-
-
-
-
-
 		// window.addEventListener('mousedown', event => {
 		// 	if (event.path.find(elem => elem === menuElement)) {
 		// 		return;
@@ -12006,8 +11527,6 @@ eol = '\n';
 			targetElement.right = 0;
 		}
 		// //console.debug('POS', targetElement, targetRect, targetElement.left, targetElement.right);
-
-
 		// //console.debug('PUMENU', this, this.menu, menu, pos);
 		menuElement.innerText = '';
 		for (let [menuname, menuitem] of Object.entries(menuItems)) {
@@ -12141,7 +11660,6 @@ eol = '\n';
 				// response.value.forEach(row => {
 				// 	//console.log(JSON.stringify(Object.fromEntries(Object.entries(row).map(entry => [entry[0],{}])),null,2).replace(/"(\w+)": /gs,'$1: '));
 				// });
-
 				response.value.forEach(row => row.schema = 'msaMessage');
 				$().list(response.value)
 			} catch (error) {
@@ -12171,7 +11689,6 @@ eol = '\n';
 			// Moment needs IANA format
 			let ianaTimeZone = getIanaFromWindows(user.mailboxSettings.timeZone);
 			//console.log(`Converted: ${ianaTimeZone}`);
-
 			// Configure a calendar view for the current week
 			// Get midnight on the start of the current week in the user's timezone,
 			// but in UTC. For example, for Pacific Standard Time, the time value would be
@@ -12179,7 +11696,6 @@ eol = '\n';
 			let startOfWeek = moment.tz('America/Los_Angeles').startOf('week').utc();
 			// Set end of the view to 7 days after start of week
 			let endOfWeek = moment(startOfWeek).add(7, 'day');
-
 			try {
 				// GET /me/calendarview?startDateTime=''&endDateTime=''
 				// &$select=subject,organizer,start,end
@@ -12199,7 +11715,6 @@ eol = '\n';
 				// Maximum 50 events in response
 				.top(1)
 				.get();
-
 				// response.value.forEach(row => {
 				// 	//console.log(JSON.stringify(Object.fromEntries(Object.entries(row).map(entry => [entry[0],{}])),null,2).replace(/"(\w+)": /gs,'$1: '));
 				// });
@@ -12245,7 +11760,6 @@ eol = '\n';
 			{
 				const attendeeArray = attendees.split(';');
 				newEvent.attendees = [];
-
 				for (const attendee of attendeeArray) {
 					if (attendee.length > 0) {
 						newEvent.attendees.push({
@@ -12269,7 +11783,6 @@ eol = '\n';
 				await this.graphClient
 				.api('/me/events')
 				.post(newEvent);
-
 				// Return to the calendar view
 				getEvents();
 			} catch (error) {
@@ -12313,18 +11826,14 @@ eol = '\n';
 					'User account missing from session. Please sign out and sign in again.'
 				);
 			}
-
 			try {
 				const msalRequest = JSON.parse($().storage('msalRequest'));
-
 				// First, attempt to get the token silently
 				const silentRequest = {
 					scopes: msalRequest.scopes,
 					account: msalClient.getAccountByUsername(account)
 				};
-
 				// //console.log(account, silentRequest);
-
 				const silentResult = await msalClient.acquireTokenSilent(silentRequest);
 				return silentResult.accessToken;
 			} catch (silentError) {
@@ -12346,13 +11855,11 @@ eol = '\n';
 	};
 	function Ganth (data, ganthElement) {
 		$('link').attr('rel', 'stylesheet').attr('href', '/v1/src/css/ganth.css').parent(document.head);
-
 		this.el = this.ganthElement = ganthElement.class('row ganth').text('');
 		this.startDateTime = dateTime0(new Date());
 		this.endDateTime = dateTime0(this.startDateTime, 1);
 		this.bars = [];
 		dw = 24;
-
 		//console.debug('GANTH START', data);
 		if (typeof data === 'string') {
 			return new AIM.HttpRequest(AIM.config.$, 'GET', data, event => {
@@ -12441,7 +11948,6 @@ eol = '\n';
 					)
 				),
 			);
-
 			return;
 			if (plandata.pln) {
 				for (var d in plandata.pln) {
@@ -12456,7 +11962,6 @@ eol = '\n';
 			//console.log(row);
 			// row.bars = row.bars || [];
 			// if (!row.StartDateTime && !row.EndDateTime) return;
-
 			// const startDateTime = dateTime0(row.EndDateTime, -1);//row.StartDateTime ? dateTime0(row.StartDateTime) : dateTime0(row.EndDateTime, -1);//row.StartDateTime ? row.StartDateTime : dateTime0(row.EndDateTime, -1);
 			// let startDateTime = String(row.StartDateTime);
 			// let endDateTime = String(row.EndDateTime);
@@ -12502,14 +12007,12 @@ eol = '\n';
 						////console.log(this, ganthElement);
 						//var parent = this.parent;
 						this.ganthElement.setAttribute('open', this.parentElement.getAttribute('open'));
-
 						//parent.bargroup.el.scrollIntoView();
 						//parent.ul = { elList: parent.elList.createElement('UL'), elGanth: parent.elGanth.createElement('UL') };
 						//parent.children.forEach(function(row) { if (!row.elList) Ganth.writerow.call(parent.ul, row); });
 					})
 				)
 			);
-
 			let sdt = elBar.attr('sdt');
 			let edt = elBar.attr('edt');
 			if (!sdt && !edt) {
@@ -12535,8 +12038,6 @@ eol = '\n';
 			//   row.bars.forEach(bar => {
 			//   });
 			// }
-
-
 			// if (startDateTime) {
 			//
 			// }
@@ -12545,7 +12046,6 @@ eol = '\n';
 			// }
 			// if (row.StartDateTime && row.EndDateTime) {
 			// }
-
 			////console.log('ROW', row);
 			//if (row.parent) var nextSibling = row.parent.elList.nextElementSibling;
 			var parent = row;
@@ -12559,15 +12059,11 @@ eol = '\n';
 					if (child.warning) { parent.elList.attr('warning', ''); }
 				});
 			}
-
-
 		},
 	};
 	function Calendar (data, containerElement) {
 		$('link').attr('rel', 'stylesheet').attr('href', '/v1/src/css/calendar.css').parent(document.head);
-
 		this.offsetWidth = 10;
-
 		this.elem = containerElement;
 		this.items = [];
 		// //console.log(containerElement, data);
@@ -12605,7 +12101,6 @@ eol = '\n';
 						}
 						prow.dstart.setHours(8, 0, 0, 0);
 						//row.dgn = Math.floor(row.wdgn / 5) * 2 + row.wdgn;
-
 						prow.left = (prow.dstart - dstart) / 60 / 60 / 1000;
 						prow.width = (prow.dend - prow.dstart) / 60 / 60 / 1000;
 						//console.log('PLANROW', prow.dend.toISOString(), 'WD', prow.wdgn, 'D', prow.dgn, prow.upd, prow.dstart.toISOString());
@@ -12641,7 +12136,6 @@ eol = '\n';
 					//createElement('SPAN', { className: "seperator" });
 				)
 			);
-
 			// this.addappdate({ name: "overleg", StartDateTime: '2017-01-30 10:00:00', EndDateTime: '2017-01-30 12:00:00' });
 			// this.addappdate({ name: "overleg", StartDateTime: '2017-01-30 13:00:00', EndDateTime: '2017-01-30 14:00:00' });
 			// this.addappdate({ name: "overleg", StartDateTime: '2017-01-30 13:45:00', EndDateTime: '2017-01-30 15:00:00' });
@@ -12649,7 +12143,6 @@ eol = '\n';
 			// this.addappdate({ name: "overleg", StartDateTime: '2017-01-31 11:00:00', EndDateTime: '2017-01-31 12:30:00' });
 			// this.addappdate({ name: "overleg", StartDateTime: '2017-02-02 14:00:00', EndDateTime: '2017-02-02 16:00:00' });
 			////console.log(this.app);
-
 			this.vandaag = new Date();
 			this.vandaag.setHours(0, 0, 0, 0);
 			//gotodate(vandaag);
@@ -12681,7 +12174,6 @@ eol = '\n';
 			var deltaX = event.clientX - mouseX;
 			//    mouseY = event.clientY;     // Get the horizontal coordinate
 			//console.log();
-
 			if (action == 0) {
 				//        dayWidth = document.getElementById("week").offsetWidth
 				activeElement.style.top = Math.round((activeElementTop + deltaY) / 15) * 15 + 'px';
@@ -12707,16 +12199,13 @@ eol = '\n';
 			d.setMinutes(activeElement.offsetTop);
 			if (!activeElement.app) activeElement.app = new Object;
 			activeElement.app.StartDateTime = d.toDateTimeString();
-
 			var eind = new Date(d);
 			eind.setHours(0);
 			eind.setSeconds(0);
 			eind.setMinutes(activeElement.offsetTop + activeElement.offsetHeight);
 			activeElement.app.eindDt = eind.toDateTimeString();
-
 			//console.log(activeElement.app.StartDateTime);
 			//console.log(activeElement.app.eindDt);
-
 			//var xhr = new XMLHttpRequest();
 			//xhr.open("POST", "../db/itempost.php?a=postitemfield&itemId=" + activeElement.app.itemId, true);
 			//params = new FormData();
@@ -12727,7 +12216,6 @@ eol = '\n';
 			//};
 			//xhr.send(params);
 			//return xhr;
-
 			resizeelement = null;
 			this.appcumcount();
 		},
@@ -12745,7 +12233,6 @@ eol = '\n';
 									if (a != a2) {
 										////console.log(a2.sDt < a.eDt && a2.sDt > a.sDt, a2.eDt > a.sDt && a2.eDt < a.eDt, a, a2);
 										if ((a2.sDt < a.eDt && a2.sDt > a.sDt) || (a2.eDt > a.sDt && a2.eDt < a.eDt)) {
-
 											a.cnt += 1;
 											a2.cnt = (a2.cnt || 1) + 1;
 											a.l += 1;
@@ -12766,7 +12253,6 @@ eol = '\n';
 			this.el = document.createElement('DIV');
 			with (this.el) {
 				className = 'appointment';
-
 				with (this.content = appendChild(document.createElement('DIV'))) {
 					className = 'content';
 					setAttribute("contenteditable", "true");
@@ -12950,9 +12436,6 @@ eol = '\n';
 					if (files.images[files.slideIdx].pause) {
 						if (checkVisibleAll(files.images[files.slideIdx])) {
 							if (!items.player.elPlaying) {
-
-
-
 								player.elPlaying = files.images[files.slideIdx];
 								$.player.elPlaying.play();
 							}
@@ -12985,7 +12468,6 @@ eol = '\n';
 			}
 		},
 		pause: function() {
-
 		},
 	};
   function Docs() {}
@@ -13095,10 +12577,7 @@ eol = '\n';
 			addChapters(this.indexElement.text(''), 1);
 			return this;
 			// return $('ul').append(...[...this.elem.querySelectorAll("h1, h2, h3")].map(elem => $('li').text(elem.innerText)))
-
 			this.addNextPreviousButtons()
-
-
 		},
 		addNextPreviousButtons() {
 			return;
@@ -13233,17 +12712,13 @@ eol = '\n';
 			})
 		}
 	};
-
-
   function Chatroom(params, pageElement) {
 		const MESSAGE_TYPE = {
 			SDP: 'SDP',
 			CANDIDATE: 'CANDIDATE',
 		};
-
 		// chatRemoteView = elem.createElement('VIDEO', '', {id: 'chatRemoteView', style: 'width:200px;height:200px;', autoplay: true, playsinline: true });
 		// //console.log(params);
-
 		const sender = {
 			wall: params.wall,
 			client: params.client,
@@ -13263,7 +12738,6 @@ eol = '\n';
 		function Connection (from_id) {
 			// //console.log('CREATE Connection', from_id);
 			let connectionElement = null;
-
 			this.close = () => {
 				if ($(from_id) && $(from_id).parentElement) {
 					$(from_id).remove();
@@ -13271,13 +12745,11 @@ eol = '\n';
 				peerConnection.close();
 				connections[from_id] = null;
 			};
-
 			const createPeerConnection = (signaling) => {
 				// //console.log('createPeerConnection');
 				const peerConnection = new RTCPeerConnection({
 					iceServers: [{ urls: 'stun:stun4.l.google.com:19302' }],
 				});
-
 				peerConnection.onconnectionstatechange  = async (event) => {
 					// //console.log('onconnectionstatechange', event.target.connectionState);
 					if (event.target.connectionState === 'disconnected') {
@@ -13300,7 +12772,6 @@ eol = '\n';
 					pageElement.style = '';
 					video.srcObject = this.stream = window.recordStream = event.streams[0];
 					return;
-
 					let connectionElement = pageElement.createElement('DIV', 'col', {id: from_id}, [['DIV', '', from_id]]);
 					let remotevideo = connectionElement.createElement('VIDEO', '', {
 						style: 'width:200px;height:200px;',
@@ -13334,7 +12805,6 @@ eol = '\n';
 					} );
 				} else if (message_type === MESSAGE_TYPE.CANDIDATE && content) {
 					await peerConnection.addIceCandidate(content);
-
 				} else if (message_type === MESSAGE_TYPE.SDP) {
 					if (content.type === 'offer') {
 						await peerConnection.setRemoteDescription(content);
@@ -13388,12 +12858,9 @@ eol = '\n';
 				video.srcObject = stream;
 				video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
 				video.play();
-
 				pageElement.style = '';
 				caminfo.innerText = 'Your local camera';
-
 				send( 'CAMERA_EVAIL', sender);
-
 			} catch (err) {
 				//console.error(err);
 			}
@@ -13422,12 +12889,10 @@ eol = '\n';
 			//console.log(stream);
 			var options = { mimeType: "video/webm; codecs=vp9" };
 			mediaRecorder = new MediaRecorder(stream, options);
-
 			mediaRecorder.ondataavailable = handleDataAvailable;
 			mediaRecorder.start();
 			let filename = new Date().toISOString().replace(/\.|-|:/g,'');
 			let i=1;
-
 			function handleDataAvailable(event) {
 				// //console.log("data-available");
 				if (event.data.size > 0) {
@@ -13447,7 +12912,6 @@ eol = '\n';
 			function download() {
 				// //console.log('download', mediaRecorder.state, mediaRecorder.paused)
 				clearTimeout(resetTimeout);
-
 				var blob = new Blob(recordedChunks, {
 					type: "video/webm"
 				});
@@ -13473,7 +12937,6 @@ eol = '\n';
 				};
 				reader.readAsDataURL(blob);
 				return;
-
 				var url = URL.createObjectURL(blob);
 				var a = document.createElement("a");
 				pageElement.appendChild(a);
@@ -13487,14 +12950,12 @@ eol = '\n';
 		btnbarElement.createElement('BUTTON', 'abtn stop', 'stop', {type:'button', onclick: event => {
 			mediaRecorder.stop();
 		}});
-
 		// pageElement.createElement('BUTTON', 'abtn record', 'stop', {type:'button', onclick: event => {
 		// 	var options = { mimeType: "video/webm; codecs=vp9" };
 		// 	mediaRecorder = new MediaRecorder(window.localStream, options);
 		// }});
 		send( 'OPTIONS', sender );
 	};
-
   const Aliconnector = {
 		/** @function Aliconnector.outlookImportMail
 		*/
@@ -13598,7 +13059,6 @@ eol = '\n';
 			// }
 		},
 	};
-
   'default,autoplay'.split(',').forEach(name => Elem.prototype[name] = function attr() {
     return this.attr(name, '');
   });
@@ -13608,7 +13068,6 @@ eol = '\n';
     // if (typeof this.elem[name] === 'function'){
     //   this.elem[name](...arguments);
     // }
-
     return this;
   });
   'draggable'.split(',').forEach(name => Elem.prototype[name] = function attrTrue() {
@@ -13628,7 +13087,6 @@ eol = '\n';
     this.emit(name, ...arguments);
     return this;
   });
-
   function Elem (elem) {
     const args = [...arguments];
     elem = this.elem = args.shift();
@@ -13764,7 +13222,6 @@ eol = '\n';
 			// targetElement.item = null;
 			// if ($.show) $.show({ id: 0 });
 			// if (window.onWindowResize) window.onWindowResize();
-
 		},
     caption() {
       return this.attr('caption', __(...arguments))
@@ -13879,7 +13336,6 @@ eol = '\n';
 			return this;
 		},
     code() {
-
 		},
     contextmenu(menu){
       // console.warn(menu);
@@ -13899,7 +13355,6 @@ eol = '\n';
       this.on('contextmenu', event => {
         event.preventDefault(event.stopPropagation());
         console.log(menu);
-
     		const targetElement = this.elem;
     		const targetRect = targetElement.getBoundingClientRect();
         var top = targetRect.bottom;
@@ -13920,7 +13375,6 @@ eol = '\n';
         window.addEventListener('keydown', this.onKeydown = event => event.key === 'Escape' ? this.close(event) : null, true);
         // window.addEventListener('contextmenu', this.close, true);
         window.addEventListener('click', this.close, true);
-
         this.elemPopup = $('div')
         .parent(document.body)
         .class('col popup')
@@ -13935,7 +13389,6 @@ eol = '\n';
     		if (this.handlers.menuElement) {
     			this.handlers.menuElement.remove();
     		}
-
     		// window.addEventListener('mousedown', event => {
     		// 	if (event.path.find(elem => elem === menuElement)) {
     		// 		return;
@@ -13946,8 +13399,6 @@ eol = '\n';
     			targetElement.right = 0;
     		}
     		// //console.debug('POS', targetElement, targetRect, targetElement.left, targetElement.right);
-
-
     		// //console.debug('PUMENU', this, this.menu, menu, pos);
     		menuElement.innerText = '';
     		for (let [menuname, menuitem] of Object.entries(menuItems)) {
@@ -13992,8 +13443,6 @@ eol = '\n';
     		menuElement.style.left = left + 'px';
     		menuElement.style.top = top + 'px';
     		menuElement.style.maxHeight = (window.screen.availHeight - top) + 'px';
-
-
         // new Popup(event, context);
       });
 			// this.elem.contextmenu = context;
@@ -14032,7 +13481,6 @@ eol = '\n';
           $().elemMessages = $('div').class('col aco'),
         ),
       );
-
       return this;
     },
     css(selector, value) {
@@ -14101,7 +13549,6 @@ eol = '\n';
           event.pause();
         }
       }
-
       function users() {
         return;
         // TODO: Item Users
@@ -14127,7 +13574,6 @@ eol = '\n';
 					}]
 				]];
       }
-
       item.elemFiles = $('div').files(item, 'Files');
       function openDialog (accept) {
         $('input').type('file').multiple(true).accept(accept).on('change', event => {
@@ -14136,7 +13582,6 @@ eol = '\n';
           }
         }).click().remove()
       }
-
       const buttons = {
         attach: () => openDialog(''),
         image: () => openDialog('image/*'),
@@ -14237,8 +13682,6 @@ eol = '\n';
           //   // window.open("http://www.stackoverflow.com");
           //   // window.location.href = 'https://aliconnect.nl';
           // }
-
-
           // notification.onclick = event => {
           //   console.log('CLICKED');
           //   window.focus();
@@ -14340,9 +13783,7 @@ eol = '\n';
     files(item, attributeName){
       this.item = item;
       this.files = item[attributeName];
-
       // console.log('FILES', this.files);
-
       // this.files = [];
       if (this.files === 'string' && this.files[0] === '[') this.files = JSON.parse(this.files);
       if (this.files === 'string' && this.files[0] === '{') this.files = [JSON.parse(this.files)];
@@ -14371,8 +13812,6 @@ eol = '\n';
               })
             })
           }
-
-
           console.log(event.target.responseText, attributeName, this.files);
           // item[attributeName] = { max:999, Value: JSON.stringify(event.body) };
           item[attributeName] = JSON.stringify(this.files);
@@ -14412,7 +13851,6 @@ eol = '\n';
           if (filename[0].length == 32) filename.shift();
           filename = filename.join('_');
           let href = ofile.src;
-
           if (ofile.src.match(/jpg|png|bmp|jpeg|gif|bin/i)) {
             const elem = $('span')
             .parent(this.imagesElem)
@@ -14429,11 +13867,9 @@ eol = '\n';
             // elem.elem.ofile = ofile;
             return;
             // return elem;
-
             if (ofile.src) {
               this.src(ofile.src);
             }
-
             return this;
             const access_token = $.auth.access_token;
             const iss = $.auth.access.iss;
@@ -14444,7 +13880,6 @@ eol = '\n';
             imgElement.srcl = (src.indexOf('http') === -1 ? ofile.host || "https://" + iss : '') + src;
             imgElement.alt = ofile.name || '';
             // return imgElement;
-
             return this;
           } else if (ofile.src.match(/3ds/i)) {
             const elem = $('span')
@@ -14593,7 +14028,6 @@ eol = '\n';
       // if (item.IsPublic) {
 			// 	item.publicElement = ['DIV', 'icn IsPublic ' + (item.hostID === 1 ? 'public' : '')];
 			// }
-
 			return $('header')
       .class('row header', item.tag)
       .draggable()
@@ -14640,7 +14074,6 @@ eol = '\n';
 						//console.log(window.innerHeight);
 						item.elemStateUl.css('top', (rect.top)+'px').css('left', rect.left+'px');
 					}),
-
           item.IsPublic ? $('div', 'icn IsPublic').class(item.hostID === 1 ? 'public' : '') : null,
           $('div')
           .class('icn itemicon', item.className)
@@ -14701,7 +14134,6 @@ eol = '\n';
 					}
 					return line;
 				},
-
 				keywords: {
 					js: {
 						reserved: {
@@ -14929,36 +14361,28 @@ eol = '\n';
 							END_PROGRAM: '',
 							VAR: '',
 							END_VAR: '',
-
 							IF: 'Provides one or more options and selects one (or none) of its statement components for execution. ELEIF and ELSE are optional.',
 							THEN: '',
 							ELSEIF: '',
 							ELSIF: '',
 							ELSE: '',
 							END_IF: '',
-
 							CASE: 'Select one of several alternative program sections. ELSE are optional.',
 							OF: '',
 							END_CASE: '',
-
 							FOR: 'Repeat a sequence of statements as long as a control variable is within the specified range of values',
 							TO: '',
 							BY: '',
 							DO: '',
 							END_FOR: '',
-
 							REPEAT: 'Repeat a sequence of statements until condition(S) is true. Note minimum one execution.',
 							UNTIL: '',
 							END_REPEAT: '',
-
 							WHILE: 'Repeat a sequence of statements as long as condition(S) is true.',
 							// DO: '',
 							END_WHILE: '',
-
 							EXIT: 'Terminates the FOR, WHILE or REPEAT loop in which it resides without regard to any condition',
-
 							RETURN: 'Terminates Program, Function block call',
-
 							ADD: '',
 							SQRT: '',
 							SIN: '',
@@ -15058,19 +14482,16 @@ eol = '\n';
 							ACOS: 'Arc Cosine',
 							ATAN: 'Arc Tangent',
 							EXPT: 'IN1 to the power of IN2',
-
 							'<': 'Less than',
 							'>': 'Greather than',
 							'<=': 'Less than or equal to',
 							'>=': 'Greater than or equal to',
 							'=': 'Equal to',
 							'<>': 'Not equal to',
-
 							NOT: 'Negation',
 							AND: 'And',
 							XOR: 'Exclusive or',
 							OR: 'Or',
-
 							':=': 'Assignment',
 							'\\*': 'Multiplication',
 							'/': 'Division',
@@ -15177,7 +14598,6 @@ eol = '\n';
 					},
 				},
 				prg(line, lang, modifier) {
-
 					modifier = modifier || 'g';
 					let groups = {};
 					let keywords = {
@@ -15185,9 +14605,7 @@ eol = '\n';
 						// '(\')([^\']*)(\'=&gt;)': '$1<span class="hl-attr">$2</span>$3',
 						// '("[^"]+")(:)': '<span class="hl-attr">$1</span>$2',
 						// '(\'[^\']+\')(:)': '<span class="hl-attr">$1</span>$2',
-
 						// 'function\\s(\\w+)(\\s|)\\(': 'function <span class="hl-title">$1</span>$2(',
-
 						// '(&lt;)([^\\s|^&]+)(\\s|&)': '$1<span class="hl-tag">$2</span>$3',
 						// '&quot;(.*?)&quot;': '&quot;<span class="hl-string">$1</span>&quot;',
 						// '&apos;(.*?)&apos;': '&apos;<span class="hl-string">$1</span>&apos;',
@@ -15219,7 +14637,6 @@ eol = '\n';
 					.replace(/=/g, '&#61;')
 					.replace(/\t/g, '  ')
 					;
-
 					chars = line.split('');
 					line = [];
 					for (var i=0, specialChar;i<chars.length;i++) {
@@ -15256,7 +14673,6 @@ eol = '\n';
 					.replace(/(\/\*.*)/g, '<span class="hl-comt">$1')
 					.replace(/(.*\*\/)/g, '$1</span>')
 					;
-
 					line = param.replace(
 						line,
 						Object.assign(keywords, {
@@ -15444,12 +14860,8 @@ eol = '\n';
                   //range.setStart()
                   //range.set
                   //window.getSelection().addRange()
-
-
                   //range.setStart(el.childNodes[2], 5);
-
                   //range.collapse(true);
-
                   sel.removeAllRanges();
                   sel.addRange(range);
                   //document.activeElement.setSelectionRange(5,5);
@@ -15467,7 +14879,6 @@ eol = '\n';
 				oDoc.currentRange = null;
 				// setDocMode();
 				document.execCommand('defaultParagraphSeparator', false, 'p');
-
 				// if ($.editBtnRowElement) $.editBtnRowElement.remove();
 				// switchBox = $.editBtnRowElement.createElement('INPUT', {type:"checkbox", onchange:function(event){setDocMode(this.checked);} });
 				// for (var name in btns) $.editBtnRowElement.createElement('span', { className: 'abtn icn ' + name }).createElement('img', Object.assign({
@@ -15567,7 +14978,6 @@ eol = '\n';
 			})
 			.on('keydown', event => {
 				let key = event.keyPressed;
-
 				if (keysdown[key]) {
 					keysdown[key]();
 					event.preventDefault();
@@ -15667,10 +15077,7 @@ eol = '\n';
 			addChapters(this.text(''), 1);
 			return this;
 			// return $('ul').append(...[...this.elem.querySelectorAll("h1, h2, h3")].map(elem => $('li').text(elem.innerText)))
-
 			this.addNextPreviousButtons()
-
-
 		},
     item(item, name) {
       if (item) {
@@ -15768,7 +15175,6 @@ eol = '\n';
         );
       }
     },
-
     langtext(value){
       return this.ttext(...arguments);
     },
@@ -15782,11 +15188,8 @@ eol = '\n';
       }
       // const homePath = $().ref.home;
       // const wikiPath = $().ref.wiki;
-
-
       // 'https://schiphol-nl.github.io'
       // 'https://raw.githubusercontent.com/wiki/schiphol-nl/schiphol-nl.github.io/Home.md'
-
       // src = src.replace(/\/\/github.com/, '//raw.githubusercontent.com');
       const startsrc = src;
       const homePath = document.location.origin;
@@ -15796,10 +15199,11 @@ eol = '\n';
       src = src.replace(/\/tree|\/blob/, '');
       // src = src.replace(/\/$/,'') + (src.match(/\/wiki/) ? '.md' : '/README.md');
       src = src.replace(/github.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
+      src = src.replace(/(.*?)\/\/(.*?)\.github\.io\/wiki\//, '$1//raw.githubusercontent.com/wiki/$2/$2.github.io/');
+      // 'https://raw.githubusercontent.com/wiki/schiphol-nl/schiphol-nl.github.io/Home.md'
+      console.log(src);
       var url = new URL(src, document.location);
-
       // console.warn(2, src);
-
       if (url.pathname.match(/\/wiki$/)) {
         console.warn(3, src);
       } else {
@@ -15821,16 +15225,13 @@ eol = '\n';
         }
       }
       // console.log('wikiPath', wikiPath);
-
       // src = url.toString();
       // console.warn(src);
       // var match = url.href.match(/^.*?\/wiki/);
       // const wikiPath = match ? match[0] : url.origin + '/wiki';
       // const wikiPath = document.location.hostname.match(/aliconnect\.nl&/) ? document.location.origin + '/wiki' : ;
-
       // src = src.replace(/\/wiki$/, '/wiki/Home');
       // src = src.replace(/raw.githubusercontent.com\/(.*?)\/wiki/, 'raw.githubusercontent.com/wiki/$1');
-
       function mdRewriteRef (event, elem) {
         const filename = event.target.responseURL;
         [...elem.elem.getElementsByTagName('A')].forEach(elem => {
@@ -15864,7 +15265,6 @@ eol = '\n';
             src = url.origin + url.pathname;
           }
           // var url = new URL(src);
-
           // console.log(src);
           if (src.match(/\.\w+$/)) {
             $(elem).href(new URL(src, document.location).href).target('site')
@@ -15891,33 +15291,48 @@ eol = '\n';
           $(elem).src(src);
         });
       }
-
       const contentLoad = src => {
   			$()
         .url(src.replace(/\/$/,'') + (src.match(/\/wiki/) ? '.md' : '/README.md'))
         .accept('text/markdown')
         .get()
-        .then(event => {
-
+        .then(async event => {
           // const url = new URL(document.location);
           // url.searchParams.set('p', startsrc);
           // $.replaceUrl(url.toString());
-
           // window.history.pushState('page', 'test1', '?md='+startsrc);
-          this.text('').append(
-            $('div').class('row doc aco').append(
-              this.homeElem = $('div').class('mc-menu left np oa').append(
-              ),
-              this.docElem = $('div').class('aco col doc-content oa'),
-              $('div').class('mc-menu right np oa').append(
-                $('div').class('ac-header').text('Table of contents'),
-                this.indexElem = $('ul')
-              ),
-            )
-          );
-
+          if (this.pageElem && this.pageElem.elem.parentElement) {
+            this.loadIndex = false;
+            console.log('this.docElem', this, this.docElem && this.docElem.elem.parentElement);
+          } else {
+            this.loadIndex = true;
+            this.text('').append(
+              this.pageElem = $('div').class('row doc aco').append(
+                this.homeElem = $('div').class('mc-menu left np oa').append(
+                ),
+                this.docElem = $('div').class('aco doc-content oa').on('click', event => {
+                  const href = event.target.getAttribute('href');
+                  if (href && href.match(/^http/)) {
+                    console.log(href);
+                    event.stopPropagation();
+                    event.preventDefault();
+                    const panel = $('div').parent(this.docElem).class('col abs').append(
+                      this.elemBar = $('div').class('row top abs btnbar').append(
+                        $('span').class('aco'),
+                        $('button').class('abtn close').on('click', event => panel.remove()),
+                      ),
+                      $('iframe').src(href),
+                    );
+                  }
+                }),
+                $('div').class('mc-menu right np oa').append(
+                  $('div').class('ac-header').text('Table of contents'),
+                  this.indexElem = $('ul')
+                ),
+              )
+            );
+          }
   				let content = event.target.responseText;
-
           var title = event.target.responseURL.replace(/\/\//g,'/');
           var match = content.match(/^#\s(.*)/);
           if (match) {
@@ -15929,7 +15344,6 @@ eol = '\n';
             : title.split('/').pop().split('.').shift().replace(/-/g,' ');
             title = title.replace(/-/,' ');
           }
-
           const date = event.target.getResponseHeader('last-modified');
   				content = content.replace(/<\!-- sample button -->/gs,`<button onclick="$().demo(event)">Show sample</button>`);
   				try {
@@ -15937,12 +15351,26 @@ eol = '\n';
   				} catch (err) {
   					//console.error(err);
   				}
-
   				mdRewriteRef(event, this.docElem.text('').append(
+            this.navElem = $('nav'),
             $('h1').text(title).append(
               date ? $('div').class('modified').text(__('Last modified'), new Date(date).toLocaleString()) : null,
             )
           ).md(content));
+          // console.log('this.navElem', this.navElem, this.navElem.append);
+          // $('span').parent(this.navElem).text('PREV2');
+          // this.navElem.append(
+          //   $('span').text('PREV2'),
+          // )
+          // this.navElem.append(
+          //   $('span').text('PREV'),
+          // )
+          // this.navElem.append(
+          //   $('span').text('PREV'),
+          // )
+          // this.navElem.append(
+          //   $('span').text('PREV'),
+          // )
           if (callback) callback(this.docElem);
           this.indexElem.index(this.docElem);
   				[...this.docElem.elem.getElementsByClassName('code')].forEach(elem => {
@@ -15972,15 +15400,12 @@ eol = '\n';
         							/\/\*\* css start \*\*\/.*?\/\*\* css end \*\*\//s, codeElem.innerText
         						);
         					}
-
                   if (codeElem === elem) break;
                 }
                 var html = block.html
                 .replace('/** css **/', block.css)
                 .replace('/** js **/', block.js);
-
                 // console.log(html);
-
   							const win = window.open('about:blank', 'sample');
   							const doc = win.document;
   							doc.open();
@@ -15990,16 +15415,38 @@ eol = '\n';
   					)
   				});
           // console.log(wikiPath);
-          if (wikiPath) {
-            $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
+          if (this.loadIndex && wikiPath) {
+            await $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
             .then(event => mdRewriteRef(event, this.homeElem.md(event.target.responseText)))
             .catch(console.error);
-            $().url(wikiPath+'/_Footer.md').accept('text/markdown').get()
+            [...this.homeElem.elem.getElementsByTagName('A')].forEach(link => {
+              $(link).attr('open', '0');
+              $(link).on('click', event => $(link).attr('open', $(link).attr('open')^1))
+            })
+            await $().url(wikiPath+'/_Footer.md').accept('text/markdown').get()
             .then(event => mdRewriteRef(event, $('section').class('footer').parent(this.docElem).md(event.target.responseText)))
             .catch(console.error);
           }
+          const links = [...this.homeElem.elem.getElementsByTagName('A')];
+          links.forEach(link => link.removeAttribute('selected'));
+          var link = links.find(link => link.getAttribute('href') === src);
+          // if (link.parentElement.previousElementSibling) {
+          //   this.navElem.append(
+          //     $('a').class('abtn previous').href(link.parentElement.previousElementSibling.firstChild.getAttribute('href')).text(link.parentElement.previousElementSibling.firstChild.innerText),
+          //   )
+          // }
+          // if (link.parentElement.nextElementSibling) {
+          //   this.navElem.append(
+          //     $('a').class('abtn next').href(link.parentElement.nextElementSibling.firstChild.getAttribute('href')).text(link.parentElement.nextElementSibling.firstChild.innerText),
+          //   )
+          // }
+          $(link).attr('selected', '');
+          for (link; link; link = link.parentElement.parentElement.previousElementSibling) {
+            $(link).attr('open', '1');
+          }
+          // console.log(sellink, links);
   			})
-        .catch(err => window.open(src, 'site'));
+        // .catch(err => window.open(src, 'site'));
       };
       contentLoad(src);
       return this;
@@ -16026,8 +15473,6 @@ eol = '\n';
 			// 	map,
 			// 	title: "Hello World!",
 			// });
-
-
 			// referenceNode.style = 'width:100%;height:500px;';
 			// this.mapel = referenceNode;//referenceNode.createElement('DIV', { className: 'googlemap', style: 'width:100%;height:100%;' });
 			let map = new maps.Map(this.elem, { zoom: 8 });
@@ -16053,7 +15498,9 @@ eol = '\n';
 			// new $.maps(el, par.maps);
 		},
     md(s) {
-			this.elem.innerHTML += $.String.md(s);
+      const div = $('div').html($.String.md(s));
+			// this.elem.innerHTML += $.String.md(s);
+      this.append(...div.elem.children);
 			return this;
 		},
     mdc(s) {
@@ -16158,7 +15605,6 @@ eol = '\n';
           if (window.goSamples) goSamples();  // init for these samples -- you don't need to call this
           var $ = go.GraphObject.make;  // for conciseness in defining templates
           var make = $;
-
           myDiagram =
           $(go.Diagram, element,  // must be the ID or reference to div
           {
@@ -16168,7 +15614,6 @@ eol = '\n';
             layout: $(go.LayeredDigraphLayout)
             // other Layout properties are set by the layout function, defined below
           });
-
           // define the Node template
           myDiagram.nodeTemplate =
           $(
@@ -16192,7 +15637,6 @@ eol = '\n';
               new go.Binding("text", "text")
             )
           );
-
           // define the Link template to be minimal
           myDiagram.linkTemplate =
           $(go.Link,
@@ -16206,8 +15650,6 @@ eol = '\n';
               new go.Binding("stroke", "stroke"),
             )
           );
-
-
           fill = make(go.Brush, "Radial", { 0: "rgb(240, 240, 240)", 0.3: "rgb(240, 240, 240)", 1: "rgba(240, 240, 240, 0)" } );
           shape = make(go.Shape, { fill: fill, stroke: null } );
           textBlock = make(go.TextBlock, { textAlign: "center", font: "10pt helvetica, arial, sans-serif", stroke: "#555555", margin: 4 }, new go.Binding("text", "text") );
@@ -16216,8 +15658,6 @@ eol = '\n';
           let linkTo = make(go.Shape, { toArrow: "standard", stroke: null });
           // replace the default Link template in the linkTemplateMap
           myDiagram.linkTemplate = make(go.Link, linkFrom, linkTo, link);
-
-
           // generate a tree with the default values
           // nodeArray = [
           //   {key:1, text:'1', fill:go.Brush.randomColor()},
@@ -16232,7 +15672,6 @@ eol = '\n';
             // , $().schemas().has(schemaPath));
             // console.log($().schemas().get(schemaPath));
             return schemas.get(schemaPath) || {};
-
             // return schemaPath.split(':').filter(schemaName => $().schemas().has(schemaName)).map(schemaName => $().schemas().get(schemaName)).shift() || {};
           }
           // data.items.forEach(item => item.fill = go.Brush.randomColor());
@@ -16259,30 +15698,23 @@ eol = '\n';
           lay.direction = 0;
           lay.direction = 90;
           lay.direction = 270;
-
           lay.layerSpacing = 25;
           lay.columnSpacing = 25;
-
           lay.cycleRemoveOption = go.LayeredDigraphLayout.CycleDepthFirst;
           lay.cycleRemoveOption = go.LayeredDigraphLayout.CycleGreedy;
-
           lay.layeringOption = go.LayeredDigraphLayout.LayerLongestPathSource;
           lay.layeringOption = go.LayeredDigraphLayout.LayerLongestPathSink;
           lay.layeringOption = go.LayeredDigraphLayout.LayerOptimalLinkLength;
-
           lay.initializeOption = go.LayeredDigraphLayout.InitDepthFirstOut;
           lay.initializeOption = go.LayeredDigraphLayout.InitDepthFirstIn;
           lay.initializeOption = go.LayeredDigraphLayout.InitNaive;
-
           lay.aggressiveOption = go.LayeredDigraphLayout.AggressiveNone;
           lay.aggressiveOption = go.LayeredDigraphLayout.AggressiveMore;
           lay.aggressiveOption = go.LayeredDigraphLayout.AggressiveLess;
-
           lay.packOption = parseInt(0, 10);
           // lay.packOption |= parseInt(1, 10);
           // lay.packOption |= parseInt(2, 10);
           lay.packOption |= parseInt(4, 10);
-
           lay.setsPortSpots = false;
           myDiagram.commitTransaction("change Layout");
           myDiagram.alignDocument(go.Spot.Center, go.Spot.Center);
@@ -16339,7 +15771,6 @@ eol = '\n';
     modelLinks(data){
 			(async () => {
         // $.amcharts4core = $.amcharts4core = await this.script('/api/lib/amcharts4/core.js');
-
 				$.scriptGraph = $.scriptGraph = await this.script('https://aliconnect.nl/v1/api/js/graph.js');
         // return;
 				const make = go.GraphObject.make;  // for conciseness in defining templates
@@ -16352,14 +15783,11 @@ eol = '\n';
 						defaultElectricalCharge: 100
 					})
 				});
-
 				// define each Node's appearance
 				let fill = make(go.Brush, "Linear", { 0: "rgb(254, 201, 0)", 1: "rgb(254, 162, 0)" } );
 				let shape = make(go.Shape, "RoundedRectangle", { fill: fill, stroke: "black" }, new go.Binding("fill", "fill") );
 				let textBlock = make(go.TextBlock, { font: "bold 10pt helvetica, bold arial, sans-serif", margin: 4 }, new go.Binding("text", "text") );
 				diagram.nodeTemplate = make(go.Node, "Auto", { locationSpot: go.Spot.Center }, shape, textBlock);
-
-
 				fill = make(go.Brush, "Radial", { 0: "rgb(240, 240, 240)", 0.3: "rgb(240, 240, 240)", 1: "rgba(240, 240, 240, 0)" } );
 				shape = make(go.Shape, { fill: fill, stroke: null } );
 				textBlock = make(go.TextBlock, { textAlign: "center", font: "10pt helvetica, arial, sans-serif", stroke: "#555555", margin: 4 }, new go.Binding("text", "text") );
@@ -16375,7 +15803,6 @@ eol = '\n';
 					var event = diagram.lastInput;
 					var count = diagram.selection.count;
 					var curobj = diagram.findPartAt(event.documentPoint, false);
-
 					// //console.log('CLICK', event, this, event, count, curobj);
 					if (curobj !== null) {
 						// //console.log('standardMouseSelect', curobj);
@@ -16393,11 +15820,9 @@ eol = '\n';
       (async () => {
         var names = {}; // hash to keep track of what names have been used
         const element = this.elem;
-
         function init() {
           if (window.goSamples) goSamples();  // init for these samples -- you don't need to call this
           var $ = go.GraphObject.make;  // for conciseness in defining templates
-
           myDiagram =
           $(go.Diagram, element,
           {
@@ -16405,7 +15830,6 @@ eol = '\n';
             // define the layout for the diagram
             layout: $(go.TreeLayout, { nodeSpacing: 5, layerSpacing: 30 })
           });
-
           // Define a simple node template consisting of text followed by an expand/collapse button
           myDiagram.nodeTemplate =
           $(go.Node, "Horizontal",
@@ -16421,13 +15845,11 @@ eol = '\n';
           ),
           $("TreeExpanderButton")
         );
-
         // Define a trivial link template with no arrowhead.
         myDiagram.linkTemplate =
         $(go.Link,
           { selectable: false },
           $(go.Shape));  // the link shape
-
           // create the model for the DOM tree
           //console.log(data, data.items)
           myDiagram.model =
@@ -16444,7 +15866,6 @@ eol = '\n';
             // ],//traverseDom(document.activeElement)
           });
         }
-
         // Walk the DOM, starting at document, and return an Array of node data objects representing the DOM tree
         // Typical usage: traverseDom(document.activeElement)
         // The second and third arguments are internal, used when recursing through the DOM
@@ -16470,7 +15891,6 @@ eol = '\n';
           }
           return dataArray;
         }
-
         // Give every node a unique name
         function getName(node) {
           var n = node.nodeName;
@@ -16484,7 +15904,6 @@ eol = '\n';
           names[namenum] = node;
           return namenum;
         }
-
         // When a Node is selected, highlight the corresponding HTML element.
         function nodeSelectionChanged(node) {
           if (node.isSelected) {
@@ -16532,7 +15951,6 @@ eol = '\n';
 						Listview.show(event.body.Value);
 					});
 				},
-
 			},
 			Events: {
 				/** @function $.mse.Events.find
@@ -16550,7 +15968,6 @@ eol = '\n';
 						//console.log("OUTLOOK DATA", this.getHeader("OData-Version"), event.body);
 					});
 				},
-
 			},
 			Calendarview: {
 				/** @function $.mse.Calendarview.find
@@ -16579,7 +15996,6 @@ eol = '\n';
 					var access = mse_access_token[0].split('.');
 					var header = JSON.parse(atob(access[0]));
 					this.payload = JSON.parse(atob(access[1]));
-
 					// //console.log("RT", event.body.refresh_token);
 					// //console.log("RT", event.body.refresh_token.split('.'));
 					// for (var i=0, c=event.body.refresh_token.split('-'), code;i<c.length;i++) {
@@ -16591,8 +16007,6 @@ eol = '\n';
 					// 	}
 					// }
 					// //console.log("MSE", event.body.refresh_token.split('-'));
-
-
 					var timeleft = Math.round(this.payload.exp * 1000 - new Date().getTime());
 					// //console.log("MSE USER DATA", this.responseText, header, this.payload);
 					this.headers = {
@@ -17071,7 +16485,6 @@ eol = '\n';
   						// 		]],
   						// 	]);
   						// }
-
   					},
   				},
           checklist: {
@@ -17139,7 +16552,6 @@ eol = '\n';
   				},
           draw: {
   					view(property) {
-
   					},
   					edit(property) {
   						$(this.selector).append(
@@ -17172,7 +16584,6 @@ eol = '\n';
   						// 	camera: {type: 'button', item: this, onclick: $.prompt.camera},
   						// 	freedraw: {type: 'button', item: this, onclick: $.prompt.freedraw},
   						// }});
-
   						// this.elEdit.append(new Files(this).elem);
   					},
   					createView() {
@@ -17217,7 +16628,6 @@ eol = '\n';
 							// 				html='';
 							// //console.log(html);
 							let html = this.value || '';
-
               $('div').class('prop col').parent(this.selector).append(
                 $('div')
                 .class('inp doc-content')
@@ -17299,8 +16709,6 @@ eol = '\n';
   							// Browser doesn't support Geolocation
   							handleLocationError(false, infoWindow, map.getCenter());
   						}
-
-
   					},
   				},
           meter: {
@@ -17719,7 +17127,6 @@ eol = '\n';
         for (let [name, property] of Object.entries(properties)) {
           function Property () {
             if (!property) return;
-
             this.property = property;
             this.selector = selector;
             this.name = name;
@@ -17755,7 +17162,6 @@ eol = '\n';
               property.format = property.format || property.stereotype;
               property.legend = property.legend || __(property.stereotype);
             }
-
             Object.assign(this, property, format.default, format[this.type], format[this.format]);
             this.placeholder = this.placeholder || ' ';
             this.data = this.item ? this.item.data[name] : {};
@@ -17773,7 +17179,6 @@ eol = '\n';
               ].join(' ')
               // console.log('CLASSNAME', this.name, this.className, data, this);
             }
-
             // console.log(property, typeof property.value);
             if (isForm) {
               if (elem.elements[this.property.name]) return;
@@ -17891,7 +17296,6 @@ eol = '\n';
 			</body>
 			`;
 			const head = `<script src="/v1/api/js/aim.js"></script><script src="/v1/api/js/web.js"></script>`;
-
 			function codeJs (f) {
 				let content = String(f);
 				content = String(content).replace(/^(.*?)\{|\}$/g,'').split(/\n/);
@@ -17903,7 +17307,6 @@ eol = '\n';
 				// //console.log(content);
 				return content.join('\n').trim();
 			}
-
 			//console.log(selector);
       const ref = {};
       sample.template = sample.template || htmlScript;
@@ -17946,7 +17349,6 @@ eol = '\n';
 				$('h1', '', selector),
 			);
 			return this;
-
 		},
 		scrollIntoView(options = { block: "nearest", inline: "nearest" }) {
 			this.elem.scrollIntoView(options);
@@ -18131,7 +17533,6 @@ eol = '\n';
   						}], ';\u00A0');
   					});
   				}
-
         }
         function printmenu() {
           return;
@@ -18144,8 +17545,6 @@ eol = '\n';
           //	menuitem.item = this;
           //	//// //console.debug('MENU ITEM ', menuname);
           //	break;
-
-
           //	//// //console.debug('menuitem href', menuitem.href);
           //	//if (this.ref) this.printmenu[menuname].href = this.href+'/'+
           //	if (!menuitem.href) this.printmenu[menuname].onclick = menuitem.ref ? $.url.objbyref(menuitem.ref).event : function(event) {
@@ -18226,12 +17625,10 @@ eol = '\n';
               items.push(item);
               data.filter(child => child.data.MasterID === item.ID).forEach(item => row(item, level+1))
             })(data.find(child => child.ID == item.data.ID), 1);
-
             const schemaNames = items.map(item => item.schemaPath).unique();
             const schemas = [...Object($().schemas()).entries()].filter(([schemaName, schema]) => schemaNames.includes(schemaName));
             const schemaKeys = schemas.map(([schemaName, schema]) => schemaName);
             // properties = ['ID', 'level','schemaPath','schemaName','header0','header1','header2'].concat(...schemas.map(([schemaName, schema]) => schemaName), ...schemas.map(([key, schema]) => Object.keys(schema.properties))).unique();
-
             const schema_values = {};
             items.forEach(item => {
               let value = '';
@@ -18263,12 +17660,10 @@ eol = '\n';
                 items.push(item);
                 data.filter(child => child.data.MasterID === item.ID).forEach(item => row(item, level+1))
               })(data.find(child => child.ID == item.data.ID), 1);
-
               const schemaNames = items.map(item => item.schemaPath).unique();
               const schemas = [...Object($().schemas()).entries()].filter(([schemaName, schema]) => schemaNames.includes(schemaName));
               const schemaKeys = schemas.map(([schemaName, schema]) => schemaName);
               // properties = ['ID', 'level','schemaPath','schemaName','header0','header1','header2'].concat(...schemas.map(([schemaName, schema]) => schemaName), ...schemas.map(([key, schema]) => Object.keys(schema.properties))).unique();
-
               const schema_values = {};
               items.forEach(item => {
                 let value = '';
@@ -18412,7 +17807,6 @@ eol = '\n';
                       .map(([propertyName, property])=> $('li').class('prop').append(
                         $('label').text(propertyName+': '),item[propertyName],
                       ));
-
                       return [
                         $('h'+level).text(item.header0),
                         // $('div').text('inleiding'),
@@ -18557,14 +17951,12 @@ eol = '\n';
             )
           )
         );
-
         // console.log('FILES',item, item.data.files);
         //
         //
         // if (item.data.files) {
         //   JSON.parse(item.data.files).forEach(item.elemFiles.appendFile)
         // }
-
         // return console.log('SHOW', item);
         $.nav.setItem([item], 'selected', '');
         let link;
@@ -18664,7 +18056,6 @@ eol = '\n';
 				// .modelTraverse(event.body)
 				.modelDigraph(event.body)
 			});
-
 		},
     sort: {
       Title: function(a, b) { return String(a.Title.toLowerCase()).localeCompare(String(b.Title.toLowerCase())) },
@@ -18799,7 +18190,6 @@ eol = '\n';
           this.srcElem.elem.currentTime = frameNumber;
           //window.requestAnimationFrame(scrollPlay);
         };
-
         if (ofile.src.match(/jpg|png|bmp|jpeg|gif|bin/i)) {
           this.srcElem = $('img')
           .parent(this.containerElem)
@@ -18847,11 +18237,9 @@ eol = '\n';
         this.show(elements[imageNr = imageNr ? imageNr - 1 : elements.length - 1]);
   		};
   		this.next = event => {
-
         console.warn(imageNr, elements.length);
   			this.show(elements[imageNr = imageNr < elements.length - 1 ? imageNr + 1 : 0]);
   		};
-
   		const onkeydown = event => {
   			if (event.code === "ArrowLeft") {
           event.stopPropagation(event.preventDefault(this.prior(event)))
@@ -18867,7 +18255,6 @@ eol = '\n';
   			this.sliderElem.remove();
   			// this.elem = null;
   		};
-
       this.sliderElem = $('div')
       .class('imageSlider')
       .parent(this.elem)
@@ -18886,7 +18273,6 @@ eol = '\n';
           ),
         ),
       );
-
   		// swipedetect(divElement, swipedir => {
   		// 	if (swipedir === 'left') next();
   		// 	else if (swipedir === 'right') prior();
@@ -18915,13 +18301,12 @@ eol = '\n';
       let controls;
             // this.objectList = $.threeObjects = [];
       (async () => {
-        await $.script('/lib/three/build/three.js');
-        await $.script('/lib/three/examples/js/controls/OrbitControls.js');
-
+        var url = new URL($.apiPath);
+        await $.script(url.origin + '/lib/three/build/three.js');
+        await $.script(url.origin + '/lib/three/examples/js/controls/OrbitControls.js');
         var textureLoader = new THREE.TextureLoader();
         renderer = new THREE.WebGLRenderer( { antialias: true } );
         renderer.setClearColor(0xcfcfcf, .5);
-
         this
         .on('mouseenter', event => {
           controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -18933,20 +18318,15 @@ eol = '\n';
         })
         .on('mousedown', event => {
           console.log('DOWN');
-
     			var rect = container.getBoundingClientRect();
     			mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
     			mouse.y = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
     			var vector = new THREE.Vector3(mouse.x, mouse.y, 1);
     			vector.unproject(camera);
     			var ray = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
-
     			console.log(targetList);
-
     			var intersects = ray.intersectObjects(targetList);
-
     			console.log(intersects);
-
     			if (intersects.length > 0) {
     				this.objectclick = intersects[0].object;
     			}
@@ -18961,12 +18341,10 @@ eol = '\n';
     			vector.unproject(camera);
     			var ray = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
     			var intersects = ray.intersectObjects(targetList);
-
     			if (intersects.length > 0) {
     				var p = this.objectclick = intersects[0].object;
     				while (p && !p.itemID) p = p.parent;
     				var itemID = p.itemID;// || Three.objectclick.parent.itemID || Three.objectclick.parent.parent.itemID;
-
     				if (itemID) {
     					// console.log('HIT',itemID);
     					this.objectselect = this.objectclick;
@@ -19002,12 +18380,9 @@ eol = '\n';
     			if (this.objectselect) this.objectselect.material.opacity = selectopacity;
     			render();
         });
-
         el.appendChild( renderer.domElement );
         window.addEventListener( 'resize', onWindowResize );
-
         // animate();
-
         this.build = params => {
           console.log('BUILD', params.body);
           targetList = [];
@@ -19032,7 +18407,7 @@ eol = '\n';
             // data3d.floorplan.src = "https://aliconnect.nl" + data3d.floorplan.src;
             if (data3d.floorplan) {
               var floorMaterial = data3d.floorplan.src
-              ? new THREE.MeshBasicMaterial({ map: textureLoader.load(data3d.floorplan.src) })
+              ? new THREE.MeshBasicMaterial({ map: textureLoader.load('https://aliconnect.nl' + data3d.floorplan.src) })
               : new THREE.MeshBasicMaterial({ color: data3d.floorplan.color ? parseInt(data3d.floorplan.color) : 0x999999 });
               var floorGeometry = new THREE.PlaneGeometry(size.x, size.y, 0, 0);
               var floor = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -19049,9 +18424,7 @@ eol = '\n';
           }
           redraw();
         };
-
         callback(this);
-
         console.log('INIT');
         let group;
         scene = new THREE.Scene();
@@ -19063,12 +18436,9 @@ eol = '\n';
         hemiLight.position.set(0, 500, 0);
         scene.add(hemiLight);
         // scene.background = new THREE.Color( 0xdddddd );
-
         // camera.position.z = 400;
         renderer.setPixelRatio( window.devicePixelRatio );
         renderer.setSize( el.clientWidth, el.clientHeight );
-
-
         function clearThree(obj) {
           if (obj.children) {
             while (obj.children.length > 0) {
@@ -19118,15 +18488,12 @@ eol = '\n';
           shape.height = height;
           return shape;
         }
-
         function createObject(obj, grp) {
           // if (obj.geo && data3d.geo[obj.geo]) {
           //   Object.assign(obj, data3d.geo[obj.geo]);
           //   console.log(obj.geo, data3d.geo[obj.geo], obj);
           // }
-
           obj.baseColor = obj.color || '0x999999';
-
           if (grp.src) {
             if (obj.left != undefined && obj.right != undefined) {
               obj.w = grp.src.w - obj.left - obj.right;
@@ -19138,7 +18505,6 @@ eol = '\n';
             } else if (obj.right != undefined) {
               obj.x = grp.src.w / 2 - obj.right - obj.w / 2;
             }
-
             if (!obj.h) {
               obj.h = grp.src.h - (obj.bottom || 0) - (obj.top || 0);
             }
@@ -19147,7 +18513,6 @@ eol = '\n';
             } else if (obj.top != undefined) {
               obj.y = grp.src.h - obj.top - obj.h;
             }
-
             if (obj.begin != undefined && obj.end != undefined) {
               obj.depth = grp.src.depth - obj.begin - obj.end;
             } else if (!obj.depth) {
@@ -19159,7 +18524,6 @@ eol = '\n';
               obj.z = grp.src.depth - obj.end - obj.src.depth;
             }
           }
-
           var mesh;
           for (let [key, value] of Object.entries(obj)) {
             if (key in THREE) {
@@ -19212,7 +18576,6 @@ eol = '\n';
             // // mesh.position.z += box.min.z;
             //
             // // //console.log( box );
-
           }
           if (obj.shape) {
             obj.shape = shape(obj.shape, obj.fx);
@@ -19245,21 +18608,17 @@ eol = '\n';
           } else {
             var mesh = obj.mesh || new THREE.Group();
           }
-
           mesh.colorSet = function(color) {
             if (obj.material) {
               obj.material.color.setHex(parseInt(color || obj.src.baseColor));
             }
             obj.children.forEach(child => child.colorSet(color))
           };
-
           // mesh.src = grp;
           // mesh.obj = obj;
           // obj.mesh = mesh;
-
           mesh.src = obj;
           // mesh.onchange = obj.onchange;
-
           if (obj.name) {
             objectList.push(objectList[obj.name] = mesh);
           }
@@ -19270,8 +18629,6 @@ eol = '\n';
             mesh.itemID = obj.itemID;
             // mesh.item = obj;
           }
-
-
           // DEBUG: Uitgezet ivm nieuwe opzet !!!!!, werkt tunnel sim nog wel?
           //mesh.position.set((-obj.x || 0), (obj.y || 0), (obj.z || 0) );
           grp.posz = grp.posz || 0;
@@ -19293,28 +18650,22 @@ eol = '\n';
           } else {
             grp.posz += obj.depth;
           }
-
           mesh.rotation.x = (obj.rx || 0) / 180 * Math.PI;
           mesh.rotation.y = (-obj.ry || 0) / 180 * Math.PI;
           mesh.rotation.z = (obj.rz || 0) / 180 * Math.PI;
-
           mesh.absr = (grp.absr || 0) + (obj.rz || 0);
           if (mesh.absr == 90) {
             mesh.position.x += obj.depth;
           }
           grp.add(mesh);
-
           // if (obj.geo) {
           //   console.log(obj.geo, obj, mesh);
           // }
-
           if (obj.children) {
             obj.children.forEach(child => createObject(child, mesh) );
           }
         }
-
         // if (params.body) build(params);
-
         function render() {
           renderer.render(scene, camera);
         }
@@ -19344,30 +18695,23 @@ eol = '\n';
         await $.script('/lib/three/build/three.js');
         await $.script('/lib/three/examples/js/controls/TrackballControls.js');
         await $.script('/lib/three/examples/js/loaders/TDSLoader.js');
-
         console.log(container.offsetWidth, container.offsetHeight);
-
         camera = new THREE.PerspectiveCamera( 60, width / height, 0.1, 10 );
         camera.position.z = 2;
-
         scene = new THREE.Scene();
         scene.add( new THREE.HemisphereLight() );
-
         var directionalLight = new THREE.DirectionalLight( 0xffeedd );
         directionalLight.position.set( 0, 0, 2 );
         scene.add( directionalLight );
-
         //3ds files dont store normal maps
         // var loader = new THREE.TextureLoader();
         // // var normal = loader.load( '/lib/three/examples/models/3ds/portalgun/textures/normal.jpg' );
         // var normal = loader.load( '/shared/upload/normal.jpg' );
-
         var loader = new THREE.TDSLoader( );
         // loader.setResourcePath( '/lib/three/examples/models/3ds/portalgun/textures/' );
         // loader.setResourcePath( '/shared/upload/' );
         // loader.load( '/lib/three/examples/models/3ds/portalgun/portalgun.3ds', function ( object ) {
         loader.load( options.src, function ( object ) {
-
           // object.traverse( function ( child ) {
           //
           // 	if ( child.isMesh ) {
@@ -19377,50 +18721,33 @@ eol = '\n';
           // 	}
           //
           // } );
-
           scene.add( object );
-
         } );
-
         renderer = new THREE.WebGLRenderer();
         renderer.setPixelRatio( window.devicePixelRatio );
         // renderer.setSize( width, height );
         this.append( renderer.domElement );
-
         controls = new THREE.TrackballControls( camera, renderer.domElement );
-
         // console.log(window);
         $(window).on('resize', resize, false).emit('resize');
-
         setTimeout(() => {
           renderer.render( scene, camera );
         },200);
-
         if (options.hasControls) {
           animate();
         }
         // requestAnimationFrame( animate );
-
         // animate();
-
       })();
-
 			function resize() {
-
 				camera.aspect = width / height;
 				camera.updateProjectionMatrix();
-
 				renderer.setSize( width, height );
-
 			}
-
 			function animate() {
-
 				controls.update();
 				renderer.render( scene, camera );
-
 				requestAnimationFrame( animate );
-
 			}
       return this;
     },
@@ -19461,7 +18788,6 @@ eol = '\n';
     type(){
 			return this.attr('type', ...arguments);
 		},
-
     openLinkInIframe(src) {
       return this.append(
         this.iframePanelElem = $('div').class('col aco iframe').append(
@@ -19547,18 +18873,23 @@ eol = '\n';
 				}
 			}
 		},
-
-    panel() {
-      return this.parent($('list')).class('col abs').append(
+    panel(parent) {
+      return this.parent(parent || $('list')).class('col abs').append(
         this.elemBar = $('div').class('row top abs btnbar').append(
           $('span').class('aco'),
           $('button').class('abtn close').on('click', event => this.elem.remove()),
         ),
         this.elemMain = $('main').class('aco oa'),
       );
+      // return this.parent($('list')).class('col abs').append(
+      //   this.elemBar = $('div').class('row top abs btnbar').append(
+      //     $('span').class('aco'),
+      //     $('button').class('abtn close').on('click', event => this.elem.remove()),
+      //   ),
+      //   this.elemMain = $('main').class('aco oa'),
+      // );
     },
 	});
-
   Aim.PublicClientApplication = function(config) {
     const accounts = new Map();
     this.acquireTokenSilent = function (silentRequest) {
@@ -19689,10 +19020,6 @@ eol = '\n';
                 if (body.url) {
                   const url = new URL(body.url);
                   console.log(url.searchParams.get('code'));
-
-
-
-
                   callback({
                     id_token: body.id_token
                   });
@@ -19731,20 +19058,15 @@ eol = '\n';
       return new Client();
     }
   };
-
   $().history = [];
-
   private.openItems = window.localStorage.getItem('openItems');
 	apiorigin = $.httpHost === 'localhost' && $().storage === 'api' ? 'http://localhost' : $.origin;
   $.config = $.config || {};
-
   (new URL(document.currentScript.src)).searchParams.forEach((value, key)=>$.extend($.config, minimist([key,value])));
   [...document.currentScript.attributes].forEach(attribute => $.extend($.config, minimist(['--'+attribute.name, attribute.value])));
   [...document.currentScript.attributes].forEach(attribute => $.extend($.config, minimist([attribute.name, attribute.value])));
   (new URLSearchParams(document.location.search)).forEach((value,key)=>$.extend($.config, minimist([key,value])));
   $().extend($.config);
-
-
   window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent the mini-infobar from appearing on mobile
     e.preventDefault();
@@ -19757,19 +19079,13 @@ eol = '\n';
     // alert('install');
   });
   // alert('install1');
-
-
-
-
   // (new URLSearchParams(document.location.search)).forEach((value,key)=>$().extend(minimist([key,value])));
   // (new URL(document.currentScript.src)).searchParams.forEach((value, key) => $.config[key] = value);
   // [...document.currentScript.attributes].forEach(attribute => $().extend(minimist(['--'+attribute.name, attribute.value])));
-
   $.apiPath = document.currentScript.src.split('/js')[0];
   if ($.config.libraries){
     console.log($.config.libraries);
     $.config.libraries.split(',').forEach(selector => $()[selector]());
-
     // (function recursive (name){
     //
     //   // console.debug(name);
@@ -19779,8 +19095,6 @@ eol = '\n';
     //     elem.onload = event => recursive(libraries.shift());
     //   }
     // })(libraries.shift())
-
-
     // $.config.libraries.split(',').forEach(console.debug);
     // const libs = {
     // 	maps: [
@@ -19814,9 +19128,6 @@ eol = '\n';
   window.addEventListener('load', event => {
     console.debug('AIM LOAD');
     $.script($.apiPath + '/js/qrscan.js')
-
-
-
     $().emit('load').then(event => {
       $().emit('ready').then(event => {
         // console.debug('AIM READY')

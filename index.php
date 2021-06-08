@@ -37,7 +37,7 @@ error_reporting(E_ALL);
 // die('test '. $_GET['par']);
 //
 // header("Cache-Control: no-store");
-require_once ('php/aim.php');
+require_once ('../dms/php/aim.php');
 // header('Location: /');
 
 

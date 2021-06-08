@@ -19,7 +19,7 @@
       $(document.documentElement).class('app');
       $(document.body).append(
 				$('div').class('prompt shdw').id('prompt').open(' ').append(
-					$('img').class("logo").src("/sites/aliconnect/image/logo/logo.png")
+					$('img').class("logo").src("/img/logo.png")
 				),
         $('footer').statusbar().class('info')
         .prompts('terms_of_use','privacy_policy','cookie_policy')
@@ -95,6 +95,7 @@
                 $('a').text('Maak er een').href('#?prompt=create_account'),
               ),
               $('a').text('Aanmeldings opties').href('#?prompt=login_options'),
+              $('a').text('Logout').href('#?prompt=logout'),
             ],
             btns: {
               next: { type:'submit', default: true, tabindex: 2 },
@@ -294,23 +295,6 @@
             },
           })
         },
-        phone_number() {
-          const form = newform(this, arguments.callee.name, {
-            properties: {
-              phone_number: {
-                type: 'tel',
-                pattern: '[0-9]{10,11}',
-                required: true,
-                autocomplete: 'off',
-                autofocus: true,
-              },
-            },
-            btns: {
-              next: { type:'submit', default: true  },
-            }
-          });
-				},
-
         send_email_code() {
           const form = newform(this, arguments.callee.name).submit()
         },
@@ -340,7 +324,39 @@
           });
           // .append(qr())
         },
-
+        set_password(event) {
+          const form = newform(this, arguments.callee.name, {
+            properties: {
+              password: {
+                type: 'password',
+                pattern: '(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{8,}',
+                autocomplete: 'new-password',
+                required: true,
+                autofocus: true,
+              },
+            },
+            btns: {
+              next: { type:'submit', default: true  },
+            }
+          });
+        },
+        phone_number() {
+          console.log('OPEN PHONE NUMBER')
+          const form = newform(this, arguments.callee.name, {
+            properties: {
+              phone_number: {
+                type: 'tel',
+                pattern: '[0-9]{10,11}',
+                required: true,
+                autocomplete: 'off',
+                autofocus: true,
+              },
+            },
+            btns: {
+              next: { type:'submit', default: true  },
+            }
+          });
+				},
         send_sms_code() {
           const form = newform(this, arguments.callee.name).submit()
         },
@@ -367,29 +383,13 @@
               // resend: { type:'button', href: '#?prompt=sms_code' },
               next: { type:'submit', default: true  },
             }
-          }).append(qr())
-        },
-        set_password(event) {
-          const form = newform(this, arguments.callee.name, {
-            properties: {
-              password: {
-                type: 'password',
-                pattern: '(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{8,}',
-                autocomplete: 'new-password',
-                required: true,
-                autofocus: true,
-              },
-            },
-            btns: {
-              next: { type:'submit', default: true  },
-            }
-          });
+          })
         },
         accept() {
           const searchParams = new URLSearchParams(document.location.search);
           // const redirect_uri = searchParams.get('redirect_uri');
           // const url = new URL(redirect_uri);
-          const scope = searchParams.get('scope').split(' ');
+          const scope = searchParams.get('scope').split(/ |,/);
           const properties = Object.fromEntries(scope.map(val => [val, {
             name: val,
             format: 'checkbox',
@@ -404,7 +404,6 @@
             }
           }).append(qr())
 				},
-
         forbidden() {
           $('div').parent(this.is.text('')).class('col aco').append(
             $('h1').ttext('no_access'),

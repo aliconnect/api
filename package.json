@@ -1,36 +1,23 @@
 {
-  "name": "@aliconnect/sdk",
-  "version": "0.0.1",
-  "description": "AIM Automation Integration Manager Framework",
+  "name": "@aliconnect/api",
+  "version": "0.0.4",
+  "description": "Automation Integration Manager Application Programming Interface",
   "main": "js/aim_debug.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aliconnect/sdk.git"
+    "url": "git+https://github.com/aliconnect/api.git"
   },
   "bugs": {
     "url": "https://github.com/aliconnect/api/issues"
-  },
-  "homepage": "https://aliconnect.nl/docs/",
-  "directories": {
-    "test": "test"
   },
   "dependencies": {
     "atob": "^2.1.2",
     "btoa": "^1.2.1",
     "http": "0.0.1-security",
     "https": "^1.0.0",
-    "tedious": "^9.2.1",
     "ws": "^7.2.3"
   },
-  "optionalDependencies": {
-    "jsmodbus": "^3.1.6",
-    "net": "^1.0.2",
-    "snmp-native": "^1.2.0"
-  },
-  "devDependencies": {},
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "homepage": "https://aliconnect.nl",
   "author": "Max van Kampen",
   "license": "ISC"
 }
