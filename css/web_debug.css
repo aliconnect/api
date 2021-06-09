@@ -2301,6 +2301,9 @@ form[busy]::after {
 .doc-content h6 {
   font-size: 1em;
 }
+.doc-content nav:not(:empty) {
+  height:30px;
+}
 .doc-content nav>.next {
   float:right;
 }

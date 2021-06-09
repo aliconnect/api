@@ -15417,7 +15417,13 @@ eol = '\n';
           });
           console.error(wikiPath);
           this.links = this.links || [];
-          this.link = this.links.find(link => link.getAttribute('href') === src);
+          function ref (url) {
+            url = new URL(url, document.location);
+            console.log(url.hostname + url.pathname);
+            return url.hostname + url.pathname;
+          }
+          const url = ref(src);
+          this.link = this.links.find(link => ref(link.getAttribute('href')) === url);
           if (!this.link && wikiPath) {
             await $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
             .then(event => mdRewriteRef(event, this.homeElem.md(event.target.responseText)))

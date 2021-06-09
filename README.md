@@ -9,16 +9,10 @@ We supply a cloud service on [aliconnect.nl](https://aliconnect.nl) that contain
 1. A no-code SaaS client application to work with your persponal and company data
 
 For custom software development we supply:
-1. A [API](https://aliconnect.github.io/api/) library for filebased and localhost client applications
-1. A [Node](https://aliconnect.github.io/aim/) library for factory and machine control applications with realtime visualisation that run on- or offline
-1. An [Software Development Kit](https://aliconnect.github.io/sdk/) for software development with the AIM Framework
+1. A [Software Development Kit](https://aliconnect.github.io/sdk/) for software development with the AIM Framework
+1. An [API](https://aliconnect.github.io/api/) library for filebased and localhost client applications
+1. A [Node](https://aliconnect.github.io/aim/) package for factory and machine control applications with realtime visualisation that run on- or offline
 
 Our target is to offer this framework to developers over the world to supply a software development kit that includes a complete webapplication environment that can be extended with custom solutions.
 
 > As for today this Framework is **under construction** and is **not for public use**. Our primairy target is to complete the authentication flow and domain registration. First release is te be expected end august 2021.
-
-# Installation
-
-```cmd
-npm install @aliconnect/api
-```
