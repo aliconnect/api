@@ -5391,7 +5391,7 @@ eol = '\n';
           $().application_path = $().application_path || '/';
           // var url = new URL(document.location);
           if (!document.location.search) {
-            $().execQuery('l', $().ref && $().ref.home ? $().ref.home : document.location.origin + '/wiki/Home' );
+            $().execQuery('l', $().ref && $().ref.home ? $().ref.home : '//' + document.location.hostname + '/wiki/Home' );
             // $().execQuery('l', document.location.origin);
           }
           // if (document.location.pathname === $().application_path && !document.location.search) {
@@ -15301,6 +15301,7 @@ eol = '\n';
           // url.searchParams.set('p', startsrc);
           // $.replaceUrl(url.toString());
           // window.history.pushState('page', 'test1', '?md='+startsrc);
+          // console.error(src, this.wikiPath);
           if (this.pageElem && this.pageElem.elem.parentElement) {
             this.loadIndex = false;
             console.log('this.docElem', this, this.docElem && this.docElem.elem.parentElement);
@@ -15373,11 +15374,11 @@ eol = '\n';
           // )
           if (callback) callback(this.docElem);
           this.indexElem.index(this.docElem);
-  				[...this.docElem.elem.getElementsByClassName('code')].forEach(elem => {
-  					$(elem.previousElementSibling).class('row').append(
-  						$('button').class('abtn copy').css('margin-left: auto'),
-  						$('button').class('abtn edit').on('click', event => $(elem).editor()),
-  						$('button').class('abtn view').on('click', event => {
+          [...this.docElem.elem.getElementsByClassName('code')].forEach(elem => {
+            $(elem.previousElementSibling).class('row').append(
+              $('button').class('abtn copy').css('margin-left: auto'),
+              $('button').class('abtn edit').on('click', event => $(elem).editor()),
+              $('button').class('abtn view').on('click', event => {
                 const block = {
                   html: '',
                   css: '',
@@ -15385,51 +15386,63 @@ eol = '\n';
                 };
                 for (let codeElem of this.docElem.elem.getElementsByClassName('code')) {
                   const type = codeElem.previousElementSibling.innerText.toLowerCase();
-        					if (type === 'html') {
-        						block[type] = block[type].includes('<!-- html -->') ? block[type].replace('<!-- html -->', codeElem.innerText) : codeElem.innerText;
+                  if (type === 'html') {
+                    block[type] = block[type].includes('<!-- html -->') ? block[type].replace('<!-- html -->', codeElem.innerText) : codeElem.innerText;
                   } else if (type === 'js') {
-        						block.html = block.html.replace(
-        							/\/\*\* js start \*\*\/.*?\/\*\* js end \*\*\//s, codeElem.innerText
-        						);
+                    block.html = block.html.replace(
+                      /\/\*\* js start \*\*\/.*?\/\*\* js end \*\*\//s, codeElem.innerText
+                    );
                   } else if (type === 'yaml') {
-        						block.html = block.html.replace(
-        							/`yaml`/s, '`'+codeElem.innerText + '`',
-        						);
-        					} else if (type === 'css') {
-        						block.html = block.html.replace(
-        							/\/\*\* css start \*\*\/.*?\/\*\* css end \*\*\//s, codeElem.innerText
-        						);
-        					}
+                    block.html = block.html.replace(
+                      /`yaml`/s, '`'+codeElem.innerText + '`',
+                    );
+                  } else if (type === 'css') {
+                    block.html = block.html.replace(
+                      /\/\*\* css start \*\*\/.*?\/\*\* css end \*\*\//s, codeElem.innerText
+                    );
+                  }
                   if (codeElem === elem) break;
                 }
                 var html = block.html
                 .replace('/** css **/', block.css)
                 .replace('/** js **/', block.js);
                 // console.log(html);
-  							const win = window.open('about:blank', 'sample');
-  							const doc = win.document;
-  							doc.open();
-  							doc.write(html);
-  							doc.close();
-  						}),
-  					)
-  				});
-          // console.log(wikiPath);
-          if (this.loadIndex && wikiPath) {
+                const win = window.open('about:blank', 'sample');
+                const doc = win.document;
+                doc.open();
+                doc.write(html);
+                doc.close();
+              }),
+            )
+          });
+          console.error(wikiPath);
+          this.links = this.links || [];
+          this.link = this.links.find(link => link.getAttribute('href') === src);
+          if (!this.link && wikiPath) {
             await $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
             .then(event => mdRewriteRef(event, this.homeElem.md(event.target.responseText)))
             .catch(console.error);
+
             [...this.homeElem.elem.getElementsByTagName('A')].forEach(link => {
-              $(link).attr('open', '0');
-              $(link).on('click', event => $(link).attr('open', $(link).attr('open')^1))
+              if (!link.hasAttribute('open')) {
+                link.setAttribute('open', '0');
+                $(link).attr('open', '0').on('click', event => link.hasAttribute('selected') ? link.setAttribute('open', link.getAttribute('open') ^ 1) : null);
+              }
+              // $(link).attr('open', '0');
             })
             await $().url(wikiPath+'/_Footer.md').accept('text/markdown').get()
             .then(event => mdRewriteRef(event, $('section').class('footer').parent(this.docElem).md(event.target.responseText)))
             .catch(console.error);
           }
-          const links = [...this.homeElem.elem.getElementsByTagName('A')];
-          links.forEach(link => link.removeAttribute('selected'));
-          var link = links.find(link => link.getAttribute('href') === src);
+          this.links = [...this.homeElem.elem.getElementsByTagName('A')];
+          this.links.forEach(link => link.removeAttribute('selected'));
+          if (this.link = this.links.find(link => link.getAttribute('href') === src)) {
+            $(this.link).attr('selected', '');
+            for (var link = this.link; link; link = link.parentElement.parentElement.previousElementSibling) {
+              $(link).attr('open', '1');
+            }
+          }
+
           // if (link.parentElement.previousElementSibling) {
           //   this.navElem.append(
           //     $('a').class('abtn previous').href(link.parentElement.previousElementSibling.firstChild.getAttribute('href')).text(link.parentElement.previousElementSibling.firstChild.innerText),
@@ -15440,10 +15453,6 @@ eol = '\n';
           //     $('a').class('abtn next').href(link.parentElement.nextElementSibling.firstChild.getAttribute('href')).text(link.parentElement.nextElementSibling.firstChild.innerText),
           //   )
           // }
-          $(link).attr('selected', '');
-          for (link; link; link = link.parentElement.parentElement.previousElementSibling) {
-            $(link).attr('open', '1');
-          }
           // console.log(sellink, links);
   			})
         // .catch(err => window.open(src, 'site'));
