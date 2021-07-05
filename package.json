@@ -1,6 +1,6 @@
 {
   "name": "@aliconnect/api",
-  "version": "0.0.4",
+  "version": "0.0.6",
   "description": "Automation Integration Manager Application Programming Interface",
   "main": "js/aim_debug.js",
   "repository": {
@@ -12,10 +12,19 @@
   },
   "dependencies": {
     "atob": "^2.1.2",
-    "btoa": "^1.2.1",
     "http": "0.0.1-security",
     "https": "^1.0.0",
-    "ws": "^7.2.3"
+    "ws": "^7.4.6"
+  },
+  "peerDependencies": {
+    "check-disk-space": "^2.1.0",
+    "jsmodbus": "^4.0.6",
+    "node-cmd": "^4.0.0",
+    "os-utils": "0.0.14",
+    "snmp-native": "^1.2.0",
+    "tedious": "^11.0.9"
+  },
+  "optionalDependencies": {
   },
   "homepage": "https://aliconnect.nl",
   "author": "Max van Kampen",

@@ -6,7 +6,7 @@ setTitle = function (title) {
 fs = require('fs');
 WebSocket = require('ws');
 atob = require('atob');
-btoa = require('btoa');
+// btoa = require('btoa');
 
 Object.assign (console, {
 	color : {
@@ -128,8 +128,8 @@ writeCommand = function (cmd, path) {
 		}
 	});
 }
-for (var topparent = module; topparent.parent; topparent = topparent.parent);
 
+for (var topparent = module; topparent.parent; topparent = topparent.parent);
 approot = topparent.filename.replace(/\\/g,'/').split('/');
 approot.pop();
 approot = approot.join('/');
@@ -152,7 +152,6 @@ const search_dirnames = [
   approot + '/../../..',
   approot + '/node_modules/@aliconnect',
 ];
-
 
 function getFileExists(basename) {
   return search_dirnames
@@ -348,6 +347,7 @@ function getConfig() {
     value: data.value,
   };
 }
+
 function httpServerRequest (req, res) {
 	res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', '*');
@@ -478,6 +478,8 @@ function httpServerRequest (req, res) {
 		return res.end();
 	});
 }
+
+
 $.saveRequests = function (param) {
 	// console.debug('SAFE ITEMS TO SQL', param);
 	param.forEach(row => {
@@ -497,7 +499,6 @@ $.saveRequests = function (param) {
 		}
 	});
 }
-
 $()
 .on('load', async event => {
 

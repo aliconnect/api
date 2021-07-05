@@ -1,5 +1,7 @@
 (function() {
-  const $ = aim;
+  const aimApplication = new Aim.UserAgentApplication();
+  console.log(1, aimApplication);
+
 	const MIN_APP_WIDTH = 400;
 	$.redirect_uri = document.location.search.split('redirect_uri=').pop().split('&').shift();
 	function getProperties(data) {
@@ -16,6 +18,7 @@
   const searchParams=new URLSearchParams(document.location.search);
 	$().on({
     async load() {
+
       $(document.documentElement).class('app');
       $(document.body).append(
 				$('div').class('prompt shdw').id('prompt').open(' ').append(
@@ -37,20 +40,38 @@
         return $().promptform($().url('/api/oauth'), ...arguments);
       }
       await $().translate();
-      $().extend({
-        authProvider: {
-          auth: {
-            scope: ["name", "email"],
-            authorizationUrl: "https:/login.aliconnect.nl/api/oauth",
-            tokenUrl: "https://login.aliconnect.nl/api/token",
-            // clientId: "c52aba40-11fe-4400-90b9-cee5bda2c5aa"
-          }
-        },
-        ws: {
-          url: "wss://aliconnect.nl:444"
-        }
-      });
-      await $().login();
+
+
+
+
+
+      //
+      //
+      //
+      // const authProvider = new $.AuthProvider({
+      //   // scope: ["name", "email"],
+      //   url: 'https://login.aliconnect.nl/api',
+      //   // authorizationUrl: "https:/login.aliconnect.nl/api/oauth",
+      //   // tokenUrl: "https://login.aliconnect.nl/api/token",
+      // });
+      //
+      // // $().extend({
+      // //   authProvider: {
+      // //     auth: {
+      // //       // clientId: "c52aba40-11fe-4400-90b9-cee5bda2c5aa"
+      // //     }
+      // //   },
+      // //   ws: {
+      // //     url: "wss://aliconnect.nl:444"
+      // //   }
+      // // });
+      // await authProvider.login();
+      // // await $().login();
+      //
+      //
+
+
+
       $().send({
         to: { sid: 'ssss' },
         path: '/?prompt=qrcode_ack',
@@ -65,7 +86,7 @@
 				},
         login() {
           const form = newform(this, arguments.callee.name, {
-            description: $().authProvider().id && $().authProvider().name ? `Welkom ${$().authProvider().id.name}.` : '',
+            description: aimApplication.Account && aimApplication.Account.name ? `Welkom ${aimApplication.Account.name}.` : '',
             properties: {
               accountname: {
                 type: 'text',
@@ -104,7 +125,7 @@
         },
         login_phone_number() {
           const form = newform(this, arguments.callee.name, {
-            description: $().authProvider().id ? `Welkom ${$().authProvider().id.name}.` : '',
+            description: aimApplication.Account ? `Welkom ${aimApplication.Account.name}.` : '',
             properties: {
               phone_number: {
                 format: 'tel',
@@ -414,11 +435,11 @@
         },
 
 				logout(event) {
-
-					console.log('PROMPT LOGOUT APP', event.type);
-          $().logout();
-          return;
-					$.auth.logout(event);
+          aimApplication.logout();
+					// console.log('PROMPT LOGOUT APP', event.type);
+          // $().logout();
+          // return;
+					// $.auth.logout(event);
 
 					// document.location.href = '/api/oauth' + new $.URLSearchParams(document.location.search).merge({prompt:'logout'}).toString();
 				},

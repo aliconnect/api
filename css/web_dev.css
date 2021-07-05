@@ -1,0 +1,223 @@
+html {
+  --bar: rgba(140,140,140,0.2);
+}
+* {
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  position: relative;
+  z-index: 0;
+}
+html, body {
+  margin:0;
+  padding:0;
+}
+.row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+}
+.aco {
+  flex: 1 1 auto;
+}
+.oa {
+  overflow: auto;
+}
+.oy {
+  overflow-y: scroll;
+}
+
+body {
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+}
+.fixedHeaderContainer {
+  position: fixed;
+  margin:auto;
+  left:0;
+  right:0;
+  top:0;
+  height: 50px;
+  background:blue;
+  z-index: 1;
+}
+/* .navPusher {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 50px);
+  left: 0;
+  position: relative;
+  z-index: 99;
+} */
+.navPusher {
+  flex-wrap: nowrap;
+  min-height: calc(100vh - 50px);
+  padding-top: 50px;
+}
+
+.nav-footer {
+  background: #333;
+  color: white;
+}
+.docMainWrapper {
+  max-width: 1400px;
+  display: flex;
+  flex: 1 0 auto;
+  flex-flow: row nowrap;
+  width: 100%;
+}
+.wrapper {
+  margin: 0 auto;
+  max-width: 1100px;
+  /* padding: 0 20px; */
+}
+#navTree {
+  flex: 0 0 240px;
+  background: #ccc;
+}
+
+#navList {
+  background: yellow;
+  padding-top:36px;
+}
+#navList>.filter {
+  max-width: 200px;
+}
+#navList>.main {
+}
+
+.list {
+  overflow-y: scroll;
+}
+
+#navPage {
+  flex: 0 0 600px;
+  background: gray;
+}
+.panelContainer>.panel {
+  position: absolute;
+  margin:auto;
+  top:0;
+  bottom:0;
+  width: 300px;
+}
+.panelContainer>.panel>.main {
+  overflow: auto;
+}
+.panelContainer.navInfo {
+  display: flex;
+  flex: 0 0 0px;
+  background: yellow;
+  overflow: hidden;
+  transition: all 0.5s;
+}
+.panelContainer.navPrompt {
+  position: fixed;
+  margin:auto;
+  right:0;
+  top:50px;
+  bottom:0;
+  width:0;
+  /* height:100%; */
+  /* background: magenta; */
+  overflow: hidden;
+  transition: all 0.5s;
+  background: orange;
+}
+body[info] .panelContainer.navInfo {
+  flex-basis: 300px;
+}
+body[prompt] .panelContainer.navPrompt {
+  width: 300px;
+}
+.panelContainer>.panel>.main {
+  overflow: auto;
+}
+.navPusher>.sticky {
+  height: calc(100vh - 50px);
+  position: sticky;
+  top: 50px;
+}
+.topBar {
+  background-color: var(--bar);
+  line-height: 36px;
+  min-height: 36px;
+  /* flex-basis: 36px; */
+  top: 0px;
+  z-index: 1;
+}
+.row>.topBar {
+  position: absolute;
+  margin:auto;
+  left:0;
+  right:0;
+}
+.col>.topBar {
+  position: sticky;
+}
+.pageHeader {
+  background:green;
+  min-height: 100px;
+  position: sticky;
+  top: 36px;
+  z-index: 1;
+}
+.pageMain {
+  background:purple;
+  overflow-y: scroll;
+}
+
+.pageMessage {
+  background:green;
+  display: block;
+  min-height: 100px;
+  position: sticky;
+  bottom: 0px;
+  z-index: 1;
+}
+
+.docsNavContainer {
+  flex: 0 0 240px;
+  height: calc(100vh - 50px);
+  position: sticky;
+  overflow-y: auto;
+  top: 50px;
+}
+.mainContainer {
+  flex: 1 auto;
+  max-width: 100%;
+  min-width: 0;
+}
+.onPageNav {
+  align-self: flex-start;
+  display: block;
+  flex: 0 0 240px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  position: sticky;
+  top: 90px;
+}
+.seperator {
+  /* position:absolute; */
+  /* right:0px; */
+  /* height: calc(100vh - 50px); */
+  /* height:100%; */
+  /* width:10px; */
+  /* background:blue; */
+  z-index:1;
+}
+.seperator::after {
+  position: absolute;
+  height:100%;
+  left:-2px;
+  /* left:0; */
+  content: '';
+  width:5px;
+  /* background:orange; */
+  cursor:col-resize;
+
+}

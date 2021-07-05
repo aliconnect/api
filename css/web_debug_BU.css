@@ -106,9 +106,9 @@ html[dark='1'] {
   --bg: #111;
   --fg: #ccc;
 }
-/* html.app .listview {
+html.app .listview {
   width:0px;
-} */
+}
 html.app.site .listview {
   position: absolute;
   max-width: 1200px;
@@ -2912,10 +2912,10 @@ form .doc-content:focus {
   .files .row.file:not(:hover) .bt.sel {
     display:none;
   }
-  /* html.app, html.app>body {
+  html.app, html.app>body {
     height:100%;
     width:100%;
-  } */
+  }
 }
 @media (max-width: 800px) {
   div[class^="mc-sidebar"] {
@@ -4623,7 +4623,6 @@ body[view='rows'] .itemrow>.itemicon {
   height: 40px;
   font-size: 20px;
   line-height: 40px;
-  text-align: center;
   /* background: center no-repeat var(--trans2); */
 }
 body[view='cols'] .itemrow>.itemicon::before {
@@ -4939,11 +4938,28 @@ body>dialog {
 body>dialog['open'] {
   right: 0px;
 }
+.om .prompt {
+  position: absolute;
+  margin: auto;
+  top: 0;
+  bottom: 0;
+  background-color: inherit;
+  overflow: hidden;
+  /* right: -400px; */
+  /* opacity: 1; */
+  right: 0px;
+  transition: all 300ms ease;
+  z-index: 500;
+  width: 100%;
+  /* -webkit-box-shadow: var(--shadow);
+  -moz-box-shadow: var(--shadow);
+  box-shadow: var(--shadow); */
+}
 @media (min-width: 400px) {
   .om .prompt {
-    /* min-width: 400px; */
-    /* border-left: var(--border); */
-    /* width: auto; */
+    min-width: 400px;
+    border-left: var(--border);
+    width: auto;
 
   }
 }
@@ -5105,8 +5121,6 @@ body>dialog['open'] {
 }
 .apv details>summary {
   list-style-type: none;
-  position: sticky;
-  top: 0;
 }
 .apv details>summary:before {
   font-family: aliconnectIcon;
@@ -5417,6 +5431,106 @@ body>dialog['open'] {
 }
 body:not([tv]) .abtn.pin::before {
   content:'\f0a1';
+}
+.icn {
+  font-style: normal;
+}
+.icn.flag[flag]::before {
+  content: '';
+  color:red;
+}
+.icn.flag[flag='overdate']::before {
+  content: '\f10b';
+  opacity: 1;
+  color:red;
+}
+.icn.flag[flag='overdate']::after {
+  content: none;
+}
+.icn.flag[flag='today']::before {
+  content: '\f095';
+  opacity: 1;
+}
+.icn.flag[flag='tomorrow']::before {
+  content: '\f095';
+  opacity: .8;
+}
+.icn.flag[flag='thisweek']::before {
+  content: '\f095';
+  opacity: .6;
+}
+.icn.flag[flag='nextweek']::before {
+  content: '\f095';
+  opacity: .4;
+}
+.icn.flag[flag='2weeks']::before {
+  content: '\f094';
+  opacity: 1;
+}
+.icn.flag[flag='3weeks']::before {
+  content: '\f094';
+  opacity: .8;
+}
+.icn.flag[flag='4weeks']::before {
+  content: '\f094';
+  opacity: .6;
+}
+.icn.flag[flag='done']::after {
+  display: none;
+}
+.icn.flag[flag='done']::before {
+  content: '\f022';
+  color: lawngreen;
+  opacity: 1;
+}
+.icn.Folder:before {
+  color: gray;
+}
+.icn.Contact:before {
+  content:'\f0f1';
+}
+.icn.Enterprise:before {
+  content:'\f329';
+}
+.icn.Site:before {
+  content:'\f32a';
+}
+.icn.Area:before {
+  content:'\f32b';
+}
+.icn.ProcessCell:before {
+  content:'\f3a4';
+}
+.icn.Unit:before {
+  content:'\f32c';
+}
+.icn.EquipmentModule:before {
+  content:'\f32d';
+}
+.icn.ControlModule:before {
+  content:'\f32e';
+}
+.icn.System:before {
+  content:'\f0cb';
+}
+.icn.Webpage::before {
+  content:'\f12c';
+}
+.icn.Device:before {
+  content:'\f173';
+}
+.icn.Control:before {
+  content:'\f0c4';
+  color:rgb(255,153,0);
+}
+.icn.ControlIO:before {
+  content:'\f29e';
+}
+.icn.Attribute:before {
+  content:'\f0fa';
+}
+.icn[src]:before {
+  content:'\f3bc';
 }
 .abtn.folder::before, .icn.folder::before {
   content:'\f0d9';
@@ -6051,107 +6165,6 @@ body:not([tv]) .abtn.pin::before {
 .abtn.select::before, .icn.select::before {
   content:'\f52c';
 }
-.icn {
-  font-style: normal;
-}
-.icn.flag[flag]::before {
-  content: '';
-  color:red;
-}
-.icn.flag[flag='overdate']::before {
-  content: '\f10b';
-  opacity: 1;
-  color:red;
-}
-.icn.flag[flag='overdate']::after {
-  content: none;
-}
-.icn.flag[flag='today']::before {
-  content: '\f095';
-  opacity: 1;
-}
-.icn.flag[flag='tomorrow']::before {
-  content: '\f095';
-  opacity: .8;
-}
-.icn.flag[flag='thisweek']::before {
-  content: '\f095';
-  opacity: .6;
-}
-.icn.flag[flag='nextweek']::before {
-  content: '\f095';
-  opacity: .4;
-}
-.icn.flag[flag='2weeks']::before {
-  content: '\f094';
-  opacity: 1;
-}
-.icn.flag[flag='3weeks']::before {
-  content: '\f094';
-  opacity: .8;
-}
-.icn.flag[flag='4weeks']::before {
-  content: '\f094';
-  opacity: .6;
-}
-.icn.flag[flag='done']::after {
-  display: none;
-}
-.icn.flag[flag='done']::before {
-  content: '\f022';
-  color: lawngreen;
-  opacity: 1;
-}
-.icn.Folder:before {
-  color: gray;
-}
-.icn.Contact:before {
-  content:'\f0f1';
-}
-.icn.Enterprise:before {
-  content:'\f329';
-}
-.icn.Site:before {
-  content:'\f32a';
-}
-.icn.Area:before {
-  content: '\f32b';
-}
-.icn.ProcessCell:before {
-  content:'\f3a4';
-}
-.icn.Unit:before {
-  content:'\f32c';
-}
-.icn.EquipmentModule:before {
-  content:'\f32d';
-}
-.icn.ControlModule:before {
-  content:'\f32e';
-}
-.icn.System:before {
-  content:'\f0cb';
-}
-.icn.Webpage::before {
-  content:'\f12c';
-}
-.icn.Device:before {
-  content:'\f173';
-}
-.icn.Control:before {
-  content:'\f0c4';
-  color:rgb(255,153,0);
-}
-.icn.ControlIO:before {
-  content:'\f29e';
-}
-.icn.Attribute:before {
-  content:'\f0fa';
-}
-.icn[src]:before {
-  content:'\f3bc';
-}
-
 .popup:not(:empty) {
   z-index: 1150;
   position: fixed;
@@ -6304,9 +6317,9 @@ div.code {
 
 
 
-/* .prompt[open='account_beheer'] {
+.prompt[open='account_beheer'] {
   min-width:0;
-} */
+}
 
 
 
@@ -6328,7 +6341,7 @@ div.code {
   display: none;
 }
 #doc .aco.col {
-  /* margin: 0 auto; */
+  margin: 0 auto;
   max-width:17cm;
 }
 
@@ -6341,145 +6354,12 @@ div.code {
 element.style {
   background: #aaa;
 }
-.mc-menu {
+.mc-menu.right {
   align-self: flex-start;
   display: block;
   flex: 0 0 240px;
   max-height: calc(100vh - 90px);
   overflow-y: auto;
   position: sticky;
-  top: 90px;
-}
-.mc-menu.left {
-  margin-left: auto;
-}
-.mc-menu.right {
-  margin-right: auto;
-}
-.stickybar {
-  align-self: flex-start;
-  /* display: block; */
-  left: 0;
-  right:0;
-  margin:auto;
-  /* flex: 0 0 30px; */
-  /* display: block; */
-  /* max-height: 40px; */
-  width: 100%;
-  position: sticky;
-  background:red;
-  top: var(--topbar-height);
-  z-index: 2;
-
-}
-
-html {
-  --topbar-height: 48px;
-  --footer-height: 20px;
-}
-body {
-  display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    text-rendering: optimizeLegibility;
-}
-#navtop {
-  display: flex;
-  flex-direction: row;
-  position: fixed;
-  margin: auto;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: var(--topbar-height);
-  /* background: blue; */
-  z-index: 3;
-}
-#section_main {
-  background-color: inherit;
-  flex-wrap: nowrap;
-  min-height: calc(100vh - var(--topbar-height) - var(--footer-height));
-  padding-top: var(--topbar-height);
-  display: flex;
-  flex-direction: row;
-}
-#tree, #list, #view {
-  position: sticky;
-  display: flex;
-  flex: 1 0 auto;
-  flex-direction: column;
-  height: calc(100vh - var(--topbar-height) - var(--footer-height));
-  top: var(--topbar-height);
-}
-#tree {
-  flex-basis: 240px;
-}
-#list {
-  flex-direction: row;
-}
-#view {
-  /* flex: 1 0 auto; */
-  width: -webkit-fill-available;
-}
-#list:empty, #view:empty {
-  display: none;
-}
-#prompt {
-  position: fixed;
-  margin: auto;
-  /* flex-basis: 240px; */
-  max-width: 400px;
-  right: 0;
-  top: var(--topbar-height);
-  /* bottom: var(--footer-height); */
-  bottom: 0;
-  overflow: hidden;
-  background-color: inherit;
-  width: -webkit-fill-available;
-  transition: all 300ms ease;
-  -webkit-box-shadow: var(--shadow);
-  -moz-box-shadow: var(--shadow);
-  box-shadow: var(--shadow);
-  z-index: 2;
-  /* display: none; */
-}
-#prompt:not([open]) {
-  max-width: 0;
-}
-
-footer.statusbar {
-  position: fixed;
-  margin: auto;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: var(--footer-height);
-  z-index: 3;
-}
-#doc>div {
-  width: -webkit-fill-available;
-}
-/* #doc nav.row.docpath {
-  position:sticky;
-  top: calc(36px + var(--topbar-height) + 17px);
-}
-#doc nav.row.dir {
-  position:sticky;
-  top: calc(36px + var(--topbar-height));
-} */
-#doc, #doc .col.doc, #doc .row.aco, #doc nav.row, #doc .aco.col, #doc .doc-content {
-  background-color: inherit;
-  z-index: 1;
-}
-#doc nav.row .row.next {
-  margin-left: auto;
-}
-#doc h1, #doc h2, #doc h3 {
-  position: sticky;
-  top: var(--topbar-height);
-  background-color: inherit;
-  z-index: 1;
-}
-#list:not(:empty)+#doc{
-  display: none;
+  top: 70px;
 }
