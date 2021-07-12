@@ -765,7 +765,7 @@ eol = '\n';
     $.clipboard.dragItems = [];
   }
   function loadStoredCss() {
-    const css = JSON.parse(window.localStorage.getItem('css')) || {};
+    const css = JSON.parse(localStorage.getItem('css')) || {};
     for (let [id, param] of Object.entries(css)) {
       let selector = id === '_body' ? document.body : document.getElementById(id);
       if (selector) {
@@ -858,11 +858,38 @@ eol = '\n';
     return id.replace(/^\d+-/,'')
   }
   function replaceOutsideQuotes(codeString, callback, pre = '<span class=hl-string>', post = '</span>') {
-    const a = codeString.split(/((?<![\\])['"`])((?:.(?!(?<![\\])\1))*.?)\1/);
+    // const a = codeString.split(/((?<![\\])['"`])((?:.(?!(?<![\\])\1))*.?)\1/);
+    const a = codeString.split(/(['"`])\1/);
     return a.map((s,i) => i%3===0 ? (callback ? callback(s) : s) : i%3===2 ? `${a[i-1]}${pre}${s}${post}${a[i-1]}` : '').join('');
   }
   function url_string(s) {
     return s.replace(/%2F/g, '/');
+  }
+  function importScript (src) {
+    console.log('SCRIPT', currentScript.attributes.src.value, src);
+    src = new URL(src, currentScript.attributes.src.value).href;
+    return $.promise('script', callback => {
+      // console.log(2, 'SCRIPT', src);
+      function loaded(e) {
+        e.target.loading = false;
+        // console.log('LOADED');
+        callback();
+      }
+      for (let script of [...document.getElementsByTagName('SCRIPT')]) {
+        if (script.getAttribute('src') === src) {
+          // console.log(3, 'SCRIPT', src);
+          if (script.loading) {
+            // console.log(4, 'SCRIPT', src);
+            return $(script).on('load', loaded);
+          }
+          // console.log(4, 'SCRIPT', src);
+          return callback();
+        }
+      }
+      var el = $('script').src(src).parent(document.head).on('load', loaded);
+      el.elem.loading = true;
+      // console.log('SCRIPT', el);
+    });
   }
 
   Object.assign(Array.prototype, {
@@ -978,7 +1005,7 @@ eol = '\n';
     },
   });
   Object.assign(JSON, {
-    stringifyReplacer (data) {
+    stringifyReplacer (data, space) {
       const getCircularReplacer = () => {
         const seen = new WeakSet();
         return (key, value) => {
@@ -991,7 +1018,7 @@ eol = '\n';
           return value;
         };
       };
-      return JSON.stringify(data, getCircularReplacer());
+      return JSON.stringify(data, getCircularReplacer(), space);
     },
   });
   Object.assign(Object, {
@@ -1065,11 +1092,14 @@ eol = '\n';
       return JSON.parse(atob(a[1] || a[0]));
     },
   };
-  function Request(url){
-    this.url(...arguments);
-    // $.prototype.args.call(this, ...arguments);
+  function Request(url, base){
+    this.url(url, base);
   }
   Request.prototype = {
+    body(){
+      this.returnBody = true;
+      return this;
+    },
     delete(){
       this.method = 'delete';
       return this.http();
@@ -1126,10 +1156,10 @@ eol = '\n';
               console.error('NO SEARCH');
               // return;
             }
-            app.api(path).query(this.URL.searchParams.toString())
-            .get().then(async e => {
-              if (e.body){
-                const items = e.body.value || await e.body.children;
+            aimClient.api(path).query(this.URL.searchParams.toString())
+            .get().then(async body => {
+              if (body){
+                const items = body.value || await body.children;
                 $().list(items);
               }
             });
@@ -1212,13 +1242,24 @@ eol = '\n';
       }
       return this;
     },
-    http(){
-      return $.promise('http', (resolve,reject) => typeof XMLHttpRequest !== 'undefined' ? this.web(resolve,reject) : this.node(resolve,reject));
-    },
-    body(callback){
-      this.promise.then(e => callback(e.body));
+    authProvider(authProvider){
+      this.getAccessToken = authProvider.getAccessToken;
       return this;
     },
+    http(){
+      return $.promise('http', async (resolve,reject) => {
+        if (this.getAccessToken) {
+          const access_token = await this.getAccessToken();
+          // console.log('access_token', access_token);
+          this.headers('Authorization', 'Bearer ' + access_token);
+        }
+        return typeof XMLHttpRequest !== 'undefined' ? this.web(resolve,reject) : this.node(resolve,reject)
+      });
+    },
+    // body(callback){
+    //   this.promise.then(e => callback(e.body));
+    //   return this;
+    // },
     item(callback){
       this.promise.then(e => callback(e.body));
       return this;
@@ -1333,6 +1374,7 @@ eol = '\n';
     },
     onload(e){
       ((e.body||{}).responses || [e]).forEach(res => res.body = $().evalData(res.body));
+
       if (this.statusElem){
         this.statusElem.remove();
       }
@@ -1404,7 +1446,7 @@ eol = '\n';
       return this.query('$top', ...arguments);
     },
     url(url, base){
-      this.URL = this.URL || new URL(url || '', base || window.document ? document.location.href : 'https://aliconnect.nl');
+      this.URL = this.URL || new URL(url || '', base || (window.document ? document.location.href : 'https://aliconnect.nl'));
       this.URL.headers = this.URL.headers || {};
       this.input.data = null;
     },
@@ -1439,7 +1481,7 @@ eol = '\n';
           console.error('JSON error', xhr, xhr.responseText.substr(0,5000));
         }
         this.onload(e);
-        resolve(e);
+        resolve(this.returnBody ? e.body : e);
       });
       if ($.his.elem.statusbar) {
         xhr.total = xhr.loaded = 0;
@@ -1500,9 +1542,9 @@ eol = '\n';
               hostname: this.hostname || 'aliconnect',
               nonce: this.nonce,
               PHPSESSID: this.PHPSESSID,
-              headers: app.getAccessToken()
+              headers: aimClient.getAccessToken()
               ? {
-                Authorization:'Bearer ' + app.getAccessToken()
+                Authorization:'Bearer ' + aimClient.getAccessToken()
               }
               : null
             }));
@@ -1649,8 +1691,8 @@ eol = '\n';
       console.error(data);
       if (data.id_token) {
         const id = JSON.parse(atob(data.id_token.split('.')[1]));
-        console.log(id, getId(id.sub), getUid(id.sub), app.sub);
-        if (getId(id.sub) !== getId(app.sub)) {
+        console.log(id, getId(id.sub), getUid(id.sub), aimClient.sub);
+        if (getId(id.sub) !== getId(aimClient.sub)) {
           return $().logout();
         }
       }
@@ -1776,7 +1818,7 @@ eol = '\n';
     },
   };
   const clients = new Map();
-  Aim = $ = function Aim (selector, context){
+  Aim = function Aim (selector, context){
     if(selector instanceof Elem) return selector;
     if(!(this instanceof $)) return new $(...arguments);
     // if (!selector) return new $('$');
@@ -1822,6 +1864,13 @@ eol = '\n';
     }
     this.extend(context)
   };
+
+  const $ = Aim;
+  window.$ = window.$ || Aim;
+  let aimClient;
+
+  // sessionStorage.clear();
+
   Aim.prototype = {
     // info: {
     //   title: 'Object Manager',
@@ -1897,9 +1946,8 @@ eol = '\n';
           }
         }
         console.debug('COPY START', item);
-        app.api(`/${schemaName}`).input(item).post().then(e => {
+        aimClient.api(`/${schemaName}`).input(item).post().then(item => {
           // console.debug('COPY DONE', e.target.responseText);
-          const item = e.body;
           item.details().then(async item => {
             console.debug('COPY START', item);
             await item.clone();
@@ -2207,7 +2255,7 @@ eol = '\n';
       return this;
     },
     execUrl(url){
-      console.warn('execUrl', url);
+      // console.warn('execUrl', url);
       $.url = $.url || new URL(document.location.origin);
       var url = new URL(url, document.location);
       // console.log(url.hash, url.searchParams.get('l'), $.url.searchParams.get('l'));
@@ -2239,12 +2287,12 @@ eol = '\n';
           // const client = clients.get(refurl.hostname) || $();
           // console.log('CLIENT',client,refurl.hostname);
           refurl.pathname += '/children';
-          app.api(refurl.href)
+          aimClient.api(refurl.href)
           .filter('FinishDateTime eq NULL')
           .select($.config.listAttributes)
-          .get().then(async e => {
-            if (e.body){
-              const items = e.body.value || await e.body.children;
+          .get().then(async body => {
+            if (body){
+              const items = body.value || await body.children;
               $().list(items);
             }
           });
@@ -2258,7 +2306,7 @@ eol = '\n';
           var refurl = new URL(url.searchParams.get('v'), document.location);
           if (refurl.pathname.match(/^\/api\//)) {
             // const client = clients.get(refurl.hostname) || $();
-            app.api(refurl.href).get().then(async e => $('view').show(e.body));
+            aimClient.api(refurl.href).get().then(async body => $('view').show(body));
           }
         } else {
           $('view').text('');
@@ -2574,45 +2622,7 @@ eol = '\n';
 			return itemmenu;
 		},
     prompt(selector, context) {
-      const is = $.his.map.has('prompt') ? $('prompt') : $('section').parent(document.body).class('prompt').id('prompt').append(
-        $('button').class('abtn abs close').attr('open', '').on('click', e => $().prompt(''))
-      );
-      // if (!is.elem) return;
-      const promptSelector = 'prompt-'+selector;
-			if (context) {
-        $.his.map.set(promptSelector, $('div')
-        .parent(is)
-        .class('col', selector)
-        // .attr('id', selector)
-        .on('open', typeof context === 'function' ? context : function () {
-          // console.log('OPEN', this, selector);
-          this.is.text('').append(
-            $('h1').ttext(selector),
-            $('form').class('col')
-            .properties(context.properties)
-            .btns(context.btns),
-          )
-        }));
-        return;
-			}
-      if (selector instanceof Object) {
-        return Object.entries(selector).forEach(entry => arguments.callee(...entry));
-			}
-      console.log('prompt', selector)
-			is.attr('open', selector ? selector : null);
-			$.his.replaceUrl('prompt', selector);
-      const dialog = selector && $.his.map.has(promptSelector) ? $.his.map.get(promptSelector) : null;
-      const dialogElem = dialog ? dialog.elem : null;
-      const index = dialog ? [...is.elem.children].indexOf(dialog.elem) : 0;
-      [...is.elem.children].filter(elem => elem !== dialogElem && elem.innerText).forEach(elem => setTimeout(() => elem.innerText = '', 100));
-      [...is.elem.children].forEach((elem, i) => $(elem).attr('pos', i < index ? 'l' : 'r'));
-      if (dialog && dialog.attr) {
-        setTimeout(() => dialog.attr('pos', 'm'));
-        // console.warn(selector, context);
-        dialog.emit('open');
-        return dialog;
-      }
-      return this;
+      return $.prompt(selector, context);
 		},
     promptform(url, prompt, title = '', options = {}){
       options.description = options.description || $.his.translate.get('prompt-'+title+'-description') || '';
@@ -2631,18 +2641,26 @@ eol = '\n';
       .append(options.append)
       .btns(options.btns)
       .on('submit', e => url.query(document.location.search).post(e).then(e => {
-        console.log(e.body);
+        console.log('JA', e.body);
         window.sessionStorage.setItem('post', JSON.stringify($.sessionPost = e.body));
         // return;
         // return console.log('$.sessionPost', $.sessionPost);
         if ($.sessionPost.id_token) {
-          window.localStorage.setItem('id_token', $.sessionPost.id_token);
+          localStorage.setItem('id_token', $.sessionPost.id_token);
           $().send({ to: { nonce: $.sessionPost.nonce }, id_token: $.sessionPost.id_token });
         }
         if ($.sessionPost.prompt) prompt = $().prompt($.sessionPost.prompt);
         if ($.sessionPost.msg && prompt && prompt.div) prompt.div.text('').html($.sessionPost.msg);
         if ($.sessionPost.socket_id) return $().send({to:{sid:$.sessionPost.socket_id}, body:$.sessionPost});
+        if ($.messageHandler && $.sessionPost.url) {
+          $.messageHandler.source.postMessage({
+            url: $.sessionPost.url,
+          }, $.messageHandler.origin);
+          window.close();
+          return;
+        }
         if ($.sessionPost.url) document.location.href = $.sessionPost.url;
+
         // return;
         // // //console.log(e.target.responseText);
         // if (!e.body) return;
@@ -2834,7 +2852,7 @@ eol = '\n';
     },
     state(){},
     storage(selector, context, type){
-      // cookieSettings = window.localStorage.getItem('cookieSettings');
+      // cookieSettings = localStorage.getItem('cookieSettings');
       const cookieSettings = {
         session: true,
         functional: true,
@@ -2847,7 +2865,7 @@ eol = '\n';
         const value =
         $.his.cookie.get(selector) ||
         (window.sessionStorage ? window.sessionStorage.getItem(selector) : null) ||
-        (window.localStorage ? window.localStorage.getItem(selector) : null) ||
+        (localStorage ? localStorage.getItem(selector) : null) ||
         '';
         // console.warn(selector,value);
         try {
@@ -2858,11 +2876,11 @@ eol = '\n';
       } else if (context === null){
         console.debug('remove', selector);
         window.sessionStorage.removeItem(selector);
-        window.localStorage.removeItem(selector);
+        localStorage.removeItem(selector);
         document.cookie = `${selector}= ;path=/; expires = Thu, 01 Jan 1970 00:00:00 GMT`;
         $.his.cookie.delete(selector);
         // console.debug(document.cookie);
-        // console.debug('delete', selector, window.localStorage.getItem(selector));
+        // console.debug('delete', selector, localStorage.getItem(selector));
       } else {
         type = type || 'functional';
         context = JSON.stringify(context);
@@ -2875,10 +2893,10 @@ eol = '\n';
             window.sessionStorage.setItem(selector, context);
           }
         } else if (cookieSettings[type]){
-          if (window.localStorage){
-            window.localStorage.setItem(selector, context);
+          if (localStorage){
+            localStorage.setItem(selector, context);
           }
-          // console.debug('set', selector, context, window.localStorage.getItem(selector));
+          // console.debug('set', selector, context, localStorage.getItem(selector));
         }
       }
       return this;
@@ -2903,10 +2921,8 @@ eol = '\n';
     tree(selector) {
       return this.getObject(arguments.callee.name, Treeview, [...arguments]);
 		},
-    url(selector){
-      return new Request(...arguments);
-      // return this.props('url', this.props('url') || new URL(selector || '/', document.location));
-      // this.props('url', this.props('url') || new Request(...arguments));
+    url(url, base){
+      return new Request(url, base);
     },
     userName(){
       return $.auth && $.auth.id ? $.auth.id.name : ''
@@ -2938,14 +2954,14 @@ eol = '\n';
     },
     extendConfig(yaml){
       // console.log(yaml);
-      return app.api('/').query('extend', true).post({config: yaml});
+      return aimClient.api('/').query('extend', true).post({config: yaml});
     },
     dashboard() {
       const panel = $('div').panel();
-      app.api('/').query('request_type', 'personal_dashboard_data_domain').get().then(e => {
+      aimClient.api('/').query('request_type', 'personal_dashboard_data_domain').get().then(body => {
         panel.elemMain.class('dashboard').append(
           $('div').class('row wrap').append(
-            ...e.body.map(row => $('div').class('col').append(
+            ...body.map(row => $('div').class('col').append(
               $('h1').text(row.schemaPath),
               ...row.items.map(item => $('a').text(item.header0).on('click', e => $('view').show($(`${row.schemaPath}(${item.id})`)) ))
             )),
@@ -2967,7 +2983,7 @@ eol = '\n';
       console.log('COOKIES');
       $().on({
         async load() {
-          if (!window.localStorage.getItem('cookieSettings')) {
+          if (!localStorage.getItem('cookieSettings')) {
             const elem = $('div')
             .parent(document.body)
             .class('cookieWarning')
@@ -2976,19 +2992,19 @@ eol = '\n';
               $('button')
               .text('Werkende website')
               .on('click', e => {
-                window.localStorage.setItem('cookieSettings', 'session');
+                localStorage.setItem('cookieSettings', 'session');
                 elem.remove();
               }),
               $('button')
               .text('Allen voor u persoonlijk')
               .on('click', e => {
-                window.localStorage.setItem('cookieWarning', 'private');
+                localStorage.setItem('cookieWarning', 'private');
                 elem.remove();
               }),
               $('button')
               .text('Delen met onze organisatie')
               .on('click', e => {
-                window.localStorage.setItem('cookieWarning', 'shared');
+                localStorage.setItem('cookieWarning', 'shared');
                 elem.remove();
               }),
               $('a').text('Cookie beleid').href('#?l=//aliconnect.nl/aliconnect/wiki/Explore-Legal-Cookie-Policy')
@@ -3007,10 +3023,10 @@ eol = '\n';
       function upload() {
         // console.log('UPLOAD', page);
         configInput.elem.value = configText.elem.innerText;
-        app.api('/').post(panel).then(e => {
-          console.debug("API", e.target.responseText );
+        aimClient.api('/').post(panel).then(body => {
+          console.debug("API", body);
         });
-        // app.api(url).post(page).query({
+        // aimClient.api(url).post(page).query({
         //   base_path: document.location.protocol === 'file:' ? '/' : document.location.pathname.split(/\/(api|docs|om)/)[0],
         // }).input(this.value).post().then(e => {
         //   console.debug("API", e.target.responseText );
@@ -3056,7 +3072,7 @@ eol = '\n';
       );
       focus();
       if (save) upload();
-      // open(app.api('/').accept('yaml'));
+      // open(aimClient.api('/').accept('yaml'));
     },
     analytics() {
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
@@ -3075,30 +3091,50 @@ eol = '\n';
       return this;
     },
   };
-  let app;
 
   function Account(id_token) {
-    const id = this.idToken = JSON.parse(atob(id_token.split('.')[1]));
+    const id = this.idToken = JSON.parse(atob((this.id_token = id_token).split('.')[1]));
     this.sub = id.sub;
     this.name = id.name || id.email || id.sub;
     this.username = id.preferred_username || this.name;
     this.accountIdentifier = this.idToken.oid;
   };
+  Account.prototype = {
+    // getSecret() {
+    //   console.log(111111, this.id_token);
+    //   return $().url('https://aliconnect.nl/api/').query('request_type', 'account_secret').headers('Authorization', 'Bearer ' + this.id_token).get();
+    // },
+  }
   Aim.UserAgentApplication = function UserAgentApplication(config) {
-    app = $.app = this;
+    aimClient = this;
     $.extend($.config, config);
     config = this.config = $.config;
     this.clients = [];
     this.servers = new Map;
     this.storage = window[config.cache.cacheLocation];
-    this.clientId = config.client_id;
+    this.clientId = config.auth.client_id = config.client_id || config.auth.client_id;
+    // config.auth.scopes = config.scope.split(' ');
+
     // this.clientSecret = config.client_secret = this.storage.getItem('client_secret');
-    if (this.storage.getItem('id_token')) {
-      this.account = new Account(this.storage.getItem('id_token'));
+    if (this.storage.getItem('aim.id_token')) {
+      this.account = new Account(this.storage.getItem('aim.id_token'));
+      console.log(this.account);
     }
-    if (this.storage.getItem('access_token')) {
-      console.log(this.storage.getItem('access_token'));
+    if (this.storage.getItem('aim.access_token')) {
+      // console.log(this.storage.getItem('access_token'));
     }
+    const url = new URL(document.location);
+    if (url.searchParams.has('code')){
+      // return console.error(url.searchParams.get('code'));
+      this.getAccessToken({code: url.searchParams.get('code')}).then(e => {
+        url.searchParams.delete('code');
+        url.searchParams.delete('state');
+        document.location.href = url.href;
+      });
+      throw "Sign in processed. Please wait";
+    }
+
+
 
     // console.error(this.config.components, this.config, $().schemas())
 
@@ -3115,9 +3151,9 @@ eol = '\n';
         }
       }
     })(config);
-    if (config.components && config.components.schemas) {
-      $().schemas(config.components.schemas);
-    }
+    // if (config.components && config.components.schemas) {
+    //   $().schemas(config.components.schemas);
+    // }
     $.his.items = {};
   }
   Aim.UserAgentApplication.prototype = {
@@ -3131,7 +3167,10 @@ eol = '\n';
     // },
     api(src) {
       for (let client of this.clients) {
-        for (let server of client.config.servers) {
+        // console.log(client, client.config.servers);
+        // client.config.servers = Array.from(client.config.servers);
+        for (let [i,server] of Object.entries(client.config.servers)) {
+          // console.log(i,server);
           if (src.match(server.url) || !src.match(/^http/)) {
             return client.api(src);
           }
@@ -3150,9 +3189,6 @@ eol = '\n';
     getAccount() {
       return this.account;
     },
-    promptClientSecret() {
-      window.localStorage.setItem('client_secret', this.clientSecret = prompt("Please enter client_secret", this.clientSecret))
-    },
     getAccessToken(options){
       if (options){
         options = Object.assign({
@@ -3168,17 +3204,18 @@ eol = '\n';
         .post(options)
         // .post()
         .then(e => {
-          console.log(e.body);
-          this.storage.setItem('id_token', e.body.id_token);
-          this.storage.setItem('access_token', e.body.access_token);
-          this.storage.setItem('refresh_token', e.body.refresh_token);
+          console.log(this);
+          this.storage.setItem(`aim.${this.clientId}.id_token`, e.body.id_token);
+          this.storage.setItem('aim.id_token', e.body.id_token);
+          this.storage.setItem('aim.access_token', e.body.access_token);
+          this.storage.setItem('aim.refresh_token', e.body.refresh_token);
           this.account = new Account(e.body.id_token);
           // return;
           // this.init({auth: e.body});
-          const url = new URL(document.location.href);
-          url.searchParams.delete('code');
-          url.searchParams.delete('state');
-          $.his.replaceUrl( url.toString() );
+          // const url = new URL(document.location.href);
+          // url.searchParams.delete('code');
+          // url.searchParams.delete('state');
+          // $.his.replaceUrl( url.toString() );
           // $.clipboard.reload();
           resolve();
         }));
@@ -3193,7 +3230,7 @@ eol = '\n';
       // const auth = this.config.auth;
       // ['id_token', 'refresh_token', 'access_token'].forEach(token => $().storage(token, auth[token] = auth[token] || $().storage(token) || ''));
       // window.sessionStorage.clear();
-      // window.localStorage.clear();
+      // localStorage.clear();
       const access_token = auth.api_key || auth.access_token || auth.id_token;
       // console.log([access_token, auth.api_key, auth.access_token, auth.id_token]);
       if (access_token){
@@ -3203,7 +3240,7 @@ eol = '\n';
           this.sub = this.access.sub;
           this.aud = this.access.aud;
           if (this.ws){
-            this.send({ headers: {Authorization:'Bearer ' + app.getAccessToken() } });
+            this.send({ headers: {Authorization:'Bearer ' + aimClient.getAccessToken() } });
           }
         } catch (err){
         }
@@ -3225,19 +3262,15 @@ eol = '\n';
       return $.promise('Login', async (resolve, fail) => {
         // console.log('LOGIN', options);
         // return;
-        const url = new URL(document.location);
-        if (url.searchParams.has('code')){
-          // return console.error(url.searchParams.get('code'));
-          await this.getAccessToken({code: url.searchParams.get('code')});
-        }
 
         if (options !== undefined){
           let state = Math.ceil(Math.random() * 99999);
+          console.log(99999, options);
           options = {
             // scope: 'name+email+phone_number',
             response_type: 'code',
             client_id: this.config.auth.client_id = this.config.auth.client_id || this.config.auth.clientId,
-            redirect_uri: this.config.auth.redirect_uri = this.config.auth.redirect_uri || this.config.auth.redirectUri,
+            redirect_uri: this.config.auth.redirect_uri = this.config.auth.redirect_uri || this.config.auth.redirectUri || this.config.redirect_uri || this.config.redirectUri,
             state: state,
             prompt: 'consent',
             scope: options.scope || options.scopes.join(' ') || '',
@@ -3267,14 +3300,14 @@ eol = '\n';
             if (access.nonce) {
               $().url('https://login.aliconnect.nl/api/oauth').headers('Authorization', 'Bearer ' + this.access_token).post({
                 request_type: 'access_token_verification',
-                // access_token: app.access_token,
+                // access_token: aimClient.access_token,
               }).then(e => {
                 if (e.target.status !== 200) {
                   $().logout();
                 }
               });
             }
-            // console.log(app);
+            // console.log(aimClient);
           }
         });
 
@@ -3293,18 +3326,97 @@ eol = '\n';
         // }
       });
     },
+    loginPopup(options) {
+      return $.promise('LoginPopup', async (resolve, fail) => {
+        options = {
+          // scope: 'name+email+phone_number',
+          response_type: 'code',
+          client_id: this.config.auth.client_id = this.config.auth.client_id || this.config.auth.clientId,
+          // redirect_uri: this.config.auth.redirect_uri = this.config.auth.redirect_uri || this.config.auth.redirectUri || this.config.redirect_uri || this.config.redirectUri,
+          // state: state,
+          prompt: 'consent',
+          scope: options.scope || options.scopes.join(' ') || '',
+          // socket_id: $.WebsocketClient.socket_id,
+        }
+        const url = $().url(this.config.auth.url).query(options).toString();
+        const height = 600;
+  			const width = 400;
+  			let rect = document.body.getBoundingClientRect();
+  			let top = window.screenTop + (window.innerHeight - height) / 2;
+  			let left = window.screenLeft + (window.innerWidth - width) / 2;
+  			const popup = window.open(url, 'loginPopup', `top=${top},left=${left},width=${width},height=${height},toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes`);
+
+        // popup.addEventListener('onload', e => {
+        //   console.log(e);
+        // })
+
+        // This does nothing, assuming the window hasn't changed its location.
+        // setInterval(()=>{
+        //   console.log('msg');
+        //   popup.postMessage("hello there!", "https://login.aliconnect.nl");
+        // },1000);
+        // popup.postMessage("The user is 'bob' and the password is 'secret'",
+        //
+        const interval = setInterval(() => {
+          popup.postMessage({
+            msg: "loginPopup",
+          }, "https://login.aliconnect.nl");
+        },1000);
+        window.addEventListener("message", (event) => {
+          console.log(event.origin, event);
+          if (event.data.msg === 'loginPopupAck') {
+            clearInterval(interval);
+          }
+          if (event.data.url) {
+            this.getAccessToken({code: new URL(event.data.url, document.location).searchParams.get('code')}).then(e => {
+              resolve({
+                accessToken: this.storage.getItem('aim.access_token'),
+                account: this.account,
+                accountState: "72fc40a8-a2d7-4998-afd0-3a74589015ac",
+                expiresOn: null,
+                fromCache: false,
+                idToken: this.account.idToken,
+                // idToken: {
+                //   rawIdToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Im5Pbz…SUqywC4QuHklGPvrKVQiMc9jpdJfz2DMIfT6O--gxZD2ApJZg",
+                //   claims: {…},
+                //   issuer: "https://login.microsoftonline.com/09786696-f227-4199-91a0-45783f6c660b/v2.0",
+                //   objectId: "f40f8462-da7f-457c-bd8c-d9e5639d2975", subject: "w6TIVTl01uuD9UHe12Fk6YLiilqhf1arasLwPwGnxV0", …}
+                // idTokenClaims: {aud: "4573bb93-5012-4c50-9cc5-562ac8f9a626", iss: "https://login.microsoftonline.com/09786696-f227-4199-91a0-45783f6c660b/v2.0", iat: 1625751439, nbf: 1625751439, exp: 1625755339, …}
+                scopes: [],
+                tenantId: "09786696-f227-4199-91a0-45783f6c660b",
+                tokenType: "id_token",
+                uniqueId: "f40f8462-da7f-457c-bd8c-d9e5639d2975",
+              });
+            });
+          }
+
+          // Do we trust the sender of this message?  (might be
+          // different from what we originally opened, for example).
+          // if (event.origin !== "http://example.com")
+          //   return;
+
+          // event.source is popup
+          // event.data is "hi there yourself!  the secret response is: rheeeeet!"
+        }, false);
+        // win.onbeforeunload = e => resolve();
+      });
+      // this.authProvider.login(this.config.auth);
+    },
+    config(config){
+      $.extend(this.config, config);
+      if (this.config.components && this.config.components.schemas) {
+        $().schemas(this.config.components.schemas);
+      }
+    },
     // login() {
     //   return this.authProvider.login(...arguments);
     // },
-    // loginPopup() {
-    //   this.authProvider.login(this.config.auth);
-    // },
     logout(options){
-      console.log($().storage('id_token'));
-      if ($().storage('id_token')) {
-        $().storage('id_token', null);
-        $().storage('refresh_token', null);
-        $().storage('access_token', null);
+      // console.log(sessionStorage('aim.id_token'));
+      if (this.storage.getItem('aim.id_token')) {
+        this.storage.removeItem('aim.id_token');
+        this.storage.removeItem('aim.refresh_token');
+        this.storage.removeItem('aim.access_token');
         // $.clipboard.reload();
         $.clipboard.reload($().url('https://login.aliconnect.nl/api/oauth').query({
           prompt: 'logout',
@@ -3403,23 +3515,29 @@ eol = '\n';
         }
       });
     },
+    getAccountByUsername(name) {
+      console.log(name);
+      return this.account;
+    },
+    acquireTokenSilent(silentRequest) {
+      return $.promise('LoginPopup', async (resolve, fail) => {
+        resolve({});
+      })
+    },
+    acquireTokenPopup(aimRequest) {
+      return this.loginPopup(aimRequest);
+    }
   };
 
-  Aim.AuthProvider = function AuthProvider (aimApplication, config) {
-    this.aimApplication = aimApplication;
-    this.config = config;
-  }
-  Aim.AuthProvider.prototype = {
-    getAccessToken() {
-      return this.aimApplication.storage.getItem('access_token')
-    }
+  Aim.InteractionRequiredAuthError = function () {
+
   }
 
   Aim.Client = function Client (config) {
     this.config = config;
-    $.app.clients.push(this);
+    aimClient.clients.push(this);
     config.servers = config.servers || [{url: $.config.url}];
-    config.servers.forEach(server => $.app.servers.set(server.url, this));
+    Array.from(config.servers).forEach(server => aimClient.servers.set(server.url, this));
     // this.url = config.servers[0].url;
     // this.hostname = this.url.match(/\/\/(.*?)\//)[1];
     return this;
@@ -3466,13 +3584,6 @@ eol = '\n';
     // this.server = servers[0] || {};
     // console.debug(`Client ${selector} = ${context.info ? context.info.title : ''}`);
   }
-  Object.assign(Aim.Client, {
-    initWithMiddleware() {
-      // const options = Object.assign()
-      return new this(Object.assign({},...arguments));
-    },
-  })
-
   Aim.Client.prototype = {
     loginUrl() {
       console.error(this.config.client_id);
@@ -3489,27 +3600,39 @@ eol = '\n';
         // socket_id: data.socket_id,
       });
     },
-    configGet() {
-      return $().url(this.url+'/../config.json').get().then(e => {
-        console.log('configGet', e.body);
-        $.extend(this.config, e.body);
-        // $.config = e.body;
-      }).catch(console.error);
-    },
-    configUserGet() {
-      return $().url(this.url+`/../config/${this.authProvider.sub}/config.json`).get().then(e => {
-        $.extend(this.config, e.body);
-        // $.extend($.config, JSON.parse(e.target.responseText));
-        // $($.config).extend(app.api_user = e.body);
-      }).catch(err => {
-        // app.api_user = {};
-      });
-    },
+    // configGet() {
+    //   return $().url(this.url+'/../config.json').get().then(e => {
+    //     console.warn('configGet', e.body);
+    //     $.extend(this.config, e.body);
+    //     // $.config = e.body;
+    //   }).catch(console.error);
+    // },
+    // configUserGet() {
+    //   return $().url(this.url+`/../config/${this.authProvider.sub}/config.json`).get().then(e => {
+    //     $.extend(this.config, e.body);
+    //     // $.extend($.config, JSON.parse(e.target.responseText));
+    //     // $($.config).extend(aimClient.api_user = e.body);
+    //   }).catch(err => {
+    //     // aimClient.api_user = {};
+    //   });
+    // },
     api(src){
-      src = src.replace(/^\//, '');
-      const url = this.config.servers[0].url + '/';
-      return $().url(new URL(src, url).href).headers('Authorization', 'Bearer ' + this.config.authProvider.getAccessToken());
+      return $()
+      .url(new URL(src.replace(/^\//, ''), this.config.servers[0].url + '/').href)
+      .authProvider(this.config.authProvider)
+      .body()
     },
+    // getApi(){
+    //   return $.promise( 'Get API', (resolve,fail) => {
+    //     const api = this.api('/').get().then(e => {
+    //       if (e.body.components && e.body.components.schemas) {
+    //         $().schemas(e.body.components.schemas);
+    //       }
+    //       // console.warn(e.body);
+    //       resolve(e.body);
+    //     })
+    //   });
+    // },
 
 
 
@@ -3847,6 +3970,12 @@ eol = '\n';
       window.close();
     },
   };
+  Object.assign(Aim.Client, {
+    initWithMiddleware() {
+      // const options = Object.assign()
+      return new this(Object.assign({}, ...arguments));
+    },
+  })
 
   Object.assign(Item = function () {}, {
     get(selector, schemaName){
@@ -3972,9 +4101,9 @@ eol = '\n';
           var url = `/${schemaName}`;
           item
         }
-        app.api(url).patch(item).then(e => {
-          console.debug(e.target.responseText);
-          resolve(e.body);
+        aimClient.api(url).patch(item).then(body => {
+          console.debug(body);
+          resolve(body);
         });
         return;
         new $.HttpRequest($.config.$, 'PATCH', '/' + this.schema, {
@@ -4023,7 +4152,8 @@ eol = '\n';
   });
   Item.prototype = {
     api(selector = '') {
-      return app.api(`/${this.tag}` + selector);
+      // console.log(aimClient.api(`/${this.tag}` + selector))
+      return aimClient.api(`/${this.tag}` + selector);
     },
     attr(attributeName, value, postdata){
       return $.promise( 'Attribute', async resolve => {
@@ -4349,16 +4479,13 @@ eol = '\n';
     get children() {
       return $.promise( 'Children', resolve => {
         if (this.items) return resolve(this.items);
-        const api = this.api(`/children`)
-        .filter('FinishDateTime eq NULL')
-        .select($.config.listAttributes)
-        .get()
-        .then(e => {
+        const api = this.api(`/children`).filter('FinishDateTime eq NULL')
+        .select($.config.listAttributes).get().then(body => {
           // const children = Array.isArray(this.data.Children) ? this.data.Children : this.data.children;
           // console.log('children_then', this.header0, this.data.Children, this.data.children, this.data, JSON.parse(e.target.responseText));
           const children = this.data.Children || this.data.children;
           this.items = [].concat(children).filter(Boolean).map($).unique();
-          this.items.url = e.target.responseURL;
+          this.items.url = body.data['@id'];
           this.HasChildren = this.items.length>0;
           resolve (this.items);
         })
@@ -4403,9 +4530,8 @@ eol = '\n';
         return $.promise( 'Clone', resolve => {
           console.debug('CLONE', this.data);
           const sourceId = [].concat(this.data.Src).shift().LinkID;
-          app.api(`/${this.tag}`).query('request_type','build_clone_data').get().then(async e => {
+          aimClient.api(`/${this.tag}`).query('request_type','build_clone_data').get().then(async items => {
             // console.warn('clone1',e.body);
-            const items = e.body;
             (async function clone(targetId,sourceId){
               // console.warn('clone',targetId,sourceId);
               if (targetId && sourceId) {
@@ -4431,7 +4557,7 @@ eol = '\n';
                     };
                     console.debug('create',data);
                     // console.debug(targetId, sourceId, i, child.id, child.title, child.schemaName);
-                    await app.api(`/${schemaName}`).input(data).post().then(e => clone(e.body.data.ID, child.itemId));
+                    await aimClient.api(`/${schemaName}`).input(data).post().then(body => clone(body.data.ID, child.itemId));
                   } else {
                     clone(child.cloneId, child.itemId)
                   }
@@ -4462,7 +4588,7 @@ eol = '\n';
     },
     delete(){
       this.remove();
-      return app.api(`/${this.tag}`).delete();
+      return aimClient.api(`/${this.tag}`).delete();
     },
     displayvalue(attributeName) {
       return $.attr.displayvalue(this.getValue(attributeName), ((this.schema||{}).properties||{})[attributeName]);
@@ -4813,6 +4939,9 @@ eol = '\n';
       return this.data.Master ? $([].concat(this.data.Master).shift()) : null
       // return this.elemTreeLi && this.elemTreeLi.elem.parentElement ? this.elemTreeLi.elem.parentElement.item : null;
     },
+    get properties(){
+      return this.schema.properties;
+    },
     get receivedDateTime(){
       return this.data.receivedDateTime || 0;
     },
@@ -5056,10 +5185,9 @@ eol = '\n';
 				item.userID = 0;
 				item.srcID = sourceItem.ID;
 			};
-			let e = await app.api(`/${item.schemaName}`).input(item).post();
+			// let e = await aimClient.api(`/${item.schemaName}`).input(item).post();
 			// TODO: 1 aanroep naar api
-			e = await app.api(`/${e.body.tag}`).select('*').get();
-			const newItem = e.body;
+			const newItem = await aimClient.api(`/${e.body.tag}`).select('*').get();
 			newItem.selectall = true;
 			const index = previousItem ? previousItem.index + 1 : this.children.length;
 			// TODO: index meenemen in aanroep => een api call, => na aanroep wel sorteren.
@@ -5433,35 +5561,12 @@ eol = '\n';
 			// this.writedetails(elDetails);
 			//});
 		},
+    get url() {
+      return (this.data||{})['@id'] || '/'+this.schemaName;
+    },
   };
 
   Object.assign(Aim, {
-    config: {
-      listAttributes: 'header0,header1,header2,name,schemaPath,Master,Src,Class,Tagname,InheritedID,HasChildren,HasAttachements,State,Categories,CreatedDateTime,LastModifiedDateTime,LastVisitDateTime,StartDateTime,EndDateTime,FinishDateTime',
-      trackLocalSessionTime: 5000, // timeout between tracking local cookie login session
-      trackSessionTime: 30000, // timeout between tracking login session
-      debug: 1,
-      minMs: 60000,
-      cache: {
-        cacheLocation: "localStorage",
-        storeAuthStateInCookie: false,
-        forceRefresh: false
-      },
-      clients: [],
-      url: 'https://aliconnect.nl/api',
-      auth: {
-        url: 'https://login.aliconnect.nl/api/oauth',
-      },
-      ref: {
-        home: '//aliconnect.nl/sdk/wiki',
-      }
-    },
-    start() {
-      // console.log('START');
-      return;
-      if ($.user) $().dashboard();
-      else $().home();
-    },
     attr: {
       displayvalue(value, property) {
       if (value === undefined) {
@@ -5478,673 +5583,6 @@ eol = '\n';
       }
       return value;
     },
-    },
-    script: {
-      import(src) {
-        // console.log('SCRIPT', src);
-        return $.promise('script', callback => {
-          // console.log(2, 'SCRIPT', src);
-          function loaded(e) {
-            e.target.loading = false;
-            // console.log('LOADED');
-            callback();
-          }
-          for (let script of [...document.getElementsByTagName('SCRIPT')]) {
-            if (script.getAttribute('src') === src) {
-              // console.log(3, 'SCRIPT', src);
-              if (script.loading) {
-                // console.log(4, 'SCRIPT', src);
-                return $(script).on('load', loaded);
-              }
-              // console.log(4, 'SCRIPT', src);
-              return callback();
-            }
-          }
-          var el = $('script').src(src).parent(document.head).on('load', loaded);
-          el.elem.loading = true;
-          // console.log('SCRIPT', el);
-        });
-      },
-    },
-    his: {
-      map: new Map(),
-      api_parameters: {},
-      handlers: {},
-      classes: {},
-      httpHandlers: {},
-      fav: [],
-      itemsModified: {},
-      items: [],
-      elem: {},
-      mergeState(url) {
-        var documentUrl = new URL(document.location);
-        url = new URL(url, document.location);
-        url.searchParams.forEach((value, key) => documentUrl.searchParams.set(key, value));
-        // documentUrl.hash='';
-        window.history.replaceState('page', '', documentUrl.href.replace(/%2F/g, '/'));
-      },
-      replaceUrl(selector, context){
-      if (window.history){
-        if (typeof selector === 'object'){
-          Object.entries(selector).forEach(entry => arguments.callee(...entry));
-        } else if (arguments.length>1){
-          var url = new URL(document.location);
-          if (context){
-            url.searchParams.set(selector, context);
-          } else {
-            url.searchParams.delete(selector)
-          }
-          url.hash='';
-        } else {
-          var url = new URL(selector, document.location.origin);
-        }
-        url = url.pathname.replace(/^\/\//,'/') + url.search;
-        window.history.replaceState('page', '', url);
-      }
-    },
-    },
-    const: {
-      prompt: {
-        menu: {
-          prompts: [
-            // 'qrscan',
-            'lang',
-            // 'chat',
-            // 'msg',
-            // 'task',
-            // 'shop',
-            'config',
-            'help',
-          ]
-        },
-        config: {
-          prompts: [
-            // 'upload_datafile',
-            // 'import_outlook_mail',
-            // 'import_outlook_contact',
-            // 'account_create',
-            // 'account_domain',
-            'account_config',
-            // 'sitemap',
-            // 'get_api_key',
-            'get_aliconnector_key',
-            'verwerkingsregister',
-          ]
-        },
-      },
-      languages: {
-        ab:{iso:'Abkhazian', native:'аҧсуа бызшәа, аҧсшәа'},
-        aa:{iso:'Afar', native:'Afaraf'},
-        af:{iso:'Afrikaans', native:'Afrikaans'},
-        ak:{iso:'Akan', native:'Akan'},
-        sq:{iso:'Albanian', native:'Shqip'},
-        am:{iso:'Amharic', native:'አማርኛ'},
-        ar:{iso:'Arabic', native:'العربية'},
-        an:{iso:'Aragonese', native:'aragonés'},
-        hy:{iso:'Armenian', native:'Հայերեն'},
-        as:{iso:'Assamese', native:'অসমীয়া'},
-        av:{iso:'Avaric', native:'авар мацӀ, магӀарул мацӀ'},
-        ae:{iso:'Avestan', native:'avesta'},
-        ay:{iso:'Aymara', native:'aymar aru'},
-        az:{iso:'Azerbaijani', native:'azərbaycan dili'},
-        bm:{iso:'Bambara', native:'bamanankan'},
-        ba:{iso:'Bashkir', native:'башҡорт теле'},
-        eu:{iso:'Basque', native:'euskara, euskera'},
-        be:{iso:'Belarusian', native:'беларуская мова'},
-        bn:{iso:'Bengali', native:'বাংলা'},
-        bh:{iso:'Bihari languages', native:'भोजपुरी'},
-        bi:{iso:'Bislama', native:'Bislama'},
-        bs:{iso:'Bosnian', native:'bosanski jezik'},
-        br:{iso:'Breton', native:'brezhoneg'},
-        bg:{iso:'Bulgarian', native:'български език'},
-        my:{iso:'Burmese', native:'ဗမာစာ'},
-        ca:{iso:'Catalan, Valencian', native:'català, valencià'},
-        ch:{iso:'Chamorro', native:'Chamoru'},
-        ce:{iso:'Chechen', native:'нохчийн мотт'},
-        ny:{iso:'Chichewa, Chewa, Nyanja', native:'chiCheŵa, chinyanja'},
-        zh:{iso:'Chinese', native:'中文 (Zhōngwén), 汉语, 漢語'},
-        cv:{iso:'Chuvash', native:'чӑваш чӗлхи'},
-        kw:{iso:'Cornish', native:'Kernewek'},
-        co:{iso:'Corsican', native:'corsu, lingua corsa'},
-        cr:{iso:'Cree', native:'ᓀᐦᐃᔭᐍᐏᐣ'},
-        hr:{iso:'Croatian', native:'hrvatski jezik'},
-        cs:{iso:'Czech', native:'čeština, český jazyk'},
-        da:{iso:'Danish', native:'dansk'},
-        dv:{iso:'Divehi, Dhivehi, Maldivian', native:'ދިވެހި'},
-        nl:{iso:'Dutch, Flemish', native:'Nederlands, Vlaams'},
-        dz:{iso:'Dzongkha', native:'རྫོང་ཁ'},
-        en:{iso:'English', native:'English'},
-        eo:{iso:'Esperanto', native:'Esperanto'},
-        et:{iso:'Estonian', native:'eesti, eesti keel'},
-        ee:{iso:'Ewe', native:'Eʋegbe'},
-        fo:{iso:'Faroese', native:'føroyskt'},
-        fj:{iso:'Fijian', native:'vosa Vakaviti'},
-        fi:{iso:'Finnish', native:'suomi, suomen kieli'},
-        fr:{iso:'French', native:'français, langue française'},
-        ff:{iso:'Fulah', native:'Fulfulde, Pulaar, Pular'},
-        gl:{iso:'Galician', native:'Galego'},
-        ka:{iso:'Georgian', native:'ქართული'},
-        de:{iso:'German', native:'Deutsch'},
-        el:{iso:'Greek, Modern (1453-)', native:'ελληνικά'},
-        gn:{iso:'Guarani', native:'Avañe\'ẽ'},
-        gu:{iso:'Gujarati', native:'ગુજરાતી'},
-        ht:{iso:'Haitian, Haitian Creole', native:'Kreyòl ayisyen'},
-        ha:{iso:'Hausa', native:'(Hausa) هَوُسَ'},
-        he:{iso:'Hebrew', native:'עברית'},
-        hz:{iso:'Herero', native:'Otjiherero'},
-        hi:{iso:'Hindi', native:'हिन्दी, हिंदी'},
-        ho:{iso:'Hiri Motu', native:'Hiri Motu'},
-        hu:{iso:'Hungarian', native:'magyar'},
-        ia:{iso:'Interlingua (International Auxiliary Language Association)', native:'Interlingua'},
-        id:{iso:'Indonesian', native:'Bahasa Indonesia'},
-        ie:{iso:'Interlingue, Occidental', native:'(originally:) Occidental, (after WWII:) Interlingue'},
-        ga:{iso:'Irish', native:'Gaeilge'},
-        ig:{iso:'Igbo', native:'Asụsụ Igbo'},
-        ik:{iso:'Inupiaq', native:'Iñupiaq, Iñupiatun'},
-        io:{iso:'Ido', native:'Ido'},
-        is:{iso:'Icelandic', native:'Íslenska'},
-        it:{iso:'Italian', native:'Italiano'},
-        iu:{iso:'Inuktitut', native:'ᐃᓄᒃᑎᑐᑦ'},
-        ja:{iso:'Japanese', native:'日本語 (にほんご)'},
-        jv:{iso:'Javanese', native:'ꦧꦱꦗꦮ, Basa Jawa'},
-        kl:{iso:'Kalaallisut, Greenlandic', native:'kalaallisut, kalaallit oqaasii'},
-        kn:{iso:'Kannada', native:'ಕನ್ನಡ'},
-        kr:{iso:'Kanuri', native:'Kanuri'},
-        ks:{iso:'Kashmiri', native:'कश्मीरी, كشميري‎'},
-        kk:{iso:'Kazakh', native:'қазақ тілі'},
-        km:{iso:'Central Khmer', native:'ខ្មែរ, ខេមរភាសា, ភាសាខ្មែរ'},
-        ki:{iso:'Kikuyu, Gikuyu', native:'Gĩkũyũ'},
-        rw:{iso:'Kinyarwanda', native:'Ikinyarwanda'},
-        ky:{iso:'Kirghiz, Kyrgyz', native:'Кыргызча, Кыргыз тили'},
-        kv:{iso:'Komi', native:'коми кыв'},
-        kg:{iso:'Kongo', native:'Kikongo'},
-        ko:{iso:'Korean', native:'한국어'},
-        ku:{iso:'Kurdish', native:'Kurdî, کوردی‎'},
-        kj:{iso:'Kuanyama, Kwanyama', native:'Kuanyama'},
-        la:{iso:'Latin', native:'latine, lingua latina'},
-        lb:{iso:'Luxembourgish, Letzeburgesch', native:'Lëtzebuergesch'},
-        lg:{iso:'Ganda', native:'Luganda'},
-        li:{iso:'Limburgan, Limburger, Limburgish', native:'Limburgs'},
-        ln:{iso:'Lingala', native:'Lingála'},
-        lo:{iso:'Lao', native:'ພາສາລາວ'},
-        lt:{iso:'Lithuanian', native:'lietuvių kalba'},
-        lu:{iso:'Luba-Katanga', native:'Kiluba'},
-        lv:{iso:'Latvian', native:'latviešu valoda'},
-        gv:{iso:'Manx', native:'Gaelg, Gailck'},
-        mk:{iso:'Macedonian', native:'македонски јазик'},
-        mg:{iso:'Malagasy', native:'fiteny malagasy'},
-        ms:{iso:'Malay', native:'Bahasa Melayu, بهاس ملايو‎'},
-        ml:{iso:'Malayalam', native:'മലയാളം'},
-        mt:{iso:'Maltese', native:'Malti'},
-        mi:{iso:'Maori', native:'te reo Māori'},
-        mr:{iso:'Marathi', native:'मराठी'},
-        mh:{iso:'Marshallese', native:'Kajin M̧ajeļ'},
-        mn:{iso:'Mongolian', native:'Монгол хэл'},
-        na:{iso:'Nauru', native:'Dorerin Naoero'},
-        nv:{iso:'Navajo, Navaho', native:'Diné bizaad'},
-        nd:{iso:'North Ndebele', native:'isiNdebele'},
-        ne:{iso:'Nepali', native:'नेपाली'},
-        ng:{iso:'Ndonga', native:'Owambo'},
-        nb:{iso:'Norwegian Bokmål', native:'Norsk Bokmål'},
-        nn:{iso:'Norwegian Nynorsk', native:'Norsk Nynorsk'},
-        no:{iso:'Norwegian', native:'Norsk'},
-        ii:{iso:'Sichuan Yi, Nuosu', native:'ꆈꌠ꒿ Nuosuhxop'},
-        nr:{iso:'South Ndebele', native:'isiNdebele'},
-        oc:{iso:'Occitan', native:'occitan, lenga d\'òc'},
-        oj:{iso:'Ojibwa', native:'ᐊᓂᔑᓈᐯᒧᐎᓐ'},
-        cu:{iso:'Church Slavic, Old Slavonic, Church Slavonic, Old Bulgarian, Old Church Slavonic', native:'ѩзыкъ словѣньскъ'},
-        om:{iso:'Oromo', native:'Afaan Oromoo'},
-        or:{iso:'Oriya', native:'ଓଡ଼ିଆ'},
-        os:{iso:'Ossetian, Ossetic', native:'ирон æвзаг'},
-        pa:{iso:'Punjabi, Panjabi', native:'ਪੰਜਾਬੀ, پنجابی‎'},
-        pi:{iso:'Pali', native:'पालि, पाळि'},
-        fa:{iso:'Persian', native:'فارسی'},
-        pl:{iso:'Polish', native:'język polski, polszczyzna'},
-        ps:{iso:'Pashto, Pushto', native:'پښتو'},
-        pt:{iso:'Portuguese', native:'Português'},
-        qu:{iso:'Quechua', native:'Runa Simi, Kichwa'},
-        rm:{iso:'Romansh', native:'Rumantsch Grischun'},
-        rn:{iso:'Rundi', native:'Ikirundi'},
-        ro:{iso:'Romanian, Moldavian, Moldovan', native:'Română'},
-        ru:{iso:'Russian', native:'русский'},
-        sa:{iso:'Sanskrit', native:'संस्कृतम्'},
-        sc:{iso:'Sardinian', native:'sardu'},
-        sd:{iso:'Sindhi', native:'सिन्धी, سنڌي، سندھی‎'},
-        se:{iso:'Northern Sami', native:'Davvisámegiella'},
-        sm:{iso:'Samoan', native:'gagana fa\'a Samoa'},
-        sg:{iso:'Sango', native:'yângâ tî sängö'},
-        sr:{iso:'Serbian', native:'српски језик'},
-        gd:{iso:'Gaelic, Scottish Gaelic', native:'Gàidhlig'},
-        sn:{iso:'Shona', native:'chiShona'},
-        si:{iso:'Sinhala, Sinhalese', native:'සිංහල'},
-        sk:{iso:'Slovak', native:'Slovenčina, Slovenský Jazyk'},
-        sl:{iso:'Slovenian', native:'Slovenski Jezik, Slovenščina'},
-        so:{iso:'Somali', native:'Soomaaliga, af Soomaali'},
-        st:{iso:'Southern Sotho', native:'Sesotho'},
-        es:{iso:'Spanish, Castilian', native:'Español'},
-        su:{iso:'Sundanese', native:'Basa Sunda'},
-        sw:{iso:'Swahili', native:'Kiswahili'},
-        ss:{iso:'Swati', native:'SiSwati'},
-        sv:{iso:'Swedish', native:'Svenska'},
-        ta:{iso:'Tamil', native:'தமிழ்'},
-        te:{iso:'Telugu', native:'తెలుగు'},
-        tg:{iso:'Tajik', native:'тоҷикӣ, toçikī, تاجیکی‎'},
-        th:{iso:'Thai', native:'ไทย'},
-        ti:{iso:'Tigrinya', native:'ትግርኛ'},
-        bo:{iso:'Tibetan', native:'བོད་ཡིག'},
-        tk:{iso:'Turkmen', native:'Türkmen, Түркмен'},
-        tl:{iso:'Tagalog', native:'Wikang Tagalog'},
-        tn:{iso:'Tswana', native:'Setswana'},
-        to:{iso:'Tonga (Tonga Islands)', native:'Faka Tonga'},
-        tr:{iso:'Turkish', native:'Türkçe'},
-        ts:{iso:'Tsonga', native:'Xitsonga'},
-        tt:{iso:'Tatar', native:'татар теле, tatar tele'},
-        tw:{iso:'Twi', native:'Twi'},
-        ty:{iso:'Tahitian', native:'Reo Tahiti'},
-        ug:{iso:'Uighur, Uyghur', native:'ئۇيغۇرچە‎, Uyghurche'},
-        uk:{iso:'Ukrainian', native:'Українська'},
-        ur:{iso:'Urdu', native:'اردو'},
-        uz:{iso:'Uzbek', native:'Oʻzbek, Ўзбек, أۇزبېك‎'},
-        ve:{iso:'Venda', native:'Tshivenḓa'},
-        vi:{iso:'Vietnamese', native:'Tiếng Việt'},
-        vo:{iso:'Volapük', native:'Volapük'},
-        wa:{iso:'Walloon', native:'Walon'},
-        cy:{iso:'Welsh', native:'Cymraeg'},
-        wo:{iso:'Wolof', native:'Wollof'},
-        fy:{iso:'Western Frisian', native:'Frysk'},
-        xh:{iso:'Xhosa', native:'isiXhosa'},
-        yi:{iso:'Yiddish', native:'ייִדיש'},
-        yo:{iso:'Yoruba', native:'Yorùbá'},
-        za:{iso:'Zhuang, Chuang', native:'Saɯ cueŋƅ, Saw cuengh'},
-        zu:{iso:'Zulu', native:'isiZulu'},
-      },
-    },
-    string: {
-      html(s) {
-        return s.replace(/(.*?)(&lt;\!--.*?--&gt;|$)/gs, (s,codeString,cmt) => {
-          return codeString
-          .replace(/&lt;(.*?)&gt;/g, (s,p1) => `&lt;${
-            replaceOutsideQuotes(
-              p1.replace(/(\w+)/,'<span class=hl-events>$1</span>')
-              , s => {
-                return s.replace(/ (\w+)(?![^<]*>|[^<>]*<\/)/g,' <span class=hl-fn>$1</span>')
-              }
-            )
-          }&gt;`) + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
-        })
-      },
-      js(s) {
-        // console.error(s);
-        return s
-        .replace(/(.*?)(\/\/.*?\n|\/\*.*?\*\/|$)/gs, (s,codeString,cmt) => {
-          return replaceOutsideQuotes(
-            codeString, codeString => codeString.replace(
-              /\b(class|abstract|arguments|await|boolean|break|byte|case|catch|char|const|continue|debugger|default|delete|do|double|else|enum|eval|export|extends|false|final|finally|float|for|function|goto|if|implements|import|in|instanceof|int|interface|let|long|native|new|null|package|private|protected|public|return|short|static|super|switch|synchronized|this|throw|throws|transient|true|try|typeof|var|void|volatile|while|with|yield|abstract|boolean|byte|char|double|final|float|goto|int|long|native|short|synchronized|throws|transient|volatile)\b(?![^<]*>|[^<>]*<\/)/gi,
-              '<span class=hl-res>$1</span>'
-            )
-            .replace(
-              /\b(Array|Date|eval|function|hasOwnProperty|Infinity|isFinite|isNaN|isPrototypeOf|length|Math|NaN|name|Number|Object|prototype|String|toString|undefined|valueOf)\b/g,
-              '<span class=hl-methods>$1</span>'
-            )
-            .replace(
-              /\b(alert|all|anchor|anchors|area|assign|blur|button|checkbox|clearInterval|clearTimeout|clientInformation|close|closed|confirm|constructor|crypto|decodeURI|decodeURIComponent|defaultStatus|document|element|elements|embed|embeds|encodeURI|encodeURIComponent|escape|e|fileUpload|focus|form|forms|frame|innerHeight|innerWidth|layer|layers|link|location|mimeTypes|navigate|navigator|frames|frameRate|hidden|history|image|images|offscreenBuffering|open|opener|option|outerHeight|outerWidth|packages|pageXOffset|pageYOffset|parent|parseFloat|parseInt|password|pkcs11|plugin|prompt|propertyIsEnum|radio|reset|screenX|screenY|scroll|secure|select|self|setInterval|setTimeout|status|submit|taint|text|textarea|top|unescape|untaint)\b/g,
-              '<span class=hl-prop>$1</span>'
-            )
-            .replace(
-              /\b(onblur|onclick|onerror|onfocus|onkeydown|onkeypress|onkeyup|onmouseover|onload|onmouseup|onmousedown|onsubmit)\b/g,
-              '<span class=hl-events>$1</span>'
-            )
-            .replace(/(\w+)(\s*\()/g, '<span class="hl-fn">$1</span>$2')
-            .replace(/\.(\w+)/g, '.<span class="hl-attr">$1</span>')
-            .replace(/\b([A-Z]\w+)\./g, '<span class="hl-obj">$1</span>.')
-            .replace(/\b(\w+)\./g, '<span class="hl-attr">$1</span>.')
-            .replace(/\b(\d+)\b/g, '<span class="hl-nr">$1</span>')
-          ) + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
-        })
-      },
-      css(s) {
-        return s.replace(/(.*?)(\/\*.*?\*\/|$)/gs, (s,codeString,cmt) => {
-          return replaceOutsideQuotes(
-            codeString, codeString => codeString
-            .replace(/\.(.*)\b/g, '.<span class="hl-obj">$1</span>')
-          ) + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
-        })
-      },
-      json(s) {
-        return s
-        .replace(/"(.*?)":/g, '"<span class="hl-fn">$1</span>":')
-        .replace(/(:\s*)"(.*?)"/g, '$1"<span class="hl-string">$2</span>"')
-      },
-      yaml(s) {
-        return s.replace(/(.*?)(#.*?\n|$)/gs, (s,codeString,cmt) => {
-          return codeString
-          .replace(/^(?=\s*)(.+?):/gm, '<span class="hl-fn">$1</span>:')
-          .replace(/: (.*?)$/gm, ': <span class="hl-string">$1</span>')
-          + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
-        })
-      },
-      php(s) {
-        return s.replace(/(.*?)(\/\/.*?\n|\/\*.*?\*\/|$)/gs, (s,codeString,cmt) => {
-          return replaceOutsideQuotes(
-            codeString, codeString => codeString.replace(
-              /\b(class|abstract|arguments|await|boolean|break|byte|case|catch|char|const|continue|debugger|default|delete|do|double|else|enum|eval|export|extends|false|final|finally|float|for|function|goto|if|implements|import|in|instanceof|int|interface|let|long|native|new|null|package|private|protected|public|return|short|static|super|switch|synchronized|this|throw|throws|transient|true|try|typeof|var|void|volatile|while|with|yield|abstract|boolean|byte|char|double|final|float|goto|int|long|native|short|synchronized|throws|transient|volatile)\b(?![^<]*>|[^<>]*<\/)/gi,
-              '<span class=hl-res>$1</span>'
-            )
-          ) + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
-        })
-      },
-      sql(s) {
-        return s.replace(/(.*?)(--.*?\n|\/\*.*?\*\/|$)/gs, (s,codeString,cmt) => {
-          return replaceOutsideQuotes(
-            codeString, codeString => codeString.replace(
-              /\b(ADD|ADD CONSTRAINT|ALTER|ALTER COLUMN|ALTER TABLE|ALL|AND|ANY|AS|ASC|BACKUP DATABASE|BETWEEN|CASE|CHECK|COLUMN|CONSTRAINT|CREATE|CREATE DATABASE|CREATE INDEX|CREATE OR REPLACE VIEW|CREATE TABLE|CREATE PROCEDURE|CREATE UNIQUE INDEX|CREATE VIEW|DATABASE|DEFAULT|DELETE|DESC|DISTINCT|DROP|DROP COLUMN|DROP CONSTRAINT|DROP DATABASE|DROP DEFAULT|DROP INDEX|DROP TABLE|DROP VIEW|EXEC|EXISTS|FOREIGN KEY|FROM|FULL OUTER JOIN|GROUP BY|HAVING|IN|INDEX|INNER JOIN|INSERT INTO|INSERT|IS NULL|IS NOT NULL|JOIN|LEFT JOIN|LIKE|LIMIT|NOT|NOT NULL|OR|ORDER BY|OUTER JOIN|PRIMARY KEY|PROCEDURE|RIGHT JOIN|ROWNUM|SELECT|SELECT DISTINCT|SELECT INTO|SELECT TOP|SET|TABLE|TOP|TRUNCATE TABLE|UNION|UNION ALL|UNIQUE|UPDATE|VALUES|VIEW|WHERE)\b/gi,
-              '<span class=hl-res>$1</span>'
-            )
-          ) + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
-        })
-      },
-      st(s) {
-        return s.replace(/(.*?)(--.*?\n|\/\*.*?\*\/|$)/gs, (s,codeString,cmt) => {
-          return replaceOutsideQuotes(
-            codeString, codeString => codeString.replace(
-              /\b(PROGRAM|END_PROGRAM|VAR|END_VAR|IF|THEN|ELSEIF|ELSIF|ELSE|END_IF|CASE|OF|END_CASE|FOR|TO|BY|DO|END_FOR|REPEAT|UNTIL|END_REPEAT|WHILE|DO|END_WHILE|EXIT|RETURN|ADD|SQRT|SIN|COS|GT|MIN|MAX|AND|OR|BYTE|WORD|DWORD|LWORD|INTEGER|SINT|INT|DINT|LINT|USINT|UINT|UDINT|ULINT|REAL|REAL|LREAL|TIME|LTIME|DATE|LDATE|TIME_OF_DAY|TOD|LTIME_OF_DAY|LTOD|DATE_AND_TIME|DT|LDATE_AND_TIME|LDT|CHAR|WCHAR|STRING|WSTRING|STRING|ANY|ANY_DERIVED|ANY_ELEMENTARY|ANY_MAGNITUDE|ANY_NUM|ANY_REAL|ANY_INT|ANY_UNSIGNED|ANY_SIGNED|ANY_DURATION|ANY_BIT|ANY_CHARS|ANY_STRING|ANY_CHAR|ANY_DATE|DATE_AND_TIME|DATE_AND_TIME|DATE|TIME_OF_DAY|LTIME_OF_DAY)\b/g,
-              '<span class=hl-res>$1</span>'
-            )
-            .replace(
-              /\b(LEN|CONCAT|LEFT|RIGHT|MID|INSERT|DELETE|REPLACE|FIND|SEL|MAX|MIN|LIMIT|MUX|TP|TON|TOF|R_TRIG|F_TRIG|TRUNC|TRUNC_INT|ROL|ROR|SHL|SHR|CTU|CTD|CTUD|ABS|SQR|LN|LOG|EXP|SIN|COS|TAN|ASIN|ACOS|ATAN|EXPT|NOT|AND|XOR|OR|MOD|BOOL_TO_INT|WORD_TO_DINT|BYTE_TO_REAL|REAL_TO_LREAL|TIME_TO_DINT)\b/g,
-              '<span class=hl-methods>$1</span>'
-            )
-            .replace(
-              /(&lt;|&gt;|&lt;&equals;|&gt;&equals;|&lt;&gt;|:&equals;|&equals;)/g,
-              '<b class=hl-string>$1</b>'
-            )
-            .replace(
-              /\b(BOOL|TRUE|FALSE)\b/gi,
-              '<span class=hl-prop>$1</span>'
-            )
-          ) + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
-        })
-      },
-      mdHtml(s){
-        function code(s) {
-          return (s||'')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/=/g, '&equals;')
-          .replace(/\t/g, '  ')
-          .replace(/\^\^(.*?)\^\^/g, '<MARK>$1</MARK>')
-          // .replace(/"/g, '&quot;')
-          // .replace(/'/g, '&apos;')
-        }
-        function list(s, level = 0) {
-          const ident = (s.match(/^ +/)||[''])[0].length;
-          s = s.split(/\n/).map(s => s.slice(ident)).join('\n').trim();
-          return s.replace(/(^(\*|-|\d+\.) .*?$)/gs, s => {
-            const tagName = s.trim().match(/^\d/) ? 'OL' : 'UL';
-            s = s.replace(/\n(  .*?)(?=\n(\*|-|\d+\.)|$)/gs,(s, p1, p2) => list(p1, level + 1)).replace(/^(\*|-|\d+\.) (.*?)$/gm,'<li>$2</li>')
-            return `<${tagName}>${s.trim()}</${tagName}>`;
-          });
-        }
-        function mdToHtml (s) {
-          // console.log(s);
-          return replaceOutsideQuotes(
-            s
-            .replace(/\r/gs ,'')
-            // .replace(
-            //   /(^|\n)(.*?)(\n\n|$)/gs,
-            //   (s,p1) => {
-            //     console.log('>>>',s);
-            //     return s
-            //     .replace(/^((\*|-|\d+\.) .*?$)/s, (s) => list(s,0))
-            //   }
-            // )
-            .replace(/^# (.*?)$/gm, '\n<H1>$1</H1>\n')
-            .replace(/^## (.*?)$/gm, '\n<H2>$1</H2>\n')
-            .replace(/^### (.*?)$/gm, '\n<H3>$1</H3>\n')
-            .replace(/^#### (.*?)$/gm, '\n<H4>$1</H4>\n')
-            .replace(/^##### (.*?)$/gm, '\n<H5>$1</H5>\n')
-            .replace(/^###### (.*?)$/gm, '\n<H6>$1</H6>\n')
-            .replace(/^####### (.*?)$/gm, '\n<H7>$1</H7>\n')
-
-            .replace(/(^|\n)(\*|-|\d+\.) .*?(?=\n\n|\n$|$)/gs, (s) => list(s,0))
-
-
-            .replace(/(^|\n)> (\w+):(.*?)(?=\n\n|$)/gs, (s, p1, p2, p3) => p1 + `<BLOCKQUOTE class=${p2}>${p3.replace(/\n> /g,' ')}</BLOCKQUOTE>`)
-            .replace(/(^|\n)> (.+?)(?=\n\n|$)/gs, (s, p1, p2) => p1 + `<BLOCKQUOTE>${p2.replace(/\n> /g,' ')}</BLOCKQUOTE>`)
-            .replace(/\[ \](?=(?:(?:[^`]*`){2})*[^`]*$)/g, '&#9744;')
-            .replace(/\[v\](?=(?:(?:[^`]*`){2})*[^`]*$)/g, '&#9745;')
-            .replace(/\[x\](?=(?:(?:[^`]*`){2})*[^`]*$)/g, '&#9745;')
-
-
-            .replace(/(^|\n)(.*? \| .*?)\n-+ \| -.*?\n(.*?)(?=\n\n|$)/gs, (s, p1, p2, p3) => `${p1}<TABLE><THEAD><TR><TH>${p2.trim().replace(/ \| /g, '</TH><TH>')}</TH></TR></THEAD><TBODY><TR><TD>${p3.replace(/\n/s, '</TD></TR><TR><TD>').replace(/ \| /g, '</TD><TD>')}</TD></TR></TBODY></TABLE>`)
-
-            .split(/\n\n/).map(s => s.replace(/^(?!<)(.*?)$/s, '<p>$1</p>')).join('\n\n')
-            // .replace(/(^|^\n|\n\n)(.+?)(\n\n|\n$|$)/gs, '$1<p>$2</p>$3')
-
-            .replace(/`(.+?)`/g, (s, p1) => `<CODE>${code(p1)}</CODE>`),
-
-            s => s
-            .replace(/  \n/gm, '<BR >')
-            .replace(/\!\[(.*?)\]\((.*?)\)(?=(?:(?:[^`]*`){2})*[^`]*$)/g, '<IMG src="$2" alt="$1">')
-            .replace(/\[(.*?)\]\((.*?)\)(?=(?:(?:[^`]*`){2})*[^`]*$)/g, '<A href="$2">$1</A>')
-            .replace(/\*\*(.+?)\*\*/g, '<B>$1</B>')
-            .replace(/\*(.*?)\*/g, '<I>$1</I>')
-            .replace(/__(.*?)__/g, '<B>$1</B>')
-            .replace(/_(.*?)_(?![^<]*>|[^<>]*<\/)/g, '<I>$1</I>')
-            .replace(/~~(.*?)~~/g, '<DEL>$1</DEL>')
-            .replace(/~(.*?)~/g, '<U>$1</U>')
-            .replace(/\^\^(.*?)\^\^/g, '<MARK>$1</MARK>')
-            .replace(/\n</gs, '<')
-            .replace(/>\n/gs, '>')
-          , '', '')
-        }
-        s = !s ? '' : s
-        .replace(/(.*?)(```(.*?)\n(.*?)\n```|$)/gs, (s,md,s2,type,codeString) => {
-          s = mdToHtml(md);
-          if (codeString) {
-            codeString = code(codeString);
-            if (type) {
-              codeString = $.string[type = type.toLowerCase()] ? $.string[type](codeString) : codeString;
-              s += `<div class="code-header row" ln="${type}"><span class="aco">${type.toUpperCase()}</span></div>`;
-            }
-            s += `<div class="code ${type ? type : ''}">${codeString}</div>`;
-          }
-          return s;
-        });
-        // console.log(s);
-        return s;
-      },
-      isImg(src) {
-        return src.match(/jpg|png|bmp|jpeg|gif|bin/i)
-      },
-      isImgSrc(src) {
-        if (src) for (var i = 0, ext; ext = ['.jpg', '.png', '.bmp', '.jpeg', '.gif', '.bin'][i]; i++) if (src.toLowerCase().indexOf(ext) != -1) return true;
-        return false;
-      },
-    },
-    object: {
-      isFile(ofile) {
-        return (ofile.type || '').indexOf('image') != -1 || $.string.isImgSrc(ofile.src)
-      },
-    },
-    extend(parent, selector, context){
-      if (!selector) {
-        selector = parent;
-        parent = this;
-      }
-      // console.log(111, parent, selector);
-      const objects = [];
-      if (context){
-        Object.entries(context).forEach(entry => Object.defineProperty(parent, ...entry))
-      }
-      if (selector){
-        (function recurse(parent, selector, context){
-          if (parent && selector && selector instanceof Object) {
-            for (let [key, value] of Object.entries(selector)) {
-              if (typeof parent[key] === 'function' && typeof value !== 'function') {
-                // console.log(key, value, parent[key]);
-                parent[key](value)
-              } else if (typeof value === 'function' && !parent.hasOwnProperty(key)) {
-                Object.defineProperty(parent, key, {
-                  enumerable: false,
-                  configurable: false,
-                  writable: false,
-                  value: value,
-                });
-              }
-              if (typeof value !== 'object' || Array.isArray(value) || !(key in parent) || objects.includes(value)) {
-                parent[key] = value;
-              } else {
-                objects.push(value);
-                recurse(parent[key], selector[key]);
-              }
-            }
-          }
-        })(parent, selector, context);
-      }
-      return parent;
-    },
-    promise(selector, context) {
-      const messageElem = $.his.elem.statusbar ? $('span').parent($.his.elem.statusbar.main).text(selector) : null;
-      // $().progress(1, 1);
-      // const progressElem = $.his.elem.statusbar.progress;
-      // progressElem.elem.max += 1;
-      // progressElem.elem.value = (progressElem.elem.value || 0) + 1;
-      if (Aim.LOGPROMISE) {
-        console.debug(selector, 'start');
-      }
-      return new Promise( context )
-      .then( result => {
-        // $().progress(-1, -1);
-        if (messageElem) {
-          messageElem.remove();
-        }
-        if (Aim.LOGPROMISE) {
-          console.debug(selector, 'end');
-        }
-        return result;
-      })
-      .catch(err => {
-        // $().progress(-1, -1);
-        if (messageElem) {
-          messageElem.text(selector, err).css('color','red');
-        }
-        throw err;
-      })
-    },
-    handleData(data){
-      return $.promise( 'handle data', async resolve => {
-        // console.debug('handleData');
-        if (data.path){
-          $().url(data.path).setmethod(data.method).exec();
-        }
-        const body = data.body;
-        if (body){
-          const reindex = [];
-          function handleData(data) {
-            // console.debug('handleData', data);
-            if (data.method === 'patch'){
-              const body = data.body;
-              const itemId = body.ID || data.ID;
-              if ($.his.map.has(itemId)) {
-                const item = $.his.map.get(itemId);
-                if (body.Master) {
-                  const parentID = body.Master.LinkID;
-                  const index = body.Master.Data;
-                  const parent = $.his.map.get(parentID);
-                  if (item) {
-                    if (item.parent) {
-                      if (item.parent !== parent && item.elemTreeLi) {
-                        // DEBUG: MAX FOUT
-                        // item.parent.items.splice(item.parent.items.indexOf(item), 1);
-                        item.elemTreeLi.elem.remove();
-                        reindex.push(item.parent);
-                      }
-                      // if (item.elemTreeLi) {
-                      // }
-                    }
-                    // const master = [].concat(item.data.Master).shift();
-                    // master.LinkID = parentID;
-                    // master.Data = index;
-                    if (parent && parent.items) {
-                      if (!parent.items.includes(item)) {
-                        // parent.items.push(item);
-                      }
-                      reindex.push(parent);
-                    }
-                  }
-                }
-                Object.entries(body).forEach(entry=>item.attr(...entry));
-                item.refresh();
-              }
-            }
-          }
-          if (body.requests){
-            body.requests.forEach(handleData)
-          } else {
-            handleData(data);
-          }
-          reindex.unique().forEach(parent => parent ? parent.reindex() : null);
-        }
-        resolve();
-        //
-        //
-        //
-        // // console.debug('handleRequest', req);
-        // if (req.method && req.method.toLowerCase() === 'patch'){
-        //   const [tag] = req.path.match(/\w+\(\d+\)/);
-        //   const item = Item.get(tag);
-        //   if (item){
-        //     for (let [attributeName, value] of Object.entries(req.body)){
-        //       if (item.properties[attributeName].setValue){
-        //         item.properties[attributeName].setValue(value);
-        //       }
-        //       // console.debug(item, tag, attributeName, value, item.properties[attributeName]);
-        //     }
-        //   }
-        // } else {//if (isModule){
-        //   // isModule foorwaarde is opgenomen zodat bericht niet gaat rondzingen.
-        //   for (var name in req){
-        //     if (typeof $[name] === 'function'){
-        //       $[name].apply(this, req[name]);
-        //     }
-        //   }
-        //   try {
-        //     console.error('DO FORWARD', isModule, req);
-        //
-        //     if (req.body){
-        //       $.handleAimItems(req.body);
-        //     }
-        //
-        //
-        //
-        //
-        //     $.forward = req.forward;
-        //     // $().exec(req, res => {
-        //     // 	res.id = req.id;
-        //     // });
-        //   } catch (err){
-        //     console.error(err)
-        //   }
-        //   $.forward = null;
-        //   if (req.message_id && $.WebsocketClient.requests[req.message_id]){
-        //     $.WebsocketClient.requests[req.message_id](req);
-        //   }
-        // }
-        // $().emit('message', req);
-        // return;
-        //
-      });
-    },
-    log() {
-      if (window.document && document.getElementById('console')) {
-        $('console').append($('div').text(...arguments))
-      } else if ($().statusElem) {
-        $().statusElem.text(...arguments);
-      } else {
-        console.msg(...arguments)
-      }
-      return arguments;
     },
     clipboard: {
   		undo: function() {
@@ -6414,7 +5852,435 @@ eol = '\n';
       // // window.removeEventListener('copy', el, true);
     },
   	},
-		maps() {
+    config: {
+      listAttributes: 'header0,header1,header2,name,schemaPath,Master,Src,Class,Tagname,InheritedID,HasChildren,HasAttachements,State,Categories,CreatedDateTime,LastModifiedDateTime,LastVisitDateTime,StartDateTime,EndDateTime,FinishDateTime',
+      trackLocalSessionTime: 5000, // timeout between tracking local cookie login session
+      trackSessionTime: 30000, // timeout between tracking login session
+      debug: 1,
+      minMs: 60000,
+      auth: {
+        url: 'https://login.aliconnect.nl/api/oauth',
+      },
+      cache: {
+        cacheLocation: "localStorage",
+        storeAuthStateInCookie: false,
+        forceRefresh: false
+      },
+      clients: [],
+      url: 'https://aliconnect.nl/api',
+      app: {
+        url: 'https://aliconnect.nl',
+      },
+      ref: {
+        home: 'https://aliconnect.nl/wiki',
+      }
+    },
+    const: {
+      prompt: {
+        menu: {
+          prompts: [
+            // 'qrscan',
+            'lang',
+            // 'chat',
+            // 'msg',
+            // 'task',
+            // 'shop',
+            'config',
+            'help',
+          ]
+        },
+        config: {
+          prompts: [
+            // 'upload_datafile',
+            // 'import_outlook_mail',
+            // 'import_outlook_contact',
+            // 'account_create',
+            // 'account_domain',
+            'account_config',
+            // 'sitemap',
+            // 'get_api_key',
+            'get_aliconnector_key',
+            'verwerkingsregister',
+          ]
+        },
+      },
+      languages: {
+        ab:{iso:'Abkhazian', native:'аҧсуа бызшәа, аҧсшәа'},
+        aa:{iso:'Afar', native:'Afaraf'},
+        af:{iso:'Afrikaans', native:'Afrikaans'},
+        ak:{iso:'Akan', native:'Akan'},
+        sq:{iso:'Albanian', native:'Shqip'},
+        am:{iso:'Amharic', native:'አማርኛ'},
+        ar:{iso:'Arabic', native:'العربية'},
+        an:{iso:'Aragonese', native:'aragonés'},
+        hy:{iso:'Armenian', native:'Հայերեն'},
+        as:{iso:'Assamese', native:'অসমীয়া'},
+        av:{iso:'Avaric', native:'авар мацӀ, магӀарул мацӀ'},
+        ae:{iso:'Avestan', native:'avesta'},
+        ay:{iso:'Aymara', native:'aymar aru'},
+        az:{iso:'Azerbaijani', native:'azərbaycan dili'},
+        bm:{iso:'Bambara', native:'bamanankan'},
+        ba:{iso:'Bashkir', native:'башҡорт теле'},
+        eu:{iso:'Basque', native:'euskara, euskera'},
+        be:{iso:'Belarusian', native:'беларуская мова'},
+        bn:{iso:'Bengali', native:'বাংলা'},
+        bh:{iso:'Bihari languages', native:'भोजपुरी'},
+        bi:{iso:'Bislama', native:'Bislama'},
+        bs:{iso:'Bosnian', native:'bosanski jezik'},
+        br:{iso:'Breton', native:'brezhoneg'},
+        bg:{iso:'Bulgarian', native:'български език'},
+        my:{iso:'Burmese', native:'ဗမာစာ'},
+        ca:{iso:'Catalan, Valencian', native:'català, valencià'},
+        ch:{iso:'Chamorro', native:'Chamoru'},
+        ce:{iso:'Chechen', native:'нохчийн мотт'},
+        ny:{iso:'Chichewa, Chewa, Nyanja', native:'chiCheŵa, chinyanja'},
+        zh:{iso:'Chinese', native:'中文 (Zhōngwén), 汉语, 漢語'},
+        cv:{iso:'Chuvash', native:'чӑваш чӗлхи'},
+        kw:{iso:'Cornish', native:'Kernewek'},
+        co:{iso:'Corsican', native:'corsu, lingua corsa'},
+        cr:{iso:'Cree', native:'ᓀᐦᐃᔭᐍᐏᐣ'},
+        hr:{iso:'Croatian', native:'hrvatski jezik'},
+        cs:{iso:'Czech', native:'čeština, český jazyk'},
+        da:{iso:'Danish', native:'dansk'},
+        dv:{iso:'Divehi, Dhivehi, Maldivian', native:'ދިވެހި'},
+        nl:{iso:'Dutch, Flemish', native:'Nederlands, Vlaams'},
+        dz:{iso:'Dzongkha', native:'རྫོང་ཁ'},
+        en:{iso:'English', native:'English'},
+        eo:{iso:'Esperanto', native:'Esperanto'},
+        et:{iso:'Estonian', native:'eesti, eesti keel'},
+        ee:{iso:'Ewe', native:'Eʋegbe'},
+        fo:{iso:'Faroese', native:'føroyskt'},
+        fj:{iso:'Fijian', native:'vosa Vakaviti'},
+        fi:{iso:'Finnish', native:'suomi, suomen kieli'},
+        fr:{iso:'French', native:'français, langue française'},
+        ff:{iso:'Fulah', native:'Fulfulde, Pulaar, Pular'},
+        gl:{iso:'Galician', native:'Galego'},
+        ka:{iso:'Georgian', native:'ქართული'},
+        de:{iso:'German', native:'Deutsch'},
+        el:{iso:'Greek, Modern (1453-)', native:'ελληνικά'},
+        gn:{iso:'Guarani', native:'Avañe\'ẽ'},
+        gu:{iso:'Gujarati', native:'ગુજરાતી'},
+        ht:{iso:'Haitian, Haitian Creole', native:'Kreyòl ayisyen'},
+        ha:{iso:'Hausa', native:'(Hausa) هَوُسَ'},
+        he:{iso:'Hebrew', native:'עברית'},
+        hz:{iso:'Herero', native:'Otjiherero'},
+        hi:{iso:'Hindi', native:'हिन्दी, हिंदी'},
+        ho:{iso:'Hiri Motu', native:'Hiri Motu'},
+        hu:{iso:'Hungarian', native:'magyar'},
+        ia:{iso:'Interlingua (International Auxiliary Language Association)', native:'Interlingua'},
+        id:{iso:'Indonesian', native:'Bahasa Indonesia'},
+        ie:{iso:'Interlingue, Occidental', native:'(originally:) Occidental, (after WWII:) Interlingue'},
+        ga:{iso:'Irish', native:'Gaeilge'},
+        ig:{iso:'Igbo', native:'Asụsụ Igbo'},
+        ik:{iso:'Inupiaq', native:'Iñupiaq, Iñupiatun'},
+        io:{iso:'Ido', native:'Ido'},
+        is:{iso:'Icelandic', native:'Íslenska'},
+        it:{iso:'Italian', native:'Italiano'},
+        iu:{iso:'Inuktitut', native:'ᐃᓄᒃᑎᑐᑦ'},
+        ja:{iso:'Japanese', native:'日本語 (にほんご)'},
+        jv:{iso:'Javanese', native:'ꦧꦱꦗꦮ, Basa Jawa'},
+        kl:{iso:'Kalaallisut, Greenlandic', native:'kalaallisut, kalaallit oqaasii'},
+        kn:{iso:'Kannada', native:'ಕನ್ನಡ'},
+        kr:{iso:'Kanuri', native:'Kanuri'},
+        ks:{iso:'Kashmiri', native:'कश्मीरी, كشميري‎'},
+        kk:{iso:'Kazakh', native:'қазақ тілі'},
+        km:{iso:'Central Khmer', native:'ខ្មែរ, ខេមរភាសា, ភាសាខ្មែរ'},
+        ki:{iso:'Kikuyu, Gikuyu', native:'Gĩkũyũ'},
+        rw:{iso:'Kinyarwanda', native:'Ikinyarwanda'},
+        ky:{iso:'Kirghiz, Kyrgyz', native:'Кыргызча, Кыргыз тили'},
+        kv:{iso:'Komi', native:'коми кыв'},
+        kg:{iso:'Kongo', native:'Kikongo'},
+        ko:{iso:'Korean', native:'한국어'},
+        ku:{iso:'Kurdish', native:'Kurdî, کوردی‎'},
+        kj:{iso:'Kuanyama, Kwanyama', native:'Kuanyama'},
+        la:{iso:'Latin', native:'latine, lingua latina'},
+        lb:{iso:'Luxembourgish, Letzeburgesch', native:'Lëtzebuergesch'},
+        lg:{iso:'Ganda', native:'Luganda'},
+        li:{iso:'Limburgan, Limburger, Limburgish', native:'Limburgs'},
+        ln:{iso:'Lingala', native:'Lingála'},
+        lo:{iso:'Lao', native:'ພາສາລາວ'},
+        lt:{iso:'Lithuanian', native:'lietuvių kalba'},
+        lu:{iso:'Luba-Katanga', native:'Kiluba'},
+        lv:{iso:'Latvian', native:'latviešu valoda'},
+        gv:{iso:'Manx', native:'Gaelg, Gailck'},
+        mk:{iso:'Macedonian', native:'македонски јазик'},
+        mg:{iso:'Malagasy', native:'fiteny malagasy'},
+        ms:{iso:'Malay', native:'Bahasa Melayu, بهاس ملايو‎'},
+        ml:{iso:'Malayalam', native:'മലയാളം'},
+        mt:{iso:'Maltese', native:'Malti'},
+        mi:{iso:'Maori', native:'te reo Māori'},
+        mr:{iso:'Marathi', native:'मराठी'},
+        mh:{iso:'Marshallese', native:'Kajin M̧ajeļ'},
+        mn:{iso:'Mongolian', native:'Монгол хэл'},
+        na:{iso:'Nauru', native:'Dorerin Naoero'},
+        nv:{iso:'Navajo, Navaho', native:'Diné bizaad'},
+        nd:{iso:'North Ndebele', native:'isiNdebele'},
+        ne:{iso:'Nepali', native:'नेपाली'},
+        ng:{iso:'Ndonga', native:'Owambo'},
+        nb:{iso:'Norwegian Bokmål', native:'Norsk Bokmål'},
+        nn:{iso:'Norwegian Nynorsk', native:'Norsk Nynorsk'},
+        no:{iso:'Norwegian', native:'Norsk'},
+        ii:{iso:'Sichuan Yi, Nuosu', native:'ꆈꌠ꒿ Nuosuhxop'},
+        nr:{iso:'South Ndebele', native:'isiNdebele'},
+        oc:{iso:'Occitan', native:'occitan, lenga d\'òc'},
+        oj:{iso:'Ojibwa', native:'ᐊᓂᔑᓈᐯᒧᐎᓐ'},
+        cu:{iso:'Church Slavic, Old Slavonic, Church Slavonic, Old Bulgarian, Old Church Slavonic', native:'ѩзыкъ словѣньскъ'},
+        om:{iso:'Oromo', native:'Afaan Oromoo'},
+        or:{iso:'Oriya', native:'ଓଡ଼ିଆ'},
+        os:{iso:'Ossetian, Ossetic', native:'ирон æвзаг'},
+        pa:{iso:'Punjabi, Panjabi', native:'ਪੰਜਾਬੀ, پنجابی‎'},
+        pi:{iso:'Pali', native:'पालि, पाळि'},
+        fa:{iso:'Persian', native:'فارسی'},
+        pl:{iso:'Polish', native:'język polski, polszczyzna'},
+        ps:{iso:'Pashto, Pushto', native:'پښتو'},
+        pt:{iso:'Portuguese', native:'Português'},
+        qu:{iso:'Quechua', native:'Runa Simi, Kichwa'},
+        rm:{iso:'Romansh', native:'Rumantsch Grischun'},
+        rn:{iso:'Rundi', native:'Ikirundi'},
+        ro:{iso:'Romanian, Moldavian, Moldovan', native:'Română'},
+        ru:{iso:'Russian', native:'русский'},
+        sa:{iso:'Sanskrit', native:'संस्कृतम्'},
+        sc:{iso:'Sardinian', native:'sardu'},
+        sd:{iso:'Sindhi', native:'सिन्धी, سنڌي، سندھی‎'},
+        se:{iso:'Northern Sami', native:'Davvisámegiella'},
+        sm:{iso:'Samoan', native:'gagana fa\'a Samoa'},
+        sg:{iso:'Sango', native:'yângâ tî sängö'},
+        sr:{iso:'Serbian', native:'српски језик'},
+        gd:{iso:'Gaelic, Scottish Gaelic', native:'Gàidhlig'},
+        sn:{iso:'Shona', native:'chiShona'},
+        si:{iso:'Sinhala, Sinhalese', native:'සිංහල'},
+        sk:{iso:'Slovak', native:'Slovenčina, Slovenský Jazyk'},
+        sl:{iso:'Slovenian', native:'Slovenski Jezik, Slovenščina'},
+        so:{iso:'Somali', native:'Soomaaliga, af Soomaali'},
+        st:{iso:'Southern Sotho', native:'Sesotho'},
+        es:{iso:'Spanish, Castilian', native:'Español'},
+        su:{iso:'Sundanese', native:'Basa Sunda'},
+        sw:{iso:'Swahili', native:'Kiswahili'},
+        ss:{iso:'Swati', native:'SiSwati'},
+        sv:{iso:'Swedish', native:'Svenska'},
+        ta:{iso:'Tamil', native:'தமிழ்'},
+        te:{iso:'Telugu', native:'తెలుగు'},
+        tg:{iso:'Tajik', native:'тоҷикӣ, toçikī, تاجیکی‎'},
+        th:{iso:'Thai', native:'ไทย'},
+        ti:{iso:'Tigrinya', native:'ትግርኛ'},
+        bo:{iso:'Tibetan', native:'བོད་ཡིག'},
+        tk:{iso:'Turkmen', native:'Türkmen, Түркмен'},
+        tl:{iso:'Tagalog', native:'Wikang Tagalog'},
+        tn:{iso:'Tswana', native:'Setswana'},
+        to:{iso:'Tonga (Tonga Islands)', native:'Faka Tonga'},
+        tr:{iso:'Turkish', native:'Türkçe'},
+        ts:{iso:'Tsonga', native:'Xitsonga'},
+        tt:{iso:'Tatar', native:'татар теле, tatar tele'},
+        tw:{iso:'Twi', native:'Twi'},
+        ty:{iso:'Tahitian', native:'Reo Tahiti'},
+        ug:{iso:'Uighur, Uyghur', native:'ئۇيغۇرچە‎, Uyghurche'},
+        uk:{iso:'Ukrainian', native:'Українська'},
+        ur:{iso:'Urdu', native:'اردو'},
+        uz:{iso:'Uzbek', native:'Oʻzbek, Ўзбек, أۇزبېك‎'},
+        ve:{iso:'Venda', native:'Tshivenḓa'},
+        vi:{iso:'Vietnamese', native:'Tiếng Việt'},
+        vo:{iso:'Volapük', native:'Volapük'},
+        wa:{iso:'Walloon', native:'Walon'},
+        cy:{iso:'Welsh', native:'Cymraeg'},
+        wo:{iso:'Wolof', native:'Wollof'},
+        fy:{iso:'Western Frisian', native:'Frysk'},
+        xh:{iso:'Xhosa', native:'isiXhosa'},
+        yi:{iso:'Yiddish', native:'ייִדיש'},
+        yo:{iso:'Yoruba', native:'Yorùbá'},
+        za:{iso:'Zhuang, Chuang', native:'Saɯ cueŋƅ, Saw cuengh'},
+        zu:{iso:'Zulu', native:'isiZulu'},
+      },
+    },
+    extend(parent, selector, context){
+      if (!selector) {
+        selector = parent;
+        parent = this;
+      }
+      // console.log(111, parent, selector);
+      const objects = [];
+      if (context){
+        Object.entries(context).forEach(entry => Object.defineProperty(parent, ...entry))
+      }
+      if (selector){
+        (function recurse(parent, selector, context){
+          if (parent && selector && selector instanceof Object) {
+            for (let [key, value] of Object.entries(selector)) {
+              if (typeof parent[key] === 'function' && typeof value !== 'function') {
+                // console.log(key, value, parent[key]);
+                parent[key](value)
+              } else if (typeof value === 'function' && !parent.hasOwnProperty(key)) {
+                parent[key] = value;
+                // Object.defineProperty(parent, key, {
+                //   enumerable: false,
+                //   configurable: false,
+                //   writable: false,
+                //   value: value,
+                // });
+              }
+              if (typeof value !== 'object' || Array.isArray(value) || !(key in parent) || objects.includes(value)) {
+                parent[key] = value;
+              } else {
+                objects.push(value);
+                recurse(parent[key], selector[key]);
+              }
+            }
+          }
+        })(parent, selector, context);
+      }
+      return parent;
+    },
+    handleData(data){
+      return $.promise( 'handle data', async resolve => {
+        // console.debug('handleData');
+        if (data.path){
+          $().url(data.path).setmethod(data.method).exec();
+        }
+        const body = data.body;
+        if (body){
+          const reindex = [];
+          function handleData(data) {
+            // console.debug('handleData', data);
+            if (data.method === 'patch'){
+              const body = data.body;
+              const itemId = body.ID || data.ID;
+              if ($.his.map.has(itemId)) {
+                const item = $.his.map.get(itemId);
+                if (body.Master) {
+                  const parentID = body.Master.LinkID;
+                  const index = body.Master.Data;
+                  const parent = $.his.map.get(parentID);
+                  if (item) {
+                    if (item.parent) {
+                      if (item.parent !== parent && item.elemTreeLi) {
+                        // DEBUG: MAX FOUT
+                        // item.parent.items.splice(item.parent.items.indexOf(item), 1);
+                        item.elemTreeLi.elem.remove();
+                        reindex.push(item.parent);
+                      }
+                      // if (item.elemTreeLi) {
+                      // }
+                    }
+                    // const master = [].concat(item.data.Master).shift();
+                    // master.LinkID = parentID;
+                    // master.Data = index;
+                    if (parent && parent.items) {
+                      if (!parent.items.includes(item)) {
+                        // parent.items.push(item);
+                      }
+                      reindex.push(parent);
+                    }
+                  }
+                }
+                Object.entries(body).forEach(entry=>item.attr(...entry));
+                item.refresh();
+              }
+            }
+          }
+          if (body.requests){
+            body.requests.forEach(handleData)
+          } else {
+            handleData(data);
+          }
+          reindex.unique().forEach(parent => parent ? parent.reindex() : null);
+        }
+        resolve();
+        //
+        //
+        //
+        // // console.debug('handleRequest', req);
+        // if (req.method && req.method.toLowerCase() === 'patch'){
+        //   const [tag] = req.path.match(/\w+\(\d+\)/);
+        //   const item = Item.get(tag);
+        //   if (item){
+        //     for (let [attributeName, value] of Object.entries(req.body)){
+        //       if (item.properties[attributeName].setValue){
+        //         item.properties[attributeName].setValue(value);
+        //       }
+        //       // console.debug(item, tag, attributeName, value, item.properties[attributeName]);
+        //     }
+        //   }
+        // } else {//if (isModule){
+        //   // isModule foorwaarde is opgenomen zodat bericht niet gaat rondzingen.
+        //   for (var name in req){
+        //     if (typeof $[name] === 'function'){
+        //       $[name].apply(this, req[name]);
+        //     }
+        //   }
+        //   try {
+        //     console.error('DO FORWARD', isModule, req);
+        //
+        //     if (req.body){
+        //       $.handleAimItems(req.body);
+        //     }
+        //
+        //
+        //
+        //
+        //     $.forward = req.forward;
+        //     // $().exec(req, res => {
+        //     // 	res.id = req.id;
+        //     // });
+        //   } catch (err){
+        //     console.error(err)
+        //   }
+        //   $.forward = null;
+        //   if (req.message_id && $.WebsocketClient.requests[req.message_id]){
+        //     $.WebsocketClient.requests[req.message_id](req);
+        //   }
+        // }
+        // $().emit('message', req);
+        // return;
+        //
+      });
+    },
+    his: {
+      map: new Map(),
+      api_parameters: {},
+      handlers: {},
+      classes: {},
+      httpHandlers: {},
+      fav: [],
+      itemsModified: {},
+      items: [],
+      elem: {},
+      mergeState(url) {
+        var documentUrl = new URL(document.location);
+        url = new URL(url, document.location);
+        url.searchParams.forEach((value, key) => documentUrl.searchParams.set(key, value));
+        // documentUrl.hash='';
+        window.history.replaceState('page', '', documentUrl.href.replace(/%2F/g, '/'));
+      },
+      replaceUrl(selector, context){
+      if (window.history){
+        if (typeof selector === 'object'){
+          Object.entries(selector).forEach(entry => arguments.callee(...entry));
+        } else if (arguments.length>1){
+          var url = new URL(document.location);
+          if (context){
+            url.searchParams.set(selector, context);
+          } else {
+            url.searchParams.delete(selector)
+          }
+          url.hash='';
+        } else {
+          var url = new URL(selector, document.location.origin);
+        }
+        url = url.pathname.replace(/^\/\//,'/') + url.search;
+        window.history.replaceState('page', '', url);
+      }
+    },
+    },
+    log() {
+      if (window.document && document.getElementById('console')) {
+        $('console').append($('div').text(...arguments))
+      } else if ($().statusElem) {
+        $().statusElem.text(...arguments);
+      } else {
+        console.msg(...arguments)
+      }
+      return arguments;
+    },
+    maps() {
 			return $.promise( 'maps', resolve => {
 				if (window.google) resolve (window.google.maps);
 				else $('script').parent(document.head)
@@ -6422,2333 +6288,2150 @@ eol = '\n';
 				.on('load', e => resolve (window.google.maps))
 			});
 		},
-    // login(options) {
-    //
-    // },
-    // logout() {
-    //
-    // },
+    object: {
+      isFile(ofile) {
+        return (ofile.type || '').indexOf('image') != -1 || $.string.isImgSrc(ofile.src)
+      },
+    },
+    promise(selector, context) {
+      const messageElem = $.his.elem.statusbar ? $('span').parent($.his.elem.statusbar.main).text(selector) : null;
+      // $().progress(1, 1);
+      // const progressElem = $.his.elem.statusbar.progress;
+      // progressElem.elem.max += 1;
+      // progressElem.elem.value = (progressElem.elem.value || 0) + 1;
+      if (Aim.LOGPROMISE) {
+        console.debug(selector, 'start');
+      }
+      return new Promise( context )
+      .then( result => {
+        // $().progress(-1, -1);
+        if (messageElem) {
+          messageElem.remove();
+        }
+        if (Aim.LOGPROMISE) {
+          console.debug(selector, 'end');
+        }
+        return result;
+      })
+      .catch(err => {
+        // $().progress(-1, -1);
+        if (messageElem) {
+          messageElem.text(selector, err).css('color','red');
+        }
+        throw err;
+      })
+    },
+    string: {
+      html(s) {
+        return this.code(s).replace(/(.*?)(&lt;\!--.*?--&gt;|$)/gs, (s,codeString,cmt) => {
+          return codeString
+          .replace(/&lt;(.*?)&gt;/g, (s,p1) => `&lt;${
+            replaceOutsideQuotes(
+              p1.replace(/(\w+)/,'<span class=hl-name>$1</span>')
+              , s => {
+                return s.replace(/ (\w+)(?![^<]*>|[^<>]*<\/)/g,' <span class=hl-attr>$1</span>')
+              }
+            )
+          }&gt;`) + (cmt ? `<span class=hl-comment>${cmt}</span>` : '')
+        })
+      },
+      js(s) {
+        // console.error(s);
+        return this.code(s)
+        .replace(/(.*?)(\/\/.*?\n|\/\*.*?\*\/|$)/gs, (s,codeString,cmt) => {
+          return replaceOutsideQuotes(
+            codeString, codeString => codeString.replace(
+              /\b(class|abstract|arguments|await|boolean|break|byte|case|catch|char|const|continue|debugger|default|delete|do|double|else|enum|eval|export|extends|false|final|finally|float|for|function|goto|if|implements|import|in|instanceof|int|interface|let|long|native|new|null|package|private|protected|public|return|short|static|super|switch|synchronized|this|throw|throws|transient|true|try|typeof|var|void|volatile|while|with|yield|abstract|boolean|byte|char|double|final|float|goto|int|long|native|short|synchronized|throws|transient|volatile)\b(?![^<]*>|[^<>]*<\/)/gi,
+              '<span class=hl-res>$1</span>'
+            )
+            .replace(
+              /\b(Array|Date|eval|function|hasOwnProperty|Infinity|isFinite|isNaN|isPrototypeOf|length|Math|NaN|name|Number|Object|prototype|String|toString|undefined|valueOf)\b/g,
+              '<span class=hl-methods>$1</span>'
+            )
+            .replace(
+              /\b(alert|all|anchor|anchors|area|assign|blur|button|checkbox|clearInterval|clearTimeout|clientInformation|close|closed|confirm|constructor|crypto|decodeURI|decodeURIComponent|defaultStatus|document|element|elements|embed|embeds|encodeURI|encodeURIComponent|escape|e|fileUpload|focus|form|forms|frame|innerHeight|innerWidth|layer|layers|link|location|mimeTypes|navigate|navigator|frames|frameRate|hidden|history|image|images|offscreenBuffering|open|opener|option|outerHeight|outerWidth|packages|pageXOffset|pageYOffset|parent|parseFloat|parseInt|password|pkcs11|plugin|prompt|propertyIsEnum|radio|reset|screenX|screenY|scroll|secure|select|self|setInterval|setTimeout|status|submit|taint|text|textarea|top|unescape|untaint)\b/g,
+              '<span class=hl-prop>$1</span>'
+            )
+            .replace(
+              /\b(onblur|onclick|onerror|onfocus|onkeydown|onkeypress|onkeyup|onmouseover|onload|onmouseup|onmousedown|onsubmit)\b/g,
+              '<span class=hl-events>$1</span>'
+            )
+            .replace(/(\w+)(\s*\()/g, '<span class="hl-fn">$1</span>$2')
+            .replace(/\.(\w+)/g, '.<span class="hl-attr">$1</span>')
+            .replace(/\b([A-Z]\w+)\./g, '<span class="hl-obj">$1</span>.')
+            .replace(/\b(\w+)\./g, '<span class="hl-attr">$1</span>.')
+            .replace(/\b(\d+)\b/g, '<span class="hl-nr">$1</span>')
+          ) + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
+        })
+      },
+      javascript(s) {
+        return this.js(s);
+      },
+      css(s) {
+        return s.replace(/(.*?)(\/\*.*?\*\/|$)/gs, (s,codeString,cmt) => {
+          return replaceOutsideQuotes(
+            codeString, codeString => codeString
+            .replace(/\.(.*)\b/g, '.<span class="hl-obj">$1</span>')
+          ) + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
+        })
+      },
+      json(s) {
+        return s
+        .replace(/"(.*?)":/g, '"<span class="hl-fn">$1</span>":')
+        .replace(/(:\s*)"(.*?)"/g, '$1"<span class="hl-string">$2</span>"')
+      },
+      yaml(s) {
+        return s.replace(/(.*?)(#.*?\n|$)/gs, (s,codeString,cmt) => {
+          return codeString
+          .replace(/^(?=\s*)(.+?):/gm, '<span class="hl-fn">$1</span>:')
+          .replace(/: (.*?)$/gm, ': <span class="hl-string">$1</span>')
+          + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
+        })
+      },
+      php(s) {
+        return s.replace(/(.*?)(\/\/.*?\n|\/\*.*?\*\/|$)/gs, (s,codeString,cmt) => {
+          return replaceOutsideQuotes(
+            codeString, codeString => codeString.replace(
+              /\b(class|abstract|arguments|await|boolean|break|byte|case|catch|char|const|continue|debugger|default|delete|do|double|else|enum|eval|export|extends|false|final|finally|float|for|function|goto|if|implements|import|in|instanceof|int|interface|let|long|native|new|null|package|private|protected|public|return|short|static|super|switch|synchronized|this|throw|throws|transient|true|try|typeof|var|void|volatile|while|with|yield|abstract|boolean|byte|char|double|final|float|goto|int|long|native|short|synchronized|throws|transient|volatile)\b(?![^<]*>|[^<>]*<\/)/gi,
+              '<span class=hl-res>$1</span>'
+            )
+          ) + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
+        })
+      },
+      sql(s) {
+        return s.replace(/(.*?)(--.*?\n|\/\*.*?\*\/|$)/gs, (s,codeString,cmt) => {
+          return replaceOutsideQuotes(
+            codeString, codeString => codeString.replace(
+              /\b(ADD|ADD CONSTRAINT|ALTER|ALTER COLUMN|ALTER TABLE|ALL|AND|ANY|AS|ASC|BACKUP DATABASE|BETWEEN|CASE|CHECK|COLUMN|CONSTRAINT|CREATE|CREATE DATABASE|CREATE INDEX|CREATE OR REPLACE VIEW|CREATE TABLE|CREATE PROCEDURE|CREATE UNIQUE INDEX|CREATE VIEW|DATABASE|DEFAULT|DELETE|DESC|DISTINCT|DROP|DROP COLUMN|DROP CONSTRAINT|DROP DATABASE|DROP DEFAULT|DROP INDEX|DROP TABLE|DROP VIEW|EXEC|EXISTS|FOREIGN KEY|FROM|FULL OUTER JOIN|GROUP BY|HAVING|IN|INDEX|INNER JOIN|INSERT INTO|INSERT|IS NULL|IS NOT NULL|JOIN|LEFT JOIN|LIKE|LIMIT|NOT|NOT NULL|OR|ORDER BY|OUTER JOIN|PRIMARY KEY|PROCEDURE|RIGHT JOIN|ROWNUM|SELECT|SELECT DISTINCT|SELECT INTO|SELECT TOP|SET|TABLE|TOP|TRUNCATE TABLE|UNION|UNION ALL|UNIQUE|UPDATE|VALUES|VIEW|WHERE)\b/gi,
+              '<span class=hl-res>$1</span>'
+            )
+          ) + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
+        })
+      },
+      st(s) {
+        return s.replace(/(.*?)(--.*?\n|\/\*.*?\*\/|$)/gs, (s,codeString,cmt) => {
+          return replaceOutsideQuotes(
+            codeString, codeString => codeString.replace(
+              /\b(PROGRAM|END_PROGRAM|VAR|END_VAR|IF|THEN|ELSEIF|ELSIF|ELSE|END_IF|CASE|OF|END_CASE|FOR|TO|BY|DO|END_FOR|REPEAT|UNTIL|END_REPEAT|WHILE|DO|END_WHILE|EXIT|RETURN|ADD|SQRT|SIN|COS|GT|MIN|MAX|AND|OR|BYTE|WORD|DWORD|LWORD|INTEGER|SINT|INT|DINT|LINT|USINT|UINT|UDINT|ULINT|REAL|REAL|LREAL|TIME|LTIME|DATE|LDATE|TIME_OF_DAY|TOD|LTIME_OF_DAY|LTOD|DATE_AND_TIME|DT|LDATE_AND_TIME|LDT|CHAR|WCHAR|STRING|WSTRING|STRING|ANY|ANY_DERIVED|ANY_ELEMENTARY|ANY_MAGNITUDE|ANY_NUM|ANY_REAL|ANY_INT|ANY_UNSIGNED|ANY_SIGNED|ANY_DURATION|ANY_BIT|ANY_CHARS|ANY_STRING|ANY_CHAR|ANY_DATE|DATE_AND_TIME|DATE_AND_TIME|DATE|TIME_OF_DAY|LTIME_OF_DAY)\b/g,
+              '<span class=hl-res>$1</span>'
+            )
+            .replace(
+              /\b(LEN|CONCAT|LEFT|RIGHT|MID|INSERT|DELETE|REPLACE|FIND|SEL|MAX|MIN|LIMIT|MUX|TP|TON|TOF|R_TRIG|F_TRIG|TRUNC|TRUNC_INT|ROL|ROR|SHL|SHR|CTU|CTD|CTUD|ABS|SQR|LN|LOG|EXP|SIN|COS|TAN|ASIN|ACOS|ATAN|EXPT|NOT|AND|XOR|OR|MOD|BOOL_TO_INT|WORD_TO_DINT|BYTE_TO_REAL|REAL_TO_LREAL|TIME_TO_DINT)\b/g,
+              '<span class=hl-methods>$1</span>'
+            )
+            .replace(
+              /(&lt;|&gt;|&lt;&equals;|&gt;&equals;|&lt;&gt;|:&equals;|&equals;)/g,
+              '<b class=hl-string>$1</b>'
+            )
+            .replace(
+              /\b(BOOL|TRUE|FALSE)\b/gi,
+              '<span class=hl-prop>$1</span>'
+            )
+          ) + (cmt ? `<span class=hl-cmt>${cmt}</span>` : '')
+        })
+      },
+      code(s) {
+        s = s || '';
+        const ident = (s.match(/^ +/)||[''])[0].length;
+        // console.log(s);
+        return s.split(/\n/).map(s => s.slice(ident)).join('\n').trim()
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/=/g, '&equals;')
+        .replace(/\t/g, '  ')
+        .replace(/\^\^(.*?)\^\^/g, '<MARK>$1</MARK>')
+        // .replace(/"/g, '&quot;')
+        // .replace(/'/g, '&apos;')
+      },
+      mdHtml(s){
+        function mdToHtml (s) {
+          return replaceOutsideQuotes(
+            s
+            // .replace(
+            //   /(^|\n)(.*?)(\n\n|$)/gs,
+            //   (s,p1) => {
+            //     console.log('>>>',s);
+            //     return s
+            //     .replace(/^((\*|-|\d+\.) .*?$)/s, (s) => list(s,0))
+            //   }
+            // )
+            .replace(/^# (.*?)$/gm, '<H1>$1</H1>\n')
+            .replace(/^## (.*?)$/gm, '<H2>$1</H2>\n')
+            .replace(/^### (.*?)$/gm, '<H3>$1</H3>\n')
+            .replace(/^#### (.*?)$/gm, '<H4>$1</H4>\n')
+            .replace(/^##### (.*?)$/gm, '<H5>$1</H5>\n')
+            .replace(/^###### (.*?)$/gm, '<H6>$1</H6>\n')
+            .replace(/^####### (.*?)$/gm, '<H7>$1</H7>\n')
+            // .replace(/(^|\n)(\*|-|\d+\.) .*?(?=\n\n|\n$|$)/gs, (s) => list(s,0))
+            .replace(/(^|\n)\s*>( \[\!(\w+)\]| )(.*?)(?=\n\n|$)/gs, (s, prefix, p2, type, content) => prefix + `<BLOCKQUOTE class=${(type||'').toLowerCase()}>${content.replace(/\n\s*> /g,' ')}</BLOCKQUOTE>`)
+            // .replace(/(^|\n)\s*>( \[\!(\w+)\]| )(.*?)(?=\n\n|$)/gs, (s, p1, p2, p3, p4) => console.log([s, p1, p2, p3, p4]))
+
+            // .replace(/(^|\n)\s*> (.+?)(?=\n\n|$)/gs, (s, p1, p2) => p1 + `<BLOCKQUOTE>${p2.replace(/\n> /g,' ')}</BLOCKQUOTE>`)
+
+            .replace(/\[ \](?=(?:(?:[^`]*`){2})*[^`]*$)/g, '&#9744;')
+            .replace(/\[v\](?=(?:(?:[^`]*`){2})*[^`]*$)/g, '&#9745;')
+            .replace(/\[x\](?=(?:(?:[^`]*`){2})*[^`]*$)/g, '&#9745;')
+            .replace(/(^|\n)(.*? \| .*?)\n-+ \| -.*?\n(.*?)(?=\n\n|$)/gs, (s, p1, p2, p3) => `${p1}<TABLE><THEAD><TR><TH>${p2.trim().replace(/ \| /g, '</TH><TH>')}</TH></TR></THEAD><TBODY><TR><TD>${p3.replace(/\n/s, '</TD></TR><TR><TD>').replace(/ \| /g, '</TD><TD>')}</TD></TR></TBODY></TABLE>`)
+            // .replace(/\n\n(.*?)\n\n/, '\n\n<p>$1</p>\n\n')
+            // .replace(/^/, '<p>')
+            // .split(/\n\n/).map(s => s && !s.trim().match(/^</) ? '<p>' + s + '</p>' : s).join('\n')
+            .split(/\n\n/).map(s => s ? '<p>' + s + '</p>' : s).join('\n')
+
+            // .replace(/^(.+?)$/gs, (s,p1) => `<p>${p1.trim().replace(/\n\n/gs, '</p><p>')}</p>`)
+            // .replace(/(^|^\n|\n\n)(.+?)(\n\n|\n$|$)/gs, '$1<p>$2</p>$3')
+
+            .replace(/`(.+?)`/g, (s, p1) => `<CODE>${$.string.code(p1)}</CODE>`),
+
+            s => s
+            .replace(/  \n/gm, '<BR >')
+            .replace(/\!\[(.*?)\]\((.*?)\)(?=(?:(?:[^`]*`){2})*[^`]*$)/g, '<IMG src="$2" alt="$1">')
+            .replace(/\[(.*?)\]\((.*?)\)(?=(?:(?:[^`]*`){2})*[^`]*$)/g, '<A href="$2">$1</A>')
+            .replace(/\*\*(.+?)\*\*/g, '<B>$1</B>')
+            .replace(/\*(.*?)\*/g, '<I>$1</I>')
+            .replace(/__(.*?)__/g, '<B>$1</B>')
+            .replace(/_(.*?)_(?![^<]*>|[^<>]*<\/)/g, '<I>$1</I>')
+            .replace(/~~(.*?)~~/g, '<DEL>$1</DEL>')
+            .replace(/~(.*?)~/g, '<U>$1</U>')
+            .replace(/\^\^(.*?)\^\^/g, '<MARK>$1</MARK>')
+            // .replace(/\n</gs, '<')
+            // .replace(/>\n/gs, '>')
+          , '', '')
+        }
+
+        let identList = [];
+        let html = [];
+        function istr(ident) {
+          return '                '.slice(0,ident);
+        }
+        s = !s ? '' : s
+        .replace(/\r/gs ,'')
+        .split(/\n/)
+        .map((s,i,arr) => {
+          let pre = '';
+          if (s || i === arr.length - 1 ) {
+            const lineIdent = (s.match(/^ +/)||[''])[0].length;
+            const match = s.trim().match(/^(\*|-|\d+\.) /);
+            (function setIdent() {
+              let identOptions = identList[0];
+              if (identOptions) {
+                if (lineIdent < identOptions.ident || (lineIdent === identOptions.ident && !match)) {
+                  pre += `</li></${identOptions.tag}>\n`;
+                  identList.shift();
+                  setIdent();
+                } else if (identOptions.ident === lineIdent) {
+                  pre += '</li>\n';
+                }
+              }
+              if (match) {
+                if (!identOptions || identOptions.ident < lineIdent) {
+                  identOptions = {ident: lineIdent, tag: s.trim().match(/^(\*|-) /) ? 'ul' : 'ol'};
+                  identList.unshift(identOptions);
+                  pre += `<${identOptions.tag}>\n`;
+                }
+              }
+            })();
+            s = s.replace(/^\s*(\*|-|\d+\.) /, '<li>');
+          }
+          // console.log(pre + s);
+          return pre + s;
+        })
+        .join('\n')
+        .replace(/:::(\w+)(.*?):::/gs, '<$1$2></$1>')
+        .replace(/(.*?)(```(.*?)\n(.*?)```|$)/gs, (s,md,s2,type,codeString) => {
+          s = mdToHtml(md);
+          if (codeString) {
+            codeString = this.code(codeString);
+            if (type) {
+              typeToLowerCase = type.toLowerCase();
+              // console.error(7777, typeToLowerCase);
+              codeString = $.string[typeToLowerCase] ? $.string[typeToLowerCase](codeString) : codeString;
+              s += `<div class="code-header row" ln="${type}"><span class="aco">${type}</span></div>`;
+            }
+            s += `<div class="code ${type ? type : ''}">${codeString}</div>`;
+          }
+          return s;
+        })
+        // console.log(s);
+        return s;
+      },
+      isImg(src) {
+        return src.match(/jpg|png|bmp|jpeg|gif|bin/i)
+      },
+      isImgSrc(src) {
+        if (src) for (var i = 0, ext; ext = ['.jpg', '.png', '.bmp', '.jpeg', '.gif', '.bin'][i]; i++) if (src.toLowerCase().indexOf(ext) != -1) return true;
+        return false;
+      },
+    },
   });
   if (!window.document) {
     require("./node.js");
     setTimeout(async e => await $().emit('load') && await $().emit('ready'));
     return module.exports = $;
   }
-  Object.assign(Aim, {
-    libraries: {
-      sw() {
-        // return;
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.addEventListener('message', e => {
-            console.log('MESSAGE', e);
-            if (e.data && e.data.url) {
-              const url = new URL(e.data.url);
-              document.location.href = '#' + url.pathname + url.search;
-            }
-            // alert('sadfasdfa');
-            // window.focus();
-          });
-          navigator.serviceWorker.register('sw.js', { scope: '/' }).then(function(registration) {
-            // console.log('Registration successful, scope is:', registration.scope, navigator.serviceWorker);
-            $().sw = registration;
-            return;
-            // registration.showNotification('sfasdfa');
-            registration.pushManager
-            .subscribe({ userVisibleOnly: true })
-            .then(function(sub) {
-              // From your client pages:
-              const channel = new BroadcastChannel('sw-messages');
-              channel.addEventListener('message', e => {
-                console.log('Received', e.data);
-              });
-              console.log('SW', sub);
-              // $().sw = registration.active;
-              $().sw.active.postMessage(
-                JSON.stringify({
-                  hostname: document.location.hostname,
-                  // device_id: $.his.cookie.device_id,
-                  // access_token: $.his.cookie.access_token,
-                  // id_token: $.his.cookie.id_token,
-                  // refresh_token:$.his.cookie.refresh_token,
-                }),
-              );
-              // //console.log("Posted message");
-            });
-          })
-          .catch(function(error) {
-            // //console.log('Service worker registration failed, error:', error);
-          });
-        }
-      },
-      web() {
-        // console.log('WEB');
-        // const el = document.createElement('link');
-        // el.rel = 'stylesheet';
-        // el.href = 'https://aliconnect.nl/v1/api/css/web.css';
-        // document.head.appendChild(el);
-        // function require(){};
-        $.his.openItems = $.his.openItems ? $.his.openItems.split(',') : [];
-        window.console = window.console || { log: function() { } };
-        window.Object = window.Object || {
-          assign: function(dest) {
-            for (var i = 1, source; source = arguments[i]; i++) for (var name in source) dest[name] = source[name];
-            return dest;
-          },
-          values: function(obj) {
-            var arr = [];
-            for (var name in obj) arr.push(obj[name]);
-            return arr;
-          }
-        };
-        (function(arr) {
-          arr.forEach(function(item) {
-            if (item.hasOwnProperty('append')) {
-              return;
-            }
-            Object.defineProperty(item, 'append', {
-              configurable: true,
-              enumerable: true,
-              writable: true,
-              value: function append() {
-                const argArr = Array.prototype.slice.call(arguments);
-                const docFrag = document.createDocumentFragment();
-                argArr.forEach(function(argItem) {
-                  const isNode = argItem instanceof Node;
-                  docFrag.appendChild(isNode ? argItem : document.createTextNode(String(argItem)));
-                });
-                this.appendChild(docFrag);
-              }
-            });
-          });
-        })([Element.prototype, Document.prototype, DocumentFragment.prototype]);
-        let match = document.location.pathname.match(/(.*)(api|docs|omd|om)(?=\/)/);
-        if (match) {
-          $.basePath = match[0];
-        }
-        localAttr.set = function(id, selector, context) {
-          localAttr[id] = localAttr[id] || {};
-          if (context === null) {
-            delete localAttr[id][selector];
-          } else {
-            localAttr[id][selector] = context;
-          }
-          window.localStorage.setItem('attr', JSON.stringify(localAttr));
-        };
-        $(document.documentElement).attr('lang', navigator.language);
-        $().on('ready', async e => {
-          //console.log('web ready');
-          $.prompt($.prompts);
+  Aim.prompt = function prompt(selector, context) {
+    if (selector instanceof Object) {
+      return Object.entries(selector).forEach(entry => $.prompt(...entry));
+    }
+    const is = $.his.map.has('prompt') ? $('prompt') : $('section').parent(document.body).class('prompt').id('prompt').append(
+      $('button').class('abtn abs close').attr('open', '').on('click', e => $().prompt(''))
+    );
+    // const prompts = $.his.prompt = $.his.prompt || new Map();
+    // if (!is.elem) return;
+    if (context) {
+      return (this.prompts[selector] = context).elem = $('div')
+      .parent(is)
+      .class('col', selector)
+      // .attr('id', selector)
+      .on('open', typeof context === 'function' ? context : function () {
+        // console.log('OPEN', this, selector);
+        this.is.text('').append(
+          $('h1').ttext(selector),
+          $('form').class('col')
+          .properties(context.properties)
+          .btns(context.btns),
+        )
+      });
+    }
 
-          // await $().emit('ready');
-          // //console.log('web ready2',$(), $().ws());
-          // $.prompt('TEST', e => {
-          // 	alert(1);
-          // });
-          // $.prompt('TEST');
-          // return;
-          // initConfigCss();
-          loadStoredCss();
-          // loadStoredAttr();
-          // initAllSeperators()
-          if (document.getElementById('colpage')) {
-            Object.assign(document.getElementById('colpage'), {
-              cancel(e) {
-                //console.log('PAGE CANCEL', this);
-              },
-              keydown: {
-                F2(e) {
-                  if (this.item) {
-                    this.item.PageEditElement()
-                  }
-                }
-              },
-            });
+    is.attr('open', selector ? selector : null);
+    $.his.replaceUrl('prompt', selector);
+    // const dialog = selector && $.his.map.has(promptSelector) ? $.his.map.get(promptSelector) : null;
+    if (this.prompts[selector]) {
+      const prompt = this.prompts[selector];
+      const promptElem = prompt.elem;
+      const promptElement = promptElem.elem;
+      console.log('prompt', prompt);
+      const index = promptElem ? [...is.elem.children].indexOf(promptElem.elem) : 0;
+      [...is.elem.children].filter(elem => elem !== promptElement && elem.innerText).forEach(elem => setTimeout(() => elem.innerText = '', 100));
+      [...is.elem.children].forEach((elem, i) => $(elem).attr('pos', i < index ? 'l' : 'r'));
+      if (promptElem && promptElem.attr) {
+        clearTimeout(this.promptTimeout);
+        this.promptTimeout = setTimeout(() => promptElem.attr('pos', 'm'));
+        // console.warn(selector, context);
+        promptElem.emit('open');
+        return promptElem;
+      }
+    }
+    return this;
+  };
+  const libraries = Aim.libraries = {
+    start() {
+      // console.log('START');
+      return;
+      if ($.user) $().dashboard();
+      else $().home();
+    },
+    sw() {
+      // return;
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', e => {
+          console.log('MESSAGE', e);
+          if (e.data && e.data.url) {
+            const url = new URL(e.data.url);
+            document.location.href = '#' + url.pathname + url.search;
           }
-          // //console.log('AFTER READY', document.location.hostname);
-          // setTimeout(() => {
-          //   //console.log('web after ready')
-          //   $(window).emit('popstate');
-          //   $(window).emit('focus');
-          // })
-          //console.log('web ready done')
+          // alert('sadfasdfa');
+          // window.focus();
         });
-        // this.sw();
-      },
-      _om() {
-        // console.error('OM');
-        function childObject(object, schemaname) {
-          // console.log(schemaname);
-          if (object) {
-            const obj = Object.fromEntries(Object.entries(object).filter(([name, obj]) => typeof obj !== 'object'));
-            obj.children = Object
-            .entries(object)
-            .filter(([name, obj]) => typeof obj === 'object')
-            .map(([name, obj]) => Item.get(Object.assign({
-              schema: schemaname,
-              name: name,
-              title: name.replace(/^\d+[-| ]/,'')
-            }, childObject(obj, schemaname))));
-            return obj;
-          }
-        }
-        $().on({
-          async load() {
-            ($().server = $().server || {}).url = $().server.url || ('//' + document.location.hostname.split('.')[0] + '.aliconnect.nl/api');
-            if (!$().client_id) {
-              await $().url($().server.url+'/').get().then(e => {
-                $.config = e.body;
-                $.his.api_parameters = {};
-                (function loadpar(arr, path = '') {
-                  if (arr) {
-                    for (let [key,value] of Object.entries(arr)) {
-                      if (typeof value === 'object') {
-                        loadpar(value, `${path}${key}-`);
-                      } else {
-                        // console.log(`%${path}${key}%`,value);
-                        $.his.api_parameters[`%${path}${key}%`] = value;
-                      }
-                    }
-                  }
-                })(e.body);
-              }).catch(console.error);
-              // console.warn(1, app.api('/').toString());
-              // await $().url($().server.url+'/').get().then(e => console.log(JSON.stringify(JSON.parse(e.target.responseText),null,2).replace(/"(\w+)"(?=: )/gs,'$1'))).catch(console.error);
-            }
-            $(document.documentElement).class('app');
-            $(document.body).class('col aim om bg').id('body').append(
-              $.his.elem.navtop = $('header').id('navtop').class('row top bar noselect np').append(
-                $.his.elem.menu = $('a').class('abtn icn menu').on('click', e => {
-                  if ($.his.elem.menuList && $.his.elem.menuList.style()) {
-                    $.his.elem.menuList.style('');
-                  } else {
-                    if ($.his.elem.menuList) $.his.elem.menuList.style('display:none;');
-                    $(document.body).attr('tv', document.body.hasAttribute('tv') ? $(document.body).attr('tv')^1 : 0)
-                  }
-                }),
-                $('a').class('title').id('toptitle').on('click', e => $().start() ),
-                $('form').class('search row aco')
-                .on('submit', e => {
-                  const value = $.searchValue = e.target.search.value;
-                  var result = value
-                  ? [...$.props.values()]
-                  .filter(item => item instanceof Item)
-                  .unique()
-                  .filter(item => item.header0 && value.split(' ').every(value => [item.header0,item.name].join(' ').match(new RegExp(`\\b${value}\\b`, 'i'))))
-                  : [];
-                  $().list(result);
-                  return false;
-                })
-                .append(
-                  $('input').name('search').autocomplete('off').placeholder('zoeken'),
-                  $('button').class('abtn icn search fr').title('Zoeken'),
-                ),
-                $('a').class('abtn icn dark').dark(),
-              ),
-              $('section').id('section_main').class('row aco main section_main').append(
-                $('section').tree().id('tree').css('max-width', $().storage('tree.width') || '200px'),
-                // .append(
-                //   this.elemToggleButtonTreeview = $('div').class('toggle-button left').append(
-                //     $('div').class('toggle-button-inner left').append(
-                //       $('span').class('icon icon-shevron-left')
-                //     ).on('click', e => {
-                //       $(document.body).attr('tv', $(document.body).attr('tv')^1);
-                //     })
-                //   )
-                // )
-                // .on('mouseenter', e => {
-                //   console.log('mouseenter');
-                //   clearTimeout(this.to);
-                //   this.elemToggleButtonTreeview.attr('visible', '')
-                // })
-                // .on('mouseleave', e => {
-                //   this.to = setTimeout(() => this.elemToggleButtonTreeview.attr('visible', null), 1000);
-                //   // $(e.target).
-                //   // $('div').class('toggle-button-visible')
-                // }),
-                $('div').seperator(),
-                $('section').id('list').list(),
-                $('div').seperator('right'),
-                $('section').id('view').class('col aco apv printcol').css('max-width', $().storage('view.width') || '600px'),
-                $('section').id('preview').class('col aco apv info'),
-                $('section').class('row aco doc').id('doc'),
-                $('section').class('prompt').id('prompt').tabindex(-1).append(
-                  $('button').class('abtn abs close').attr('open', '').tabindex(-1).on('click', e => $().prompt(''))
-                ),
-              ),
-              $('footer').statusbar(),
+        navigator.serviceWorker.register('sw.js', { scope: '/' }).then(function(registration) {
+          // console.log('Registration successful, scope is:', registration.scope, navigator.serviceWorker);
+          $().sw = registration;
+          return;
+          // registration.showNotification('sfasdfa');
+          registration.pushManager
+          .subscribe({ userVisibleOnly: true })
+          .then(function(sub) {
+            // From your client pages:
+            const channel = new BroadcastChannel('sw-messages');
+            channel.addEventListener('message', e => {
+              console.log('Received', e.data);
+            });
+            console.log('SW', sub);
+            // $().sw = registration.active;
+            $().sw.active.postMessage(
+              JSON.stringify({
+                hostname: document.location.hostname,
+                // device_id: $.his.cookie.device_id,
+                // access_token: $.his.cookie.access_token,
+                // id_token: $.his.cookie.id_token,
+                // refresh_token:$.his.cookie.refresh_token,
+              }),
             );
-            $(document.body).messagesPanel();
-            // console.log(document.location.hostname.split('.')[0]);
-            // console.warn($().server.url, $());
-            await $().translate();
-            // await $().getApi(document.location.origin+'/api/');
-            await $().login();
-            // $().extend($.config);
-            // console.log(app);
-            if (app.sub) {
-              await $().url($().server.url+`/../config/${app.sub}/config.json`).get().then(e => {
-                $($.config).extend(app.api_user = e.body);
-              }).catch(err => {
-                app.api_user = {};
-              });
-              $().extend($.config);
-              // await $().url($().server.url+`/config/${app.sub}/api.json`).get().then(e => $().extend(e.body));
-              if ('Notification' in window) {
-                var permission = Notification.permission;
-                // const notificationPermission = Notification.permission.toString();
-                // console.log('Notification', permission);
-                if (Notification.permission === 'default') {
-                  $.his.elem.navtop.append(
-                    $('a').class('abtn').text('Notifications').on('click', e => Notification.requestPermission())
-                  )
-                }
-                // if (!['denied','granted'].includes(Notification.permission)) {
-                //   this.elemNavtop.append(
-                //     // $('a').class('abtn').test('Notifications').on('click', e => Notification.requestPermission())
-                //   )
-                // }
-              }
-              $.his.elem.navtop
-              .prompts(...$.const.prompt.menu.prompts)
-              .append(
-                $.his.elem.account = $('a').class('abtn account').caption('Account').href('#?prompt=account').draggable(),
-              );
-              if ($().menu) {
-                $().menuChildren = childObject($().menu).children;
-                $().tree(...$().menuChildren);
-              }
-              if ($.aud = await $(`/Company(${app.aud})`).details()) {
-                $().tree($.aud)
-              }
-              if ($.user = await $(`/Contact(${app.sub})`).details()) {
-                $().tree($.user);
-                await app.api(`/`).query('request_type','visit').get().then(e => $.his.items = e.body);
-                $.his.elem.account.item($.user, 'accountElem');
-                $.user.emit('change');
-                if ($.user.data.mse_access_token) {
-                  $()
-                  .schemas('msaEvent', {
-                    properties: {
-                      title: {
-                        get() {
-                          // console.log(this);
-                          return this.data.start ? `${this.data.start.dateTime} ${this.data.start.endTime}` : '';
-                        },
-                      },
-                      subject: {},
-                      summary: {
-                        get(){
-                          // console.log(this);
-                          return `${this.data.organizer.emailAddress.name} (${this.data.organizer.emailAddress.address})`;
-                        },
-                      },
-                      // "@odata.etag": {},
-                      // id: {},
-                      start: {},
-                      end: {},
-                      organizer: {}
-                    }
-                  })
-                  .schemas('msaContact', {
-                    // title() {
-                    //   return this.combine('displayName');
-                    // },
-                    // subject() {
-                    //   return this.combine('givenName,firstName,middleName,lastName,companyName');
-                    // },
-                    header: [
-                      ['DisplayName'],
-                      ['GivenName','FirstName','MiddleName','LastName','CompanyName'],
-                      [],
-                    ],
-                    // filterfieldnames: 'Surname,CompanyName',
-                    properties: {
-                      // "@odata.etag": {},
-                      // id: {},
-                      // createdDateTime: {},
-                      // lastModifiedDateTime: {},
-                      // changeKey: {},
-                      // parentFolderId: {},
-                      // fileAs: {},
-                      // categories: {},
-                      DisplayName: {
-                        legend: 'Personalia',
-                      },
-                      Initials: {
-                      },
-                      GivenName: {
-                      },
-                      MiddleName: {
-                      },
-                      Surname: {
-                      },
-                      Title: {
-                      },
-                      nickName: {
-                      },
-                      // yomiGivenName: {},
-                      // yomiSurname: {},
-                      // yomiCompanyName: {},
-                      // imAddresses: {},
-                      companyName: {
-                        legend: 'Business',
-                      },
-                      department: {
-                      },
-                      officeLocation: {
-                      },
-                      profession: {
-                      },
-                      jobTitle: {
-                      },
-                      assistantName: {
-                      },
-                      manager: {
-                      },
-                      businessHomePage: {
-                      },
-                      emailAddresses: {
-                        legend: 'Contact',
-                      },
-                      mobilePhone: {
-                      },
-                      businessPhones: {
-                      },
-                      businessAddress: {
-                      },
-                      otherAddress: {
-                      },
-                      homePhones: {
-                        legend: 'Personal',
-                      },
-                      homeAddress: {
-                      },
-                      birthday: {
-                      },
-                      spouseName: {
-                      },
-                      children: {
-                      },
-                      generation: {
-                      },
-                      personalNotes: {
-                      },
-                    }
-                  })
-                  .schemas('msaMessage', {
-                    title() {
-                      return this.data.from ? (this.data.from.emailAddress.name ? this.data.from.emailAddress.name : this.data.from.emailAddress.address) : '';
-                    },
-                    subject() {
-                      return this.data.subject;
-                    },
-                    bodyPreview() {
-                      return this.data.bodyPreview;
-                    },
-                    properties: {
-                      // "@odata.etag": {},
-                      // createdDateTime: {},
-                      // lastModifiedDateTime: {},
-                      // id: {},
-                      // changeKey: {},
-                      // hasAttachments: {},
-                      // isDeliveryReceiptRequested: {},
-                      // isReadReceiptRequested: {},
-                      // isRead: {},
-                      // isDraft: {},
-                      // flag: {},
-                      // bodyPreview: {},
-                      // parentFolderId: {},
-                      // conversationId: {},
-                      // conversationIndex: {},
-                      // internetMessageId: {},
-                      // receivedDateTime: {},
-                      // sentDateTime: {},
-                      // importance: {},
-                      // inferenceClassification: {},
-                      // from: {},
-                      // sender: {},
-                      // toRecipients: {},
-                      // ccRecipients: {},
-                      // bccRecipients: {},
-                      // replyTo: {},
-                      // webLink: {},
-                      // categories: {},
-                      subject: {},
-                      body: {},
-                    }
-                  })
-                  .schemas('msaNotebook', {
-                    properties: {
-                      title: {
-                        get: 'displayName',
-                      },
-                      summary: {
-                        get() {
-                          return `${this.data.lastModifiedDateTime} ${this.data.lastModifiedBy.user.displayName}`
-                        },
-                      },
-                      // createdDateTime: {},
-                      // createdBy: {},
-                      // lastModifiedDateTime: {},
-                      // lastModifiedBy: {},
-                      // id: {},
-                      isDefault: {},
-                      isShared: {},
-                      self: {},
-                      displayName: {},
-                      userRole: {},
-                      sectionsUrl: {},
-                      sectionGroupsUrl: {},
-                      links: {}
-                    }
-                  });
-                  $().tree(...childObject({
-                    Outlook: {
-                      Contacts: {
-                        onclick: e => $().msa().getContacts(),
-                      },
-                      Events: {
-                        onclick: e => $().msa().getEvents(),
-                      },
-                      Messages: {
-                        onclick: e => $().msa().getMessages(),
-                      },
-                      Notes: {
-                        onclick: e => $().msa().getNotes(),
-                      },
-                    }
-                  }).children);
-                }
-              }
-              // $().url('https://aliconnect.nl/api/').query('request_type', 'build_doc').get().then(e => {
-              //   console.log('DOCBUILD', e.body);
-              //   $($).extend(e.body);
-              //   $().tree(...childObject($.docs, 'Chapter').children);
-              // });
-            } else {
-              $().extend($.config);
-              $.his.elem.navtop
-              .append(
-                $('a').class('abtn login').text('Aanmelden').href($().loginUrl().query('prompt', 'login').toString()),
-              );
-              // $(document.documentElement).class('site');
-              //
-              // $('navtop').append(
-              //   $.his.elem.menu = $('a').class('abtn icn menu').on('click', e => {
-              //     if ($.his.elem.menuList && $.his.elem.menuList.style()) {
-              //       $.his.elem.menuList.style('');
-              //     } else {
-              //       if ($.his.elem.menuList) $.his.elem.menuList.style('display:none;');
-              //     }
-              //   }),
-              //   $('a').class('title').href('/').id('toptitle'),
-              //   $('form').class('search row aco'),
-              //   $('a').class('abtn icn dark').dark(),
-              //   $.his.elem.account = $('a').class('abtn account').caption('Account').href('#?prompt=account').draggable(),
-              // );
-              //
-              // $('section_main').append(
-              //   $('section').id('list').list(),
-              //   $('div').seperator('right'),
-              //   $('section').id('view').class('col aco apv printcol').css('max-width', $().storage('view.width') || '600px'),
-              //   $('section').id('preview').class('col aco apv info'),
-              //   $('section').class('row aco doc').id('doc'),
-              //   $('section').class('prompt').id('prompt').append(
-              //     $('button').class('abtn abs close').attr('open', '').on('click', e => $().prompt(''))
-              //   ),
-              // );
-              //
-            }
-            // return;
-            // if ($().schemas()) {
-            //   const itemItem = $().schemas().get('Item');
-            //   if (itemItem) {
-            //     itemItem.HasChildren = true;
-            //     [...$().schemas().values()].forEach(item => {
-            //       if (item !== itemItem) {
-            //         if (!item.Master || !item.Master.LinkID) {
-            //           $(item).Master = { LinkID: itemItem.ID };
-            //         }
-            //         // console.log(item.name, item.SrcID, item.MasterID);
-            //         if (!item.SrcID || item.SrcID !== item.MasterID) {
-            //           $(item).Src = { LinkID: item.MasterID };
-            //         }
-            //       }
-            //     });
-            //     $().tree($().schemas().get('Item'));
-            //   }
-            //   if ($().schemas().has('Equipment')) {
-            //     app.api(`/Equipment`).select($.config.listAttributes).top(10000).filter('keyID IS NOT NULL').get()
-            //   }
-            // }
-            if ($().aud) {
-              // console.log($().aud, $({tag: `Company(${$().aud})`}));
-              $.his.elem.menu.showMenuTop($({tag: `Company(${$().aud})`}));
-            }
-            if ($().info) {
-              $('toptitle').text(document.title = $().info.title).title([$().info.description,$().info.version,$().info.lastModifiedDateTime].join(' '));
-            }
-            // console.log(document.location.application_path);
-            $().application_path = $().application_path || '/';
-            // var url = new URL(document.location);
-            // $().pageHome = $().pageHome || '//' + document.location.hostname.replace(/([\w\.-]+)\.github\.io/, 'github.com/$1/$1.github.io') + '/wiki/Home';
-            $().ref = $().ref || {};
-            $().ref.home = $().ref.home || '//aliconnect.nl/sdk/wiki';
-            console.log($().ref.home);
-
-            if (!document.location.search) {
-              window.history.replaceState('page', '', '?l='+url_string($().ref.home));
-              // $().execQuery('l', $().ref.home, true );
-              // $().execQuery('l', document.location.origin);
-            }
-            // if (document.location.pathname === $().application_path && !document.location.search) {
-            //   window.history.replaceState('page', 'PAGINA', '?p='+($().ref && $().ref.home ? $().ref.home : document.location.origin));
-            //   // $(window).emit('popstate');
-            // }
-            // $(document.body).cookieWarning();
-            function response(e) {
-              console.log(e.target.responseText);
-            }
-          },
-          async ready() {
-            // alert('om ready');
-            // console.log($());
-            // const msalConfig = {
-            //   auth: {
-            //     clientId: '4573bb93-5012-4c50-9cc5-562ac8f9a626',
-            //     clientId: '24622611-2311-4791-947c-5c1d1b086d6c',
-            //     redirectUri: 'https://aliconnect.nl/graph/',
-            //     redirectUri: 'http://localhost:8080',
-            //     redirectUri: 'https://aliconnect.nl'
-            //   }
-            // };
-            // const msaRequest = {
-            //   scopes: [
-            //     'User.Read',
-            //     'Mailboxsettings.Read',
-            //     'Calendars.ReadWrite',
-            //     'Contacts.ReadWrite',
-            //     'Mail.Read',
-            //     'Notes.ReadWrite.All',
-            //   ]
-            // }
-            // $().msa(msalConfig);
-            // console.log($.msa);
-            // $().msa().api('/me/contacts').top(900).get().then(response => {
-            // 	response.value.forEach(item => aim.Item.toItem(item, 'msaContact'));
-            // 	// aim().list(response.value)
-            // }).catch(error => {
-            // 	console.error(error, error);
-            // });
-            // if ($().schemas().has('Equipment')) {
-            //   app.api(`/Equipment`).select($.config.listAttributes).top(10000).filter('keyID IS NOT NULL').get()
-            // }
-            // .then(e => console.log('Equipment', e.body))
-          },
-          logout() {
-            // document.location.href='/om/?prompt=logout';
-          },
-          newlogin() {
-            // document.location.reload();
-          },
-          init() {
-            console.log('OM INIT');
-            return;
-            $().extend({
-              menu: {
-                account: {
-                  My_account_profile: { href: `#/Account(${$().auth.id ? $().auth.id.sub : null})` },
-                  My_contact_profile: { href: `#/Contact(${$().auth.id ? $().auth.id.sub : null})` },
-                  Logout: { href: '#?prompt=logout' },
-                  Print: { onclick() {
-                    $().Aliconnector.printurl('https://aliconnect.nl');
-                  } },
-                  Show: { onclick() {
-                    $().Aliconnector.show();
-                  } },
-                  Hide: { onclick() {
-                    $().Aliconnector.hide();
-                  } },
-                  filedownload: { onclick() {
-                    $().Aliconnector.filedownload('http://alicon.nl/shared/test/test.docx');
-                  } },
-                },
-                config: {
-                  Upload_datafile: { href: '#?prompt=upload' },
-                  // $().Upload ? { label: 'Upload datafile', href: '#/Upload/show()' } : null,
-                  // { label: 'Test', onclick: function(e) {
-                  // 	new $().HttpRequest($().config.$, {path:'/test/tester()'}, function(e){console.log(e.responseText);})
-                  // } },
-                  // { label: 'Test1', onclick: function(e) {
-                  // 	new $().HttpRequest($().config.$, {path:'/test1/tester()'}, function(e){console.log(e.responseText);})
-                  // } },
-                  // { label: 'Test2', onclick: function(e) {
-                  // 	new $().HttpRequest($().config.$, {path:'/test2/tester()'}, function(e){console.log(e.responseText);})
-                  // } },
-                  Importeer_geselecteerde_mail_uit_outlook : $().aliconnectorIsConnected ? { href: '#/outlook/import/mail()' } : null,
-                  Importeer_contacten_uit_outlook: $().aliconnectorIsConnected ? { href: '#/outlook/import/mail()' } : null,
-                  Create_user: { href: '#?prompt=createAccount' },
-                  // { label: 'Create_domain', href: '#?prompt=createDomain' },
-                  Configuration: 1 || $().Account.scope.split(' ').includes('admin:write') ? { href: '#?prompt=config_edit' } : null,
-                  Sitemap: 1 || $().Account.scope.split(' ').includes('admin:write') ? { href: '#?prompt=sitemap' } : null,
-                  Get_API_Key: { href: '#?prompt=getapikey' },
-                  Get_Aliconnector_Key: { href: '#?prompt=Get_Aliconnector_Key' },
-                }
-              },
-            });
-            // if (!$().auth.id) document.location.href='?prompt=logout';
-            // new $().NavLeft();
-          },
-          click(e) {
-            // if ($().get.prompt && !$('colpanel').contains(e.target)) {
-            //   $().request('?prompt=clean');
-            // }
-          }
+            // //console.log("Posted message");
+          });
+        })
+        .catch(function(error) {
+          // //console.log('Service worker registration failed, error:', error);
         });
-      },
-      om() {
-        function childObject(object, schemaname) {
-          // console.log(schemaname);
-          if (object) {
-            const obj = Object.fromEntries(Object.entries(object).filter(([name, obj]) => typeof obj !== 'object'));
-            obj.children = Object
-            .entries(object)
-            .filter(([name, obj]) => typeof obj === 'object')
-            .map(([name, obj]) => Item.get(Object.assign({
-              schema: schemaname,
-              name: name,
-              title: name.replace(/^\d+[-| ]/,'')
-            }, childObject(obj, schemaname))));
-            return obj;
-          }
+      }
+    },
+    web() {
+      // console.log('WEB');
+      // const el = document.createElement('link');
+      // el.rel = 'stylesheet';
+      // el.href = 'https://aliconnect.nl/v1/api/css/web.css';
+      // document.head.appendChild(el);
+      // function require(){};
+      $.his.openItems = $.his.openItems ? $.his.openItems.split(',') : [];
+      window.console = window.console || { log: function() { } };
+      window.Object = window.Object || {
+        assign: function(dest) {
+          for (var i = 1, source; source = arguments[i]; i++) for (var name in source) dest[name] = source[name];
+          return dest;
+        },
+        values: function(obj) {
+          var arr = [];
+          for (var name in obj) arr.push(obj[name]);
+          return arr;
         }
-        $().on({
-          async load() {
-            const config = $.config;
-            if (config.url) {
-              await $().url('config.json', $.config.url).get().catch(console.error).then(e => {
-                console.log('configGet', e.body.components);
-                $.extend(config, e.body);
-                // $.config = e.body;
-              });
-            }
-
-            // const aimConfig = {
-            //   auth: {
-            //     client_id: $.config.client_id,
-            //     redirectUri: $.config.redirect_uri,
-            //     // scope: $.config.scope,
-            //   },
-            //   cache: {
-            //     cacheLocation: "sessionStorage",
-            //     cacheLocation: "localStorage",
-            //     storeAuthStateInCookie: false,
-            //     forceRefresh: false
-            //   },
-            //   url: 'https://schiphol.aliconnect.nl/api',
-            // };
-            // const aimConfig = $.config;
-            const loginRequest = {
-              scopes: [
-                'openid',
-                'profile',
-                'name',
-                'email',
-                'myproperty',
-                'schiphol.admin',
-                'user.read',
-                'calendars.read'
-              ]
-            };
-            const aim = new Aim.UserAgentApplication(config);
-            await aim.login().catch(console.error);
-
-            const dmsAuthOptions = {
-              scopes: [
-                'user.read',
-                'calendars.read'
-              ],
-              // scopes: $.config.scope ? $.config.scope.split(' ') : [],
-            };
-            const dmsOptions = {
-              servers: [
-                { url: 'https://schiphol.aliconnect.nl/api' },
-                // { url: $.config.url },
-              ]
-            }
-            const aimAuthProvider = new Aim.AuthProvider(aim, dmsAuthOptions);
-            const aimClient = Aim.Client.initWithMiddleware({authProvider: aimAuthProvider}, dmsOptions);
-            await aimClient.configGet();
-
-            // console.log(config);
-            // console.log(aim);
-            // console.log(aimAuthProvider);
-            // console.log(aimClient);
-
-            $(document.documentElement).class('app');
-            $(document.body).append(
-              $.his.elem.navtop = $('header').id('navtop').class('row top bar noselect np')
-              .append(
-                $.his.elem.menu = $('a').class('abtn icn menu').on('click', e => {
-                  if ($.his.elem.menuList && $.his.elem.menuList.style()) {
-                    $.his.elem.menuList.style('');
-                  } else {
-                    if ($.his.elem.menuList) $.his.elem.menuList.style('display:none;');
-                    $(document.body).attr('tv', document.body.hasAttribute('tv') ? $(document.body).attr('tv')^1 : 0)
-                  }
-                }),
-                $('a').class('title').id('toptitle').on('click', e => $.start() ),
-                $('form').class('search row aco')
-                .on('submit', e => {
-                  const value = $.searchValue = e.target.search.value;
-                  var result = value
-                  ? [...$.props.values()]
-                  .filter(item => item instanceof Item)
-                  .unique()
-                  .filter(item => item.header0 && value.split(' ').every(value => [item.header0,item.name].join(' ').match(new RegExp(`\\b${value}\\b`, 'i'))))
-                  : [];
-                  $().list(result);
-                  return false;
-                })
-                .append(
-                  $('input').name('search').autocomplete('off').placeholder('zoeken'),
-                  $('button').class('abtn icn search fr').title('Zoeken'),
-                ),
-                $('a').class('abtn icn dark').dark(),
-              ),
-              $('section')//.class('row aco main section_main')
-              .id('section_main').append(
-                $('section').tree().id('tree').css('max-width', $().storage('tree.width') || '200px'),
-                $('div').seperator(),
-                $('section').id('list').list(),
-                $('section').class('row aco doc').id('doc'),
-                $('div').seperator('right'),
-                $('section').id('view').class('col aco apv printcol').css('max-width', $().storage('view.width') || '600px'),
-                $('section')//.class('col aco apv info')
-                .id('preview'),
-                $('section').class('prompt').id('prompt').tabindex(-1).append(
-                  $('button').class('abtn abs close').attr('open', '').tabindex(-1).on('click', e => $().prompt(''))
-                ),
-              ),
-              $('footer').statusbar(),
-            ).messagesPanel();
-            await $().translate();
-
-            if (config.info) {
-              $('toptitle').text(document.title = config.info.title).title([config.info.description,config.info.version,config.info.lastModifiedDateTime].join(' '));
-            }
-            if (!document.location.search) {
-              window.history.replaceState('page', '', '?l='+url_string(config.ref.home));
-            }
-            if (!aim.account) {
-              $.his.elem.navtop.append(
-                $('button').class('abtn login').text('Aanmelden').on('click', e => aimApplication.login(config.loginRequest)),
-              );
-            } else {
-              $.his.elem.navtop.prompts(...$.const.prompt.menu.prompts).append(
-                $.his.elem.account = $('a').class('abtn account').caption('Account').href('#?prompt=account').draggable(),
-              );
-              if (config.menu) {
-                $().tree(...childObject(config.menu).children);
-              }
-              async function treeItem(url) {
-                const item = await $(url).details()
-                $().tree(item);
-                return item;
-              }
-              $().tree($.his.items.sub = await $(`/Contact(${aim.account.idToken.sub})`).details());
-              await app.api(`/`).query('request_type','visit').get().then(e => $.his.items = e.body);
-              // $.his.elem.account.item($.user, 'accountElem');
-              // $.user.emit('change');
-              if (config.aud) {
-                $().tree($.his.items.aud = await $(`/Company(${config.aud})`).details());
-                $.his.elem.menu.showMenuTop($({tag: `Company(${config.aud})`}));
-              }
-              if ('Notification' in window) {
-                var permission = Notification.permission;
-                if (Notification.permission === 'default') {
-                  $.his.elem.navtop.append(
-                    $('a').class('abtn').text('Notifications').on('click', e => Notification.requestPermission())
-                  )
-                }
-              }
-            }
-
-          },
-          logout() {
-            // document.location.href='/om/?prompt=logout';
-          },
-          newlogin() {
-            // document.location.reload();
-          },
-          init() {
-            console.log('OM INIT');
+      };
+      (function(arr) {
+        arr.forEach(function(item) {
+          if (item.hasOwnProperty('append')) {
             return;
-            $().extend({
-              menu: {
-                account: {
-                  My_account_profile: { href: `#/Account(${$().auth.id ? $().auth.id.sub : null})` },
-                  My_contact_profile: { href: `#/Contact(${$().auth.id ? $().auth.id.sub : null})` },
-                  Logout: { href: '#?prompt=logout' },
-                  Print: { onclick() {
-                    $().Aliconnector.printurl('https://aliconnect.nl');
-                  } },
-                  Show: { onclick() {
-                    $().Aliconnector.show();
-                  } },
-                  Hide: { onclick() {
-                    $().Aliconnector.hide();
-                  } },
-                  filedownload: { onclick() {
-                    $().Aliconnector.filedownload('http://alicon.nl/shared/test/test.docx');
-                  } },
-                },
-                config: {
-                  Upload_datafile: { href: '#?prompt=upload' },
-                  // $().Upload ? { label: 'Upload datafile', href: '#/Upload/show()' } : null,
-                  // { label: 'Test', onclick: function(e) {
-                  // 	new $().HttpRequest($().config.$, {path:'/test/tester()'}, function(e){console.log(e.responseText);})
-                  // } },
-                  // { label: 'Test1', onclick: function(e) {
-                  // 	new $().HttpRequest($().config.$, {path:'/test1/tester()'}, function(e){console.log(e.responseText);})
-                  // } },
-                  // { label: 'Test2', onclick: function(e) {
-                  // 	new $().HttpRequest($().config.$, {path:'/test2/tester()'}, function(e){console.log(e.responseText);})
-                  // } },
-                  Importeer_geselecteerde_mail_uit_outlook : $().aliconnectorIsConnected ? { href: '#/outlook/import/mail()' } : null,
-                  Importeer_contacten_uit_outlook: $().aliconnectorIsConnected ? { href: '#/outlook/import/mail()' } : null,
-                  Create_user: { href: '#?prompt=createAccount' },
-                  // { label: 'Create_domain', href: '#?prompt=createDomain' },
-                  Configuration: 1 || $().Account.scope.split(' ').includes('admin:write') ? { href: '#?prompt=config_edit' } : null,
-                  Sitemap: 1 || $().Account.scope.split(' ').includes('admin:write') ? { href: '#?prompt=sitemap' } : null,
-                  Get_API_Key: { href: '#?prompt=getapikey' },
-                  Get_Aliconnector_Key: { href: '#?prompt=Get_Aliconnector_Key' },
-                }
-              },
-            });
-            // if (!$().auth.id) document.location.href='?prompt=logout';
-            // new $().NavLeft();
-          },
-          click(e) {
-            // if ($().get.prompt && !$('colpanel').contains(e.target)) {
-            //   $().request('?prompt=clean');
-            // }
           }
-        });
-      },
-      omd() {
-        function childObject(object, schemaname) {
-          // console.log(schemaname);
-          if (object) {
-            const obj = Object.fromEntries(Object.entries(object).filter(([name, obj]) => typeof obj !== 'object'));
-            obj.children = Object
-            .entries(object)
-            .filter(([name, obj]) => typeof obj === 'object')
-            .map(([name, obj]) => Item.get(Object.assign({
-              schema: schemaname,
-              name: name,
-              title: name.replace(/^\d+[-| ]/,'')
-            }, childObject(obj, schemaname))));
-            return obj;
-          }
-        }
-        $().on({
-          async load() {
-            ($().server = $().server || {}).url = $().server.url || ('//' + document.location.hostname.split('.')[0] + '.aliconnect.nl/api');
-            if (!$().client_id) {
-              console.warn($().server.url);
-              await $().url($().server.url+'/').get().then(e => $().extend(e.body)).catch(console.error);
-              console.warn(1, app.api('/').toString());
-              // await $().url($().server.url+'/').get().then(e => console.log(JSON.stringify(JSON.parse(e.target.responseText),null,2).replace(/"(\w+)"(?=: )/gs,'$1'))).catch(console.error);
+          Object.defineProperty(item, 'append', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: function append() {
+              const argArr = Array.prototype.slice.call(arguments);
+              const docFrag = document.createDocumentFragment();
+              argArr.forEach(function(argItem) {
+                const isNode = argItem instanceof Node;
+                docFrag.appendChild(isNode ? argItem : document.createTextNode(String(argItem)));
+              });
+              this.appendChild(docFrag);
             }
-            $(document.documentElement).class('app');
-            $(document.body).class('row aim om bg').id('body').append(
-              $.his.elem.navtop = $('header').id('navtop').class('row top bar noselect np').append(
-                $.his.elem.menu = $('a').class('abtn icn menu').on('click', e => {
-                  if ($.his.elem.menuList && $.his.elem.menuList.style()) {
-                    $.his.elem.menuList.style('');
-                  } else {
-                    if ($.his.elem.menuList) $.his.elem.menuList.style('display:none;');
-                    $(document.body).attr('tv', document.body.hasAttribute('tv') ? $(document.body).attr('tv')^1 : 0)
-                  }
-                }),
-                $('a').class('title').id('toptitle').on('click', e => $().start() ),
-                $('form').class('search row aco')
-                .on('submit', e => {
-                  const value = $.searchValue = e.target.search.value;
-                  var result = value
-                  ? [...$.props.values()]
-                  .filter(item => item instanceof Item)
-                  .unique()
-                  .filter(item => item.header0 && value.split(' ').every(value => [item.header0,item.name].join(' ').match(new RegExp(`\\b${value}\\b`, 'i'))))
-                  : [];
-                  $().list(result);
-                  return false;
-                })
-                .append(
-                  $('input').name('search').autocomplete('off').placeholder('zoeken'),
-                  $('button').class('abtn icn search fr').title('Zoeken'),
-                ),
-                $('a').class('abtn icn dark').dark(),
+          });
+        });
+      })([Element.prototype, Document.prototype, DocumentFragment.prototype]);
+      let match = document.location.pathname.match(/(.*)(api|docs|omd|om)(?=\/)/);
+      if (match) {
+        $.basePath = match[0];
+      }
+      localAttr.set = function(id, selector, context) {
+        localAttr[id] = localAttr[id] || {};
+        if (context === null) {
+          delete localAttr[id][selector];
+        } else {
+          localAttr[id][selector] = context;
+        }
+        localStorage.setItem('attr', JSON.stringify(localAttr));
+      };
+      $(document.documentElement).attr('lang', navigator.language);
+      $().on('ready', async e => {
+        // console.log('web ready');
+        $.prompt(prompts);
+
+        // await $().emit('ready');
+        // //console.log('web ready2',$(), $().ws());
+        // $.prompt('TEST', e => {
+        // 	alert(1);
+        // });
+        // $.prompt('TEST');
+        // return;
+        // initConfigCss();
+        loadStoredCss();
+        // loadStoredAttr();
+        // initAllSeperators()
+        if (document.getElementById('colpage')) {
+          Object.assign(document.getElementById('colpage'), {
+            cancel(e) {
+              //console.log('PAGE CANCEL', this);
+            },
+            keydown: {
+              F2(e) {
+                if (this.item) {
+                  this.item.PageEditElement()
+                }
+              }
+            },
+          });
+        }
+        // //console.log('AFTER READY', document.location.hostname);
+        // setTimeout(() => {
+        //   //console.log('web after ready')
+        //   $(window).emit('popstate');
+        //   $(window).emit('focus');
+        // })
+        //console.log('web ready done')
+      });
+      // this.sw();
+    },
+    om() {
+      // importScript(currentScript.attributes.src.value.replace('aim', 'om'));
+
+      function childObject(object, schemaname) {
+        // console.log(schemaname);
+        if (object) {
+          const obj = Object.fromEntries(Object.entries(object).filter(([name, obj]) => typeof obj !== 'object'));
+          obj.children = Object
+          .entries(object)
+          .filter(([name, obj]) => typeof obj === 'object')
+          .map(([name, obj]) => Item.get(Object.assign({
+            schema: schemaname,
+            name: name,
+            title: name.replace(/^\d+[-| ]/,'')
+          }, childObject(obj, schemaname))));
+          return obj;
+        }
+      }
+      $().on({
+        async load() {
+          const aimConfig = $.config;
+          const aimRequest = {
+            scopes: aimConfig.scope ? aimConfig.scope.split(' ') : [],
+          };
+          const aimClient = new Aim.UserAgentApplication(aimConfig);
+          const dmsOptions = aimConfig.client;
+          const authProvider = {
+            getAccessToken: async () => {
+              let account = aimClient.storage.getItem('aimAccount');
+              if (!account){
+                throw new Error(
+                  'User account missing from session. Please sign out and sign in again.'
+                );
+              }
+              try {
+                // First, attempt to get the token silently
+                return aimClient.account.id_token;
+                console.log('SILENT');
+                const silentRequest = {
+                  scopes: aimRequest.scopes,
+                  account: aimClient.getAccountByUsername(account)
+                };
+
+                const silentResult = await aimClient.acquireTokenSilent(silentRequest);
+                return silentResult.accessToken;
+              } catch (silentError) {
+                // If silent requests fails with InteractionRequiredAuthError,
+                // attempt to get the token interactively
+                if (silentError instanceof Aim.InteractionRequiredAuthError) {
+                  const interactiveResult = await aimClient.acquireTokenPopup(aimRequest);
+                  return interactiveResult.accessToken;
+                } else {
+                  throw silentError;
+                }
+              }
+            }
+          };
+          const dmsClient = Aim.Client.initWithMiddleware({authProvider}, dmsOptions);
+
+          async function signIn() {
+            //  Login
+            try {
+              // Use AIM to login
+              const authResult = await aimClient.loginPopup(aimRequest);
+              console.log('id_token acquired at: ' + new Date().toString());
+              // Save the account username, needed for token acquisition
+              aimClient.storage.setItem('aimAccount', authResult.account.username);
+              document.location.reload();
+            } catch (error) {
+              console.log(error);
+            }
+          }
+          const aimAccount = aimClient.storage.getItem('aimAccount');
+
+          $(document.documentElement).class('app');
+          $(document.body).append(
+            $.his.elem.navtop = $('header').id('navtop').class('row top bar noselect np')
+            .append(
+              $.his.elem.menu = $('a').class('abtn icn menu').on('click', e => {
+                if ($.his.elem.menuList && $.his.elem.menuList.style()) {
+                  $.his.elem.menuList.style('');
+                } else {
+                  if ($.his.elem.menuList) $.his.elem.menuList.style('display:none;');
+                  $(document.body).attr('tv', document.body.hasAttribute('tv') ? $(document.body).attr('tv')^1 : 0)
+                }
+              }),
+              $('a').class('title').id('toptitle').on('click', e => $.start() ),
+              $('form').class('search row aco')
+              .on('submit', e => {
+                const value = $.searchValue = e.target.search.value;
+                var result = value
+                ? [...$.props.values()]
+                .filter(item => item instanceof Item)
+                .unique()
+                .filter(item => item.header0 && value.split(' ').every(value => [item.header0,item.name].join(' ').match(new RegExp(`\\b${value}\\b`, 'i'))))
+                : [];
+                $().list(result);
+                return false;
+              })
+              .append(
+                $('input').name('search').autocomplete('off').placeholder('zoeken'),
+                $('button').class('abtn icn search fr').title('Zoeken'),
               ),
+              $('a').class('abtn icn dark').dark(),
+            ),
+            $('section')//.class('row aco main section_main')
+            .id('section_main').append(
               $('section').tree().id('tree').css('max-width', $().storage('tree.width') || '200px'),
-              // $('div').seperator(),
+              $('div').seperator(),
               $('section').id('list').list(),
-              // $('div').seperator('right'),
-              $('section').id('view').class('col aco apv printcol').css('max-width', $().storage('view.width') || '600px'),
-              $('section').id('preview').class('col aco apv info'),
               $('section').class('row aco doc').id('doc'),
+              $('div').seperator('right'),
+              $('section').id('view').class('col aco apv printcol').css('max-width', $().storage('view.width') || '600px'),
+              $('section')//.class('col aco apv info')
+              .id('preview'),
               $('section').class('prompt').id('prompt').tabindex(-1).append(
                 $('button').class('abtn abs close').attr('open', '').tabindex(-1).on('click', e => $().prompt(''))
               ),
-              // $('section').id('section_main').class('row aco main section_main').append(
-              // ),
-              $('footer').statusbar(),
-            );
-            $(document.body).messagesPanel();
-            // console.log(document.location.hostname.split('.')[0]);
-            // console.warn($().server.url, $());
-            await $().translate();
-            // await $().getApi(document.location.origin+'/api/');
-            await $().login();
-            if (app.sub) {
-              // await app.api('/').get().then(e => $($()).extend(e.body));
-              // await $().url($().server.url+`/config/${app.sub}/api.json`).get().then(e => $().extend(e.body));
-              if ('Notification' in window) {
-                var permission = Notification.permission;
-                // const notificationPermission = Notification.permission.toString();
-                // console.log('Notification', permission);
-                if (Notification.permission === 'default') {
-                  $.his.elem.navtop.append(
-                    $('a').class('abtn').text('Notifications').on('click', e => Notification.requestPermission())
-                  )
-                }
-                // if (!['denied','granted'].includes(Notification.permission)) {
-                //   this.elemNavtop.append(
-                //     // $('a').class('abtn').test('Notifications').on('click', e => Notification.requestPermission())
-                //   )
-                // }
-              }
-              $.his.elem.navtop
-              .prompts(...$.const.prompt.menu.prompts)
-              .append(
-                $.his.elem.account = $('a').class('abtn account').caption('Account').href('#?prompt=account').draggable(),
-              );
-              if ($().menu) {
-                $().menuChildren = childObject($().menu).children;
-                $().tree(...$().menuChildren);
-              }
-              if ($.aud = await $(`/Company(${app.aud})`).details()) {
-                $().tree($.aud)
-              }
-              if ($.user = await $(`/Contact(${app.sub})`).details()) {
-                $().tree($.user);
-                await app.api(`/`).query('request_type','visit').get().then(e => $.his.items = e.body);
-                $.his.elem.account.item($.user, 'accountElem');
-                $.user.emit('change');
-                if ($.user.data.mse_access_token) {
-                  $()
-                  .schemas('msaEvent', {
-                    properties: {
-                      title: {
-                        get() {
-                          // console.log(this);
-                          return this.data.start ? `${this.data.start.dateTime} ${this.data.start.endTime}` : '';
-                        },
-                      },
-                      subject: {},
-                      summary: {
-                        get(){
-                          // console.log(this);
-                          return `${this.data.organizer.emailAddress.name} (${this.data.organizer.emailAddress.address})`;
-                        },
-                      },
-                      // "@odata.etag": {},
-                      // id: {},
-                      start: {},
-                      end: {},
-                      organizer: {}
-                    }
-                  })
-                  .schemas('msaContact', {
-                    // title() {
-                    //   return this.combine('displayName');
-                    // },
-                    // subject() {
-                    //   return this.combine('givenName,firstName,middleName,lastName,companyName');
-                    // },
-                    header: [
-                      ['DisplayName'],
-                      ['GivenName','FirstName','MiddleName','LastName','CompanyName'],
-                      [],
-                    ],
-                    // filterfieldnames: 'Surname,CompanyName',
-                    properties: {
-                      // "@odata.etag": {},
-                      // id: {},
-                      // createdDateTime: {},
-                      // lastModifiedDateTime: {},
-                      // changeKey: {},
-                      // parentFolderId: {},
-                      // fileAs: {},
-                      // categories: {},
-                      DisplayName: {
-                        legend: 'Personalia',
-                      },
-                      Initials: {
-                      },
-                      GivenName: {
-                      },
-                      MiddleName: {
-                      },
-                      Surname: {
-                      },
-                      Title: {
-                      },
-                      nickName: {
-                      },
-                      // yomiGivenName: {},
-                      // yomiSurname: {},
-                      // yomiCompanyName: {},
-                      // imAddresses: {},
-                      companyName: {
-                        legend: 'Business',
-                      },
-                      department: {
-                      },
-                      officeLocation: {
-                      },
-                      profession: {
-                      },
-                      jobTitle: {
-                      },
-                      assistantName: {
-                      },
-                      manager: {
-                      },
-                      businessHomePage: {
-                      },
-                      emailAddresses: {
-                        legend: 'Contact',
-                      },
-                      mobilePhone: {
-                      },
-                      businessPhones: {
-                      },
-                      businessAddress: {
-                      },
-                      otherAddress: {
-                      },
-                      homePhones: {
-                        legend: 'Personal',
-                      },
-                      homeAddress: {
-                      },
-                      birthday: {
-                      },
-                      spouseName: {
-                      },
-                      children: {
-                      },
-                      generation: {
-                      },
-                      personalNotes: {
-                      },
-                    }
-                  })
-                  .schemas('msaMessage', {
-                    title() {
-                      return this.data.from ? (this.data.from.emailAddress.name ? this.data.from.emailAddress.name : this.data.from.emailAddress.address) : '';
-                    },
-                    subject() {
-                      return this.data.subject;
-                    },
-                    bodyPreview() {
-                      return this.data.bodyPreview;
-                    },
-                    properties: {
-                      // "@odata.etag": {},
-                      // createdDateTime: {},
-                      // lastModifiedDateTime: {},
-                      // id: {},
-                      // changeKey: {},
-                      // hasAttachments: {},
-                      // isDeliveryReceiptRequested: {},
-                      // isReadReceiptRequested: {},
-                      // isRead: {},
-                      // isDraft: {},
-                      // flag: {},
-                      // bodyPreview: {},
-                      // parentFolderId: {},
-                      // conversationId: {},
-                      // conversationIndex: {},
-                      // internetMessageId: {},
-                      // receivedDateTime: {},
-                      // sentDateTime: {},
-                      // importance: {},
-                      // inferenceClassification: {},
-                      // from: {},
-                      // sender: {},
-                      // toRecipients: {},
-                      // ccRecipients: {},
-                      // bccRecipients: {},
-                      // replyTo: {},
-                      // webLink: {},
-                      // categories: {},
-                      subject: {},
-                      body: {},
-                    }
-                  })
-                  .schemas('msaNotebook', {
-                    properties: {
-                      title: {
-                        get: 'displayName',
-                      },
-                      summary: {
-                        get() {
-                          return `${this.data.lastModifiedDateTime} ${this.data.lastModifiedBy.user.displayName}`
-                        },
-                      },
-                      // createdDateTime: {},
-                      // createdBy: {},
-                      // lastModifiedDateTime: {},
-                      // lastModifiedBy: {},
-                      // id: {},
-                      isDefault: {},
-                      isShared: {},
-                      self: {},
-                      displayName: {},
-                      userRole: {},
-                      sectionsUrl: {},
-                      sectionGroupsUrl: {},
-                      links: {}
-                    }
-                  });
-                  $().tree(...childObject({
-                    Outlook: {
-                      Contacts: {
-                        onclick: e => $().msa().getContacts(),
-                      },
-                      Events: {
-                        onclick: e => $().msa().getEvents(),
-                      },
-                      Messages: {
-                        onclick: e => $().msa().getMessages(),
-                      },
-                      Notes: {
-                        onclick: e => $().msa().getNotes(),
-                      },
-                    }
-                  }).children);
-                }
-              }
-              // $().url('https://aliconnect.nl/api/').query('request_type', 'build_doc').get().then(e => {
-              //   console.log('DOCBUILD', e.body);
-              //   $($).extend(e.body);
-              //   $().tree(...childObject($.docs, 'Chapter').children);
-              // });
-            } else {
-              $.his.elem.navtop
-              .append(
-                $('a').class('abtn login').text('Aanmelden').href($().loginUrl().query('prompt', 'login').toString()),
-              );
-              // $(document.documentElement).class('site');
-              //
-              // $('navtop').append(
-              //   $.his.elem.menu = $('a').class('abtn icn menu').on('click', e => {
-              //     if ($.his.elem.menuList && $.his.elem.menuList.style()) {
-              //       $.his.elem.menuList.style('');
-              //     } else {
-              //       if ($.his.elem.menuList) $.his.elem.menuList.style('display:none;');
-              //     }
-              //   }),
-              //   $('a').class('title').href('/').id('toptitle'),
-              //   $('form').class('search row aco'),
-              //   $('a').class('abtn icn dark').dark(),
-              //   $.his.elem.account = $('a').class('abtn account').caption('Account').href('#?prompt=account').draggable(),
-              // );
-              //
-              // $('section_main').append(
-              //   $('section').id('list').list(),
-              //   $('div').seperator('right'),
-              //   $('section').id('view').class('col aco apv printcol').css('max-width', $().storage('view.width') || '600px'),
-              //   $('section').id('preview').class('col aco apv info'),
-              //   $('section').class('row aco doc').id('doc'),
-              //   $('section').class('prompt').id('prompt').append(
-              //     $('button').class('abtn abs close').attr('open', '').on('click', e => $().prompt(''))
-              //   ),
-              // );
-              //
-            }
-            // if ($().schemas()) {
-            //   const itemItem = $().schemas().get('Item');
-            //   if (itemItem) {
-            //     itemItem.HasChildren = true;
-            //     [...$().schemas().values()].forEach(item => {
-            //       if (item !== itemItem) {
-            //         if (!item.Master || !item.Master.LinkID) {
-            //           $(item).Master = { LinkID: itemItem.ID };
-            //         }
-            //         // console.log(item.name, item.SrcID, item.MasterID);
-            //         if (!item.SrcID || item.SrcID !== item.MasterID) {
-            //           $(item).Src = { LinkID: item.MasterID };
-            //         }
-            //       }
-            //     });
-            //     $().tree($().schemas().get('Item'));
-            //   }
-            //   if ($().schemas().has('Equipment')) {
-            //     app.api(`/Equipment`).select($.config.listAttributes).top(10000).filter('keyID IS NOT NULL').get()
-            //   }
-            // }
-            if ($().aud) {
-              // console.log($().aud, $({tag: `Company(${$().aud})`}));
-              $.his.elem.menu.showMenuTop($({tag: `Company(${$().aud})`}));
-            }
-            if ($().info) {
-              $('toptitle').text(document.title = $().info.title).title([$().info.description,$().info.version,$().info.lastModifiedDateTime].join(' '));
-            }
-            // console.log(document.location.application_path);
-            $().application_path = $().application_path || '/';
-            // var url = new URL(document.location);
-            // $().pageHome = $().pageHome || '//' + document.location.hostname.replace(/([\w\.-]+)\.github\.io/, 'github.com/$1/$1.github.io') + '/wiki/Home';
-            $().ref = $().ref || {};
-            $().ref.home = $().ref.home || '//aliconnect.nl/sdk/wiki/Home';
-            console.log($().ref.home);
-
-            if (!document.location.search) {
-
-              $().execQuery('l', $().ref.home, true );
-              // $().execQuery('l', document.location.origin);
-            }
-            // if (document.location.pathname === $().application_path && !document.location.search) {
-            //   window.history.replaceState('page', 'PAGINA', '?p='+($().ref && $().ref.home ? $().ref.home : document.location.origin));
-            //   // $(window).emit('popstate');
-            // }
-            // $(document.body).cookieWarning();
-            function response(e) {
-              console.log(e.target.responseText);
-            }
-          },
-        });
-      },
-      loadclient() {
-        // console.log('AA');
-        $().on({
-          load() {
-            if ($().script && $().script.src) {
-              const el = document.createElement('script');
-              el.src = $().script.src;
-              document.head.appendChild(el);
-            }
-            // $('list').append(
-            //   $('iframe').style('border:none;width:100%;height:100%;').src('/index'),
-            // )
-            // $('list').load('/index');
-          }
-        });
-      },
-      getstarted() {
-        $().on({
-          async ready() {
-            $.start();
-          }
-        });
-      },
-    },
-    prompt(selector, context) {
-      return $().prompt(...arguments);
-    },
-    prompts: {
-      menu() {
-        $('div').class('menu').parent(this.is.text('')).append(
-          $('div').class('col')
-          .append(
-            $('a').class('abtn icn dark').dark(),
-            $('a').text('abtn icn dark'),
-          )
-          .prompts(...$.const.prompt.menu.prompts)
-          .append(
-            $.his.elem.account = $('a').class('abtn account').caption('Account').href('#?prompt=account').draggable(),
-          ),
-        )
-      },
-      account() {
-        if (app.account.sub) {
-          $('div').class('menu').parent(this.is.text('')).append(
-            $('h1').text('Account'),
-            $('div').class('col')
-            .prompts(...[
-              'login_consent',
-              'logout',
-              // 'account_delete',
-              'account_beheer',
-              // 'account_domain_delete',
-            ])//.concat(...(((($.const||{}).prompt||{}).account||{}).prompts||[])))
-          )
-        }
-        // console.log($.const)
-        //  else {
-        //   $('div').class('menu').parent(this.is.text('')).append(
-        //     $('h1').text('Account'),
-        //     $('div').class('col').prompts(
-        //       'login',
-        //     ),
-        //   )
-        // }
-      },
-      help() {
-        this.searchHelp = async function (search) {
-          search = search.toLowerCase();
-          $().url($().ref.home + '/_Sidebar.md').get().then(e => {
-            // const match = e.target.responseText.match(/\[.*?\]\(.*?\)/g).map(s => s.match(/\[(.*?)\]\((.*?)\)/));
-            const match = e.target.responseText.match(/\[.*?\]\(.*?\)/g).filter(s => s.toLowerCase().includes(search));
-            this.resultList.text('').append(
-              e.target.responseText
-              .match(/\[.*?\]\(.*?\)/g)
-              .filter(s => s.toLowerCase().includes(search))
-              .map(s => $('a').text(s.replace(/\[(.*)\].*/,'$1')).href(`#/?l=${s.replace(/.*\((.*)\)/,$().ref.home + '/$1')}`))
-            )
-            // console.log(match, e.target.responseText);
-          })
-          // return;
-          // const docs = await $().docs();
-          // this.resultList.text('').append(...docs.find(search).map(item => $('a').text(item[0]).href('#?src='+item[1])))
-        };
-        $('form')
-        .class('col')
-        .parent(this.is.text(''))
-        // .assign('onsubmit', e => e.preentDefault || (()=>{})())
-        .assign('onsubmit', e => {
-          e.preventDefault();
-          this.searchHelp(e.target.search.value);
-          e.target.search.select();
-        })
-        .append(
-          $('h1').text('Help'),
-        )
-        .properties({
-          search: {
-            format: 'text',
-            autocomplete: 'off',
-            required: '1',
-            autofocus: true,
-          },
-        })
-        .append(
-          $('button').class('abtn icn').text('ok').type('submit').tabindex(-1).default(''),
-          this.resultList = $('div')
-          .class('col')
-          // $('div')
-          .append(
-            $().contract.documents.map(doc => $('li').append(
-              $('a').text(doc.title).href('#/?l=' + doc.url))
-            )
-          )
-        )
-      },
-      config() {
-        $('div').class('menu').parent(this.is.text(''))
-        .append(
-          $('h1').text('Settings'),
-          this.divElem = $('div').class('col').prompts(...$.const.prompt.config.prompts).prompts('domain'),
-        )
-      },
-      domain() {
-        $('prompt').attr('open', null);
-        return;
-        // console.log();
-        $('list').text('').append(
-          $('div').class('col').append(
-            $('h1').text('Settings'),
-            $('form').append(
-              $('input').value(document.location.hostname.split(/\./)[0]),
-              $('input').type('submit').value('Rename'),
             ),
-          ),
-        );
-        // setTimeout(() => $('prompt').attr('open', null), 100);
-      },
-      account_beheer() {
-        const config = {
-          Title: {
-            config: { info:{ title: $.config.info.title || '' } }
-          },
-          Description: {
-            config: { info:{ description: $.config.info.description || '' } }
-          },
-          Version: {
-            config: { info:{ version: $.config.info.version || '' } }
-          },
-          Contact: {
-            config: { info:{ contact: $.config.info.contact || { email: '' } } }
-          },
-          License: {
-            config: { info:{ license: $.config.info.license || { email: '', url: '' } } }
-          },
-          "Base background color": {
-            config: { css:{ basebg: $.config.css.basebg } }
-          },
-          "Base foreground color": {
-            config: { css:{ basefg: $.config.css.basefg } }
-          },
-          "Data Management Server": { config: { client: $.config.client } },
-          "Scope": { config: { scope: $.config.scope } },
-          // "Test": { config: { client: {
-          //   servers: [
-          //     {
-          //       url : "fsdfgsdfgsdfgdgfs: gjhg",
-          //       n: 2,
-          //       b: 'sdfgsdfgs',
-          //       c: 'sd : fgsdfgs'
-          //     },
-          //     { url : 1, n: 2} ,
-          //     { url : 1, n: 2} ,
-          //     { url : 1, n: 2},
-          //     'asdfa: sd',
-          //     'asdfasd',
-          //     { url : 1, n: 2},
-          //   ],
-          //   top: [
-          //     'a',
-          //     'a dfgs dfg s',
-          //     'a',
-          //   ]
-          // } } },
-        }
-        const blockString = 'width:10px;height:10px;border-radius:10px;display:inline-block;margin:0 5px;';
+            $('footer').statusbar(),
+          ).messagesPanel();
+          await $().translate();
 
-        $().document(
-          $('main').append(
-            $('details').append(
-              $('summary').append($('h1').text('Config')),
-              $('div'),
-            ).on('toggle', e => e.target.lastChild.innerText ? null : $(e.target.lastChild).append(
-              ...Array.from(Object.entries(config)).map(([key, field]) => [
-                $('details')
-                .append(
-                  $('summary').text(key),
-                  $('div'),
+          // sessionStorage.clear();
+          // console.log(aimClient.account, sessionStorage);
+
+          if (aimConfig.info) {
+            $('toptitle').text(document.title = aimConfig.info.title).title([aimConfig.info.description,aimConfig.info.version,aimConfig.info.lastModifiedDateTime].join(' '));
+          }
+          if (!document.location.search) {
+            window.history.replaceState('page', '', '?l='+url_string(aimConfig.ref.home));
+          }
+          if (!aimAccount) {
+            $.his.elem.navtop.append(
+              $('button').class('abtn login').text('Aanmelden').on('click', e => signIn()),
+            );
+          } else {
+            $.his.elem.navtop.prompts(...$.const.prompt.menu.prompts).append(
+              $.his.elem.account = $('a').class('abtn account').caption('Account').href('#?prompt=account').draggable(),
+            );
+            await dmsClient.api('/').get().then(body => $.extend(aimConfig, body));
+            console.log(aimConfig);
+            $().schemas(aimConfig.components.schemas)
+            if (aimConfig.menu) {
+              $().tree(...childObject(aimConfig.menu).children);
+            }
+
+            async function treeItem(url) {
+              const item = await $(url).details()
+              $().tree(item);
+              return item;
+            }
+
+
+            // await dmsClient.api('/').get().then(e => console.log(999, e.body));
+            // return;
+
+            // console.log(1, $().schemas());
+
+            const sub = aimClient.account.idToken.sub;
+
+            $.his.items.sub = await $(`/Contact(${sub})`).details();
+            console.log($.his.items.sub);
+
+
+            $().tree($.his.items.sub = await $(`/Contact(${sub})`).details());
+            await aimClient.api(`/`).query('request_type','visit').get().then(body => $.his.items = body);
+            // $.his.elem.account.item($.user, 'accountElem');
+            // $.user.emit('change');
+            if (aimConfig.aud) {
+              $().tree($.his.items.aud = await $(`/Company(${aimConfig.aud})`).details());
+              $.his.elem.menu.showMenuTop($({tag: `Company(${aimConfig.aud})`}));
+            }
+            if ('Notification' in window) {
+              var permission = Notification.permission;
+              if (Notification.permission === 'default') {
+                $.his.elem.navtop.append(
+                  $('a').class('abtn').text('Notifications').on('click', e => Notification.requestPermission())
                 )
-                .on('toggle', e => e.target.lastChild.innerText ? null : $(e.target.lastChild).append(
-                  $('div').class('code-header row').attr('ln', 'yaml').append(
-                    $('span').class('aco').text('YAML'),
-                    $('button').class('abtn edit').on('click', e => $(e.target.parentElement.nextElementSibling).editor('yaml')),
-                    $('button').class('abtn view').on('click', e => {
-                      app.api('/').post({
-                        config:e.target.parentElement.nextElementSibling.innerText,
-                        extend:1,
-                      }).then(e => {
-                        console.log(e.target.responseText);
-                        document.location.reload();
-                      })
-                    }),
-                  ),
-                  $('div').class('code treecode').html($.string.yaml(YAML.stringify(field.config))),
-                )),
-              ]),
-            )),
-
-            // $('div').class('code').html($.string.yaml(YAML.stringify($.config)).split(/\n/).map(l => `<div level=${l.search(/\S/)}>${l}</div>`).join('')),
-            // this.elCode = $('div').class('code treecode').html(YAML.stringify($.config).split(/\n/).map(l => `<div class=l${l.search(/\S/)}>${l}</div>`).join('')).contenteditable(''),
-            this.elCode = $('div').on('keydown', e => {
-              // console.log(e);
-              if (e.keyPressed === 'ctrl_KeyS') {
-                const content = Array.from(e.target.children).map(el => el.innerText.replace(/\n/, '')).join('\n').trim();
-                console.log(content);
-                e.preventDefault();
-                app.api('/').post({
-                  config: content,
-                }).then(e => {
-                  console.log(e.target.responseText);
-                  // document.location.reload();
-                })
               }
-            }).editor('yaml'),
+            }
+          }
 
-            // $('h1').text('Config'),
-            // $('h2').text('info'),
-            $('h1').text('Domein'),
-            $('details')
-            .append(
-              $('summary').append($('h2').text('Verbruik')),
-              $('div').text('Gegevens worden verzameld'),
-            )
-            .on('toggle', detailsEvent => {
-              if (detailsEvent.target.open) {
-                app.api('/?request_type=account_verbruik').get().then(e => {
-                  console.log(e.body);
-                  const data = e.body;
-                  var max_request_count;
-                  function calc_max_request_count(max_request_count, value) {
-                    return Math.max(max_request_count, Math.ceil(value/max_request_count)*max_request_count);
-                  }
-                  function bar(entries) {
-                    var start = 0;
-                    var s='background-image: linear-gradient(90deg, ';
-                    entries.forEach(([color,size], i) => {
-                      s+=`${color} ${start += size}%, `;
-                      s+=entries[i+1] ? `${entries[i+1][0]} ${start}%, ` : `var(--trans3) ${start}%, var(--trans3) 100%);`;
-                    })
-                    return s;
-                  }
-                  function meter(data) {
-                    const decimals = 0;
-                    const max=data.max_count
-                    const value = data.dir_size + data.item_count + data.request_count;
-                    const tot = (data.dir_size + data.item_count + data.attribute_count + data.request_count).toFixed(decimals);
-                    return $('div').append(
-                      $('div').class('row').append(
-                        $('span').text(data.periode),
-                        $('small').style('margin-left:auto;').text(`${tot} MB van ${data.max_count} MB gebruikt`),
-                      ),
-                      $('div').style(`height:20px;border-radius:5px;`+bar([
-                        ['var(--red)', data.dir_size/data.max_count*100],
-                        ['var(--blue)', data.item_count/data.max_count*100],
-                        ['var(--green)', data.attribute_count/data.max_count*100],
-                        ['var(--yellow)', data.request_count/data.max_count*100],
-                      ])),
-                    );
-                  }
-                  $(detailsEvent.target.lastChild).text('').append(
-                    ...data.periode.map(
-                      periode => [
-                        meter({
-                          periode: periode.periode,
-                          dir_size: Number(periode.dir_size/1024/1024),
-                          item_count: Number(periode.item_count/1000),
-                          attribute_count: Number(periode.attribute_count/1000),
-                          request_count: Number(periode.request_count/1000),
-                          max_count: data.max_count,
-                        }),
-                      ]
-                    ),
-                    $('div').append(
-                      $('span').style(blockString+'background:var(--red);'),$('small').text(`Opslag`),
-                      $('span').style(blockString+'background:var(--blue);'),$('small').text(`Items`),
-                      $('span').style(blockString+'background:var(--green);'),$('small').text(`Attributes`),
-                      $('span').style(blockString+'background:var(--yellow);'),$('small').text(`Traffic`),
-                    ),
-                  )
-                })
+        },
+        logout() {
+          // document.location.href='/om/?prompt=logout';
+        },
+        newlogin() {
+          // document.location.reload();
+        },
+        init() {
+          console.log('OM INIT');
+          return;
+          $().extend({
+            menu: {
+              account: {
+                My_account_profile: { href: `#/Account(${$().auth.id ? $().auth.id.sub : null})` },
+                My_contact_profile: { href: `#/Contact(${$().auth.id ? $().auth.id.sub : null})` },
+                Logout: { href: '#?prompt=logout' },
+                Print: { onclick() {
+                  $().Aliconnector.printurl('https://aliconnect.nl');
+                } },
+                Show: { onclick() {
+                  $().Aliconnector.show();
+                } },
+                Hide: { onclick() {
+                  $().Aliconnector.hide();
+                } },
+                filedownload: { onclick() {
+                  $().Aliconnector.filedownload('http://alicon.nl/shared/test/test.docx');
+                } },
+              },
+              config: {
+                Upload_datafile: { href: '#?prompt=upload' },
+                // $().Upload ? { label: 'Upload datafile', href: '#/Upload/show()' } : null,
+                // { label: 'Test', onclick: function(e) {
+                // 	new $().HttpRequest($().config.$, {path:'/test/tester()'}, function(e){console.log(e.responseText);})
+                // } },
+                // { label: 'Test1', onclick: function(e) {
+                // 	new $().HttpRequest($().config.$, {path:'/test1/tester()'}, function(e){console.log(e.responseText);})
+                // } },
+                // { label: 'Test2', onclick: function(e) {
+                // 	new $().HttpRequest($().config.$, {path:'/test2/tester()'}, function(e){console.log(e.responseText);})
+                // } },
+                Importeer_geselecteerde_mail_uit_outlook : $().aliconnectorIsConnected ? { href: '#/outlook/import/mail()' } : null,
+                Importeer_contacten_uit_outlook: $().aliconnectorIsConnected ? { href: '#/outlook/import/mail()' } : null,
+                Create_user: { href: '#?prompt=createAccount' },
+                // { label: 'Create_domain', href: '#?prompt=createDomain' },
+                Configuration: 1 || $().Account.scope.split(' ').includes('admin:write') ? { href: '#?prompt=config_edit' } : null,
+                Sitemap: 1 || $().Account.scope.split(' ').includes('admin:write') ? { href: '#?prompt=sitemap' } : null,
+                Get_API_Key: { href: '#?prompt=getapikey' },
+                Get_Aliconnector_Key: { href: '#?prompt=Get_Aliconnector_Key' },
               }
-            }),
-            $('details')
+            },
+          });
+          // if (!$().auth.id) document.location.href='?prompt=logout';
+          // new $().NavLeft();
+        },
+        click(e) {
+          // if ($().get.prompt && !$('colpanel').contains(e.target)) {
+          //   $().request('?prompt=clean');
+          // }
+        }
+      });
+    },
+    omd() {
+      function childObject(object, schemaname) {
+        // console.log(schemaname);
+        if (object) {
+          const obj = Object.fromEntries(Object.entries(object).filter(([name, obj]) => typeof obj !== 'object'));
+          obj.children = Object
+          .entries(object)
+          .filter(([name, obj]) => typeof obj === 'object')
+          .map(([name, obj]) => Item.get(Object.assign({
+            schema: schemaname,
+            name: name,
+            title: name.replace(/^\d+[-| ]/,'')
+          }, childObject(obj, schemaname))));
+          return obj;
+        }
+      }
+      $().on({
+        async load() {
+          ($().server = $().server || {}).url = $().server.url || ('//' + document.location.hostname.split('.')[0] + '.aliconnect.nl/api');
+          if (!$().client_id) {
+            console.warn($().server.url);
+            await $().url($().server.url+'/').get().then(e => $().extend(e.body)).catch(console.error);
+            console.warn(1, aimClient.api('/').toString());
+            // await $().url($().server.url+'/').get().then(e => console.log(JSON.stringify(JSON.parse(e.target.responseText),null,2).replace(/"(\w+)"(?=: )/gs,'$1'))).catch(console.error);
+          }
+          $(document.documentElement).class('app');
+          $(document.body).class('row aim om bg').id('body').append(
+            $.his.elem.navtop = $('header').id('navtop').class('row top bar noselect np').append(
+              $.his.elem.menu = $('a').class('abtn icn menu').on('click', e => {
+                if ($.his.elem.menuList && $.his.elem.menuList.style()) {
+                  $.his.elem.menuList.style('');
+                } else {
+                  if ($.his.elem.menuList) $.his.elem.menuList.style('display:none;');
+                  $(document.body).attr('tv', document.body.hasAttribute('tv') ? $(document.body).attr('tv')^1 : 0)
+                }
+              }),
+              $('a').class('title').id('toptitle').on('click', e => $().start() ),
+              $('form').class('search row aco')
+              .on('submit', e => {
+                const value = $.searchValue = e.target.search.value;
+                var result = value
+                ? [...$.props.values()]
+                .filter(item => item instanceof Item)
+                .unique()
+                .filter(item => item.header0 && value.split(' ').every(value => [item.header0,item.name].join(' ').match(new RegExp(`\\b${value}\\b`, 'i'))))
+                : [];
+                $().list(result);
+                return false;
+              })
+              .append(
+                $('input').name('search').autocomplete('off').placeholder('zoeken'),
+                $('button').class('abtn icn search fr').title('Zoeken'),
+              ),
+              $('a').class('abtn icn dark').dark(),
+            ),
+            $('section').tree().id('tree').css('max-width', $().storage('tree.width') || '200px'),
+            // $('div').seperator(),
+            $('section').id('list').list(),
+            // $('div').seperator('right'),
+            $('section').id('view').class('col aco apv printcol').css('max-width', $().storage('view.width') || '600px'),
+            $('section').id('preview').class('col aco apv info'),
+            $('section').class('row aco doc').id('doc'),
+            $('section').class('prompt').id('prompt').tabindex(-1).append(
+              $('button').class('abtn abs close').attr('open', '').tabindex(-1).on('click', e => $().prompt(''))
+            ),
+            // $('section').id('section_main').class('row aco main section_main').append(
+            // ),
+            $('footer').statusbar(),
+          );
+          $(document.body).messagesPanel();
+          // console.log(document.location.hostname.split('.')[0]);
+          // console.warn($().server.url, $());
+          await $().translate();
+          // await $().getApi(document.location.origin+'/api/');
+          await $().login();
+          if (aimClient.sub) {
+            // await aimClient.api('/').get().then(e => $($()).extend(e.body));
+            // await $().url($().server.url+`/config/${aimClient.sub}/api.json`).get().then(e => $().extend(e.body));
+            if ('Notification' in window) {
+              var permission = Notification.permission;
+              // const notificationPermission = Notification.permission.toString();
+              // console.log('Notification', permission);
+              if (Notification.permission === 'default') {
+                $.his.elem.navtop.append(
+                  $('a').class('abtn').text('Notifications').on('click', e => Notification.requestPermission())
+                )
+              }
+              // if (!['denied','granted'].includes(Notification.permission)) {
+              //   this.elemNavtop.append(
+              //     // $('a').class('abtn').test('Notifications').on('click', e => Notification.requestPermission())
+              //   )
+              // }
+            }
+            $.his.elem.navtop
+            .prompts(...$.const.prompt.menu.prompts)
             .append(
-              $('summary').append($('h1').text('Domain accounts')),
-              $('div').text('Gegevens worden verzameld'),
-            )
-            .on('toggle', detailsEvent => {
-              if (detailsEvent.target.open) {
-                app.api('/?request_type=account_beheer').get().then(e => {
-                  console.log(e.body);
-                  $(detailsEvent.target.lastChild).text('').append(
-                    // $('h1').text('Domain accounts'),
-                    ...e.body.domain_accounts.map(row => $('li').text(row.host_keyname))
-                  )
+              $.his.elem.account = $('a').class('abtn account').caption('Account').href('#?prompt=account').draggable(),
+            );
+            if ($().menu) {
+              $().menuChildren = childObject($().menu).children;
+              $().tree(...$().menuChildren);
+            }
+            if ($.aud = await $(`/Company(${aimClient.aud})`).details()) {
+              $().tree($.aud)
+            }
+            if ($.user = await $(`/Contact(${aimClient.sub})`).details()) {
+              $().tree($.user);
+              await aimClient.api(`/`).query('request_type','visit').get().then(body => $.his.items = body);
+              $.his.elem.account.item($.user, 'accountElem');
+              $.user.emit('change');
+              if ($.user.data.mse_access_token) {
+                $()
+                .schemas('msaEvent', {
+                  properties: {
+                    title: {
+                      get() {
+                        // console.log(this);
+                        return this.data.start ? `${this.data.start.dateTime} ${this.data.start.endTime}` : '';
+                      },
+                    },
+                    subject: {},
+                    summary: {
+                      get(){
+                        // console.log(this);
+                        return `${this.data.organizer.emailAddress.name} (${this.data.organizer.emailAddress.address})`;
+                      },
+                    },
+                    // "@odata.etag": {},
+                    // id: {},
+                    start: {},
+                    end: {},
+                    organizer: {}
+                  }
+                })
+                .schemas('msaContact', {
+                  // title() {
+                  //   return this.combine('displayName');
+                  // },
+                  // subject() {
+                  //   return this.combine('givenName,firstName,middleName,lastName,companyName');
+                  // },
+                  header: [
+                    ['DisplayName'],
+                    ['GivenName','FirstName','MiddleName','LastName','CompanyName'],
+                    [],
+                  ],
+                  // filterfieldnames: 'Surname,CompanyName',
+                  properties: {
+                    // "@odata.etag": {},
+                    // id: {},
+                    // createdDateTime: {},
+                    // lastModifiedDateTime: {},
+                    // changeKey: {},
+                    // parentFolderId: {},
+                    // fileAs: {},
+                    // categories: {},
+                    DisplayName: {
+                      legend: 'Personalia',
+                    },
+                    Initials: {
+                    },
+                    GivenName: {
+                    },
+                    MiddleName: {
+                    },
+                    Surname: {
+                    },
+                    Title: {
+                    },
+                    nickName: {
+                    },
+                    // yomiGivenName: {},
+                    // yomiSurname: {},
+                    // yomiCompanyName: {},
+                    // imAddresses: {},
+                    companyName: {
+                      legend: 'Business',
+                    },
+                    department: {
+                    },
+                    officeLocation: {
+                    },
+                    profession: {
+                    },
+                    jobTitle: {
+                    },
+                    assistantName: {
+                    },
+                    manager: {
+                    },
+                    businessHomePage: {
+                    },
+                    emailAddresses: {
+                      legend: 'Contact',
+                    },
+                    mobilePhone: {
+                    },
+                    businessPhones: {
+                    },
+                    businessAddress: {
+                    },
+                    otherAddress: {
+                    },
+                    homePhones: {
+                      legend: 'Personal',
+                    },
+                    homeAddress: {
+                    },
+                    birthday: {
+                    },
+                    spouseName: {
+                    },
+                    children: {
+                    },
+                    generation: {
+                    },
+                    personalNotes: {
+                    },
+                  }
+                })
+                .schemas('msaMessage', {
+                  title() {
+                    return this.data.from ? (this.data.from.emailAddress.name ? this.data.from.emailAddress.name : this.data.from.emailAddress.address) : '';
+                  },
+                  subject() {
+                    return this.data.subject;
+                  },
+                  bodyPreview() {
+                    return this.data.bodyPreview;
+                  },
+                  properties: {
+                    // "@odata.etag": {},
+                    // createdDateTime: {},
+                    // lastModifiedDateTime: {},
+                    // id: {},
+                    // changeKey: {},
+                    // hasAttachments: {},
+                    // isDeliveryReceiptRequested: {},
+                    // isReadReceiptRequested: {},
+                    // isRead: {},
+                    // isDraft: {},
+                    // flag: {},
+                    // bodyPreview: {},
+                    // parentFolderId: {},
+                    // conversationId: {},
+                    // conversationIndex: {},
+                    // internetMessageId: {},
+                    // receivedDateTime: {},
+                    // sentDateTime: {},
+                    // importance: {},
+                    // inferenceClassification: {},
+                    // from: {},
+                    // sender: {},
+                    // toRecipients: {},
+                    // ccRecipients: {},
+                    // bccRecipients: {},
+                    // replyTo: {},
+                    // webLink: {},
+                    // categories: {},
+                    subject: {},
+                    body: {},
+                  }
+                })
+                .schemas('msaNotebook', {
+                  properties: {
+                    title: {
+                      get: 'displayName',
+                    },
+                    summary: {
+                      get() {
+                        return `${this.data.lastModifiedDateTime} ${this.data.lastModifiedBy.user.displayName}`
+                      },
+                    },
+                    // createdDateTime: {},
+                    // createdBy: {},
+                    // lastModifiedDateTime: {},
+                    // lastModifiedBy: {},
+                    // id: {},
+                    isDefault: {},
+                    isShared: {},
+                    self: {},
+                    displayName: {},
+                    userRole: {},
+                    sectionsUrl: {},
+                    sectionGroupsUrl: {},
+                    links: {}
+                  }
                 });
+                $().tree(...childObject({
+                  Outlook: {
+                    Contacts: {
+                      onclick: e => $().msa().getContacts(),
+                    },
+                    Events: {
+                      onclick: e => $().msa().getEvents(),
+                    },
+                    Messages: {
+                      onclick: e => $().msa().getMessages(),
+                    },
+                    Notes: {
+                      onclick: e => $().msa().getNotes(),
+                    },
+                  }
+                }).children);
               }
-              // $('p').text('Domain accounts'),
-            }),
-            $().contract && $().contract.verantwoordelijke ? [
-              $('h1').text('Verantwoordelijke'),
-              $('h1').text('Verwerkingsregister'),
-              $('a').text('Verwerkingsregister').href('#').on('click', e => {
-                $().url('https://aliconnect.nl/sdk/wiki/Verwerkingsregister.md').get().then(e => {
-                  var content = e.target.responseText;
-                  const gdpr = {};
-                  const list = ['gdpr_type', 'category', 'involved', 'basis', 'target', 'processor', 'processor_location', 'term_days', 'encrypt'];
-                  for (let [schemaName,schema] of $().schemas()) {
-                    for (let [propertyName,property] of Object.entries(schema.properties)) {
-                      if (property.gdpr_type) {
-                        var obj = gdpr;
-                        list.forEach(name => {
-                          // console.log(name);
-                          obj = obj[property[name]] = obj[property[name]] || {};
-                        })
-                      }
+            }
+            // $().url('https://aliconnect.nl/api/').query('request_type', 'build_doc').get().then(e => {
+            //   console.log('DOCBUILD', e.body);
+            //   $($).extend(e.body);
+            //   $().tree(...childObject($.docs, 'Chapter').children);
+            // });
+          } else {
+            $.his.elem.navtop
+            .append(
+              $('a').class('abtn login').text('Aanmelden').href($().loginUrl().query('prompt', 'login').toString()),
+            );
+            // $(document.documentElement).class('site');
+            //
+            // $('navtop').append(
+            //   $.his.elem.menu = $('a').class('abtn icn menu').on('click', e => {
+            //     if ($.his.elem.menuList && $.his.elem.menuList.style()) {
+            //       $.his.elem.menuList.style('');
+            //     } else {
+            //       if ($.his.elem.menuList) $.his.elem.menuList.style('display:none;');
+            //     }
+            //   }),
+            //   $('a').class('title').href('/').id('toptitle'),
+            //   $('form').class('search row aco'),
+            //   $('a').class('abtn icn dark').dark(),
+            //   $.his.elem.account = $('a').class('abtn account').caption('Account').href('#?prompt=account').draggable(),
+            // );
+            //
+            // $('section_main').append(
+            //   $('section').id('list').list(),
+            //   $('div').seperator('right'),
+            //   $('section').id('view').class('col aco apv printcol').css('max-width', $().storage('view.width') || '600px'),
+            //   $('section').id('preview').class('col aco apv info'),
+            //   $('section').class('row aco doc').id('doc'),
+            //   $('section').class('prompt').id('prompt').append(
+            //     $('button').class('abtn abs close').attr('open', '').on('click', e => $().prompt(''))
+            //   ),
+            // );
+            //
+          }
+          // if ($().schemas()) {
+          //   const itemItem = $().schemas().get('Item');
+          //   if (itemItem) {
+          //     itemItem.HasChildren = true;
+          //     [...$().schemas().values()].forEach(item => {
+          //       if (item !== itemItem) {
+          //         if (!item.Master || !item.Master.LinkID) {
+          //           $(item).Master = { LinkID: itemItem.ID };
+          //         }
+          //         // console.log(item.name, item.SrcID, item.MasterID);
+          //         if (!item.SrcID || item.SrcID !== item.MasterID) {
+          //           $(item).Src = { LinkID: item.MasterID };
+          //         }
+          //       }
+          //     });
+          //     $().tree($().schemas().get('Item'));
+          //   }
+          //   if ($().schemas().has('Equipment')) {
+          //     aimClient.api(`/Equipment`).select($.config.listAttributes).top(10000).filter('keyID IS NOT NULL').get()
+          //   }
+          // }
+          if ($().aud) {
+            // console.log($().aud, $({tag: `Company(${$().aud})`}));
+            $.his.elem.menu.showMenuTop($({tag: `Company(${$().aud})`}));
+          }
+          if ($().info) {
+            $('toptitle').text(document.title = $().info.title).title([$().info.description,$().info.version,$().info.lastModifiedDateTime].join(' '));
+          }
+          // console.log(document.location.application_path);
+          $().application_path = $().application_path || '/';
+          // var url = new URL(document.location);
+          // $().pageHome = $().pageHome || '//' + document.location.hostname.replace(/([\w\.-]+)\.github\.io/, 'github.com/$1/$1.github.io') + '/wiki/Home';
+          $().ref = $().ref || {};
+          $().ref.home = $().ref.home || '//aliconnect.nl/sdk/wiki/Home';
+          console.log($().ref.home);
+
+          if (!document.location.search) {
+
+            $().execQuery('l', $().ref.home, true );
+            // $().execQuery('l', document.location.origin);
+          }
+          // if (document.location.pathname === $().application_path && !document.location.search) {
+          //   window.history.replaceState('page', 'PAGINA', '?p='+($().ref && $().ref.home ? $().ref.home : document.location.origin));
+          //   // $(window).emit('popstate');
+          // }
+          // $(document.body).cookieWarning();
+          function response(e) {
+            console.log(e.target.responseText);
+          }
+        },
+      });
+    },
+    loadclient() {
+      // console.log('AA');
+      $().on({
+        load() {
+          if ($().script && $().script.src) {
+            const el = document.createElement('script');
+            el.src = $().script.src;
+            document.head.appendChild(el);
+          }
+          // $('list').append(
+          //   $('iframe').style('border:none;width:100%;height:100%;').src('/index'),
+          // )
+          // $('list').load('/index');
+        }
+      });
+    },
+    getstarted() {
+      $().on({
+        async ready() {
+          libraries.start();
+        }
+      });
+    },
+  };
+  const prompts = Aim.prompts = {
+    menu() {
+      $('div').class('menu').parent(this.is.text('')).append(
+        $('div').class('col')
+        .append(
+          $('a').class('abtn icn dark').dark(),
+          $('a').text('abtn icn dark'),
+        )
+        .prompts(...$.const.prompt.menu.prompts)
+        .append(
+          $.his.elem.account = $('a').class('abtn account').caption('Account').href('#?prompt=account').draggable(),
+        ),
+      )
+    },
+    account() {
+      if (aimClient.account.idToken.sub) {
+        $('div').class('menu').parent(this.is.text('')).append(
+          $('h1').text('Account'),
+          $('div').class('col')
+          .prompts(...[
+            'login_consent',
+            'logout',
+            // 'account_delete',
+            'account_beheer',
+            // 'account_domain_delete',
+          ])//.concat(...(((($.const||{}).prompt||{}).account||{}).prompts||[])))
+        )
+      }
+      // console.log($.const)
+      //  else {
+      //   $('div').class('menu').parent(this.is.text('')).append(
+      //     $('h1').text('Account'),
+      //     $('div').class('col').prompts(
+      //       'login',
+      //     ),
+      //   )
+      // }
+    },
+    help() {
+      console.log(aimClient.config);
+      this.searchHelp = async function (search) {
+        search = search.toLowerCase();
+        $().url($().ref.home + '/_Sidebar.md').get().then(e => {
+          // const match = e.target.responseText.match(/\[.*?\]\(.*?\)/g).map(s => s.match(/\[(.*?)\]\((.*?)\)/));
+          const match = e.target.responseText.match(/\[.*?\]\(.*?\)/g).filter(s => s.toLowerCase().includes(search));
+          this.resultList.text('').append(
+            e.target.responseText
+            .match(/\[.*?\]\(.*?\)/g)
+            .filter(s => s.toLowerCase().includes(search))
+            .map(s => $('a').text(s.replace(/\[(.*)\].*/,'$1')).href(`#/?l=${s.replace(/.*\((.*)\)/,$().ref.home + '/$1')}`))
+          )
+          // console.log(match, e.target.responseText);
+        })
+        // return;
+        // const docs = await $().docs();
+        // this.resultList.text('').append(...docs.find(search).map(item => $('a').text(item[0]).href('#?src='+item[1])))
+      };
+      $('form')
+      .class('col')
+      .parent(this.is.text(''))
+      // .assign('onsubmit', e => e.preentDefault || (()=>{})())
+      .assign('onsubmit', e => {
+        e.preventDefault();
+        this.searchHelp(e.target.search.value);
+        e.target.search.select();
+      })
+      .append(
+        $('h1').text('Help'),
+      )
+      .properties({
+        search: {
+          format: 'text',
+          autocomplete: 'off',
+          required: '1',
+          autofocus: true,
+        },
+      })
+      .append(
+        $('button').class('abtn icn').text('ok').type('submit').tabindex(-1).default(''),
+        this.resultList = $('div')
+        .class('col')
+        // $('div')
+        .append(
+          aimClient.config.contract.documents.map(doc => $('li').append(
+            $('a').text(doc.title).href('#/?l=' + doc.url))
+          )
+        )
+      )
+    },
+    config() {
+      $('div').class('menu').parent(this.is.text(''))
+      .append(
+        $('h1').text('Settings'),
+        this.divElem = $('div').class('col').prompts(...$.const.prompt.config.prompts).prompts('domain'),
+      )
+    },
+    domain() {
+      $('prompt').attr('open', null);
+      return;
+      // console.log();
+      $('list').text('').append(
+        $('div').class('col').append(
+          $('h1').text('Settings'),
+          $('form').append(
+            $('input').value(document.location.hostname.split(/\./)[0]),
+            $('input').type('submit').value('Rename'),
+          ),
+        ),
+      );
+      // setTimeout(() => $('prompt').attr('open', null), 100);
+    },
+    account_beheer() {
+      // const config = {
+      //   Title: {
+      //     config: { info:{ title: $.config.info.title || '' } }
+      //   },
+      //   Description: {
+      //     config: { info:{ description: $.config.info.description || '' } }
+      //   },
+      //   Version: {
+      //     config: { info:{ version: $.config.info.version || '' } }
+      //   },
+      //   Contact: {
+      //     config: { info:{ contact: $.config.info.contact || { email: '' } } }
+      //   },
+      //   License: {
+      //     config: { info:{ license: $.config.info.license || { email: '', url: '' } } }
+      //   },
+      //   "Base background color": {
+      //     config: { css:{ basebg: $.config.css.basebg } }
+      //   },
+      //   "Base foreground color": {
+      //     config: { css:{ basefg: $.config.css.basefg } }
+      //   },
+      //   "Data Management Server": { config: { client: $.config.client } },
+      //   "Scope": { config: { scope: $.config.scope } },
+      //   // "Test": { config: { client: {
+      //   //   servers: [
+      //   //     {
+      //   //       url : "fsdfgsdfgsdfgdgfs: gjhg",
+      //   //       n: 2,
+      //   //       b: 'sdfgsdfgs',
+      //   //       c: 'sd : fgsdfgs'
+      //   //     },
+      //   //     { url : 1, n: 2} ,
+      //   //     { url : 1, n: 2} ,
+      //   //     { url : 1, n: 2},
+      //   //     'asdfa: sd',
+      //   //     'asdfasd',
+      //   //     { url : 1, n: 2},
+      //   //   ],
+      //   //   top: [
+      //   //     'a',
+      //   //     'a dfgs dfg s',
+      //   //     'a',
+      //   //   ]
+      //   // } } },
+      // }
+      const blockString = 'width:10px;height:10px;border-radius:10px;display:inline-block;margin:0 5px;';
+      console.error(1111, aimClient.account);
+
+      $().document(
+        $('main').append(
+          $('details').append(
+            $('summary').append($('h1').text('Config')),
+            $('div'),
+          ).on('toggle', e => e.target.lastChild.innerText ? null : $(e.target.lastChild).append(
+            ...Array.from(Object.entries(config)).map(([key, field]) => [
+              $('details')
+              .append(
+                $('summary').text(key),
+                $('div'),
+              )
+              .on('toggle', e => e.target.lastChild.innerText ? null : $(e.target.lastChild).append(
+                $('div').class('code-header row').attr('ln', 'yaml').append(
+                  $('span').class('aco').text('YAML'),
+                  $('button').class('abtn edit').on('click', e => $(e.target.parentElement.nextElementSibling).editor('yaml')),
+                  $('button').class('abtn view').on('click', e => {
+                    aimClient.api('/').post({
+                      config:e.target.parentElement.nextElementSibling.innerText,
+                      extend:1,
+                    }).then(body => {
+                      console.log(body);
+                      document.location.reload();
+                    })
+                  }),
+                ),
+                $('div').class('code treecode').html($.string.yaml(YAML.stringify(field.config))),
+              )),
+            ]),
+          )),
+
+          // $('div').class('code').html($.string.yaml(YAML.stringify($.config)).split(/\n/).map(l => `<div level=${l.search(/\S/)}>${l}</div>`).join('')),
+          // this.elCode = $('div').class('code treecode').html(YAML.stringify($.config).split(/\n/).map(l => `<div class=l${l.search(/\S/)}>${l}</div>`).join('')).contenteditable(''),
+          this.elCode = $('div').on('keydown', e => {
+            // console.log(e);
+            if (e.keyPressed === 'ctrl_KeyS') {
+              const content = Array.from(e.target.children).map(el => el.innerText.replace(/\n/, '')).join('\n').trim();
+              console.log(content);
+              e.preventDefault();
+              aimClient.api('/').post({
+                config: content,
+              }).then(body => {
+                console.log(body);
+                // document.location.reload();
+              })
+            }
+          }).editor('yaml'),
+
+          // $('h1').text('Config'),
+          // $('h2').text('info'),
+          $('h1').text('Account'),
+          $('div').text(`account_id = ${aimClient.account.accountIdentifier}`),
+          $('div').text(`account_secret = click to show`).on('click', function (e) {
+            $().url('https://aliconnect.nl/api/')
+            .query('request_type', 'account_secret')
+            .headers('Authorization', 'Bearer ' + aimClient.account.id_token)
+            .get().then(e => this.innerText = e.body.secret);
+          }),
+
+          $('h1').text('Domein'),
+          $('div').text(`client_id = ${$.config.auth.client_id.replace(/\w+-(\w+-\w+-\w+-\w+-\w+)/, '$1')}`),
+          $('div').text(`client_secret = click to show`).on('click', function (e) {
+            $().url('https://aliconnect.nl/api/')
+            .query('request_type', 'client_secret')
+            .query('client_id', $.config.auth.client_id)
+            .headers('Authorization', 'Bearer ' + aimClient.account.id_token)
+            .get()
+            .then(e => this.innerText = e.body.secret)
+            // .then(e => console.log(e))
+          }),
+
+
+          $('details')
+          .append(
+            $('summary').append($('h2').text('Verbruik')),
+            $('div').text('Gegevens worden verzameld'),
+          )
+          .on('toggle', detailsEvent => {
+            if (detailsEvent.target.open) {
+              aimClient.api('/?request_type=account_verbruik').get().then(data => {
+                console.log(data);
+                var max_request_count;
+                function calc_max_request_count(max_request_count, value) {
+                  return Math.max(max_request_count, Math.ceil(value/max_request_count)*max_request_count);
+                }
+                function bar(entries) {
+                  var start = 0;
+                  var s='background-image: linear-gradient(90deg, ';
+                  entries.forEach(([color,size], i) => {
+                    s+=`${color} ${start += size}%, `;
+                    s+=entries[i+1] ? `${entries[i+1][0]} ${start}%, ` : `var(--trans3) ${start}%, var(--trans3) 100%);`;
+                  })
+                  return s;
+                }
+                function meter(data) {
+                  const decimals = 0;
+                  const max=data.max_count
+                  const value = data.dir_size + data.item_count + data.request_count;
+                  const tot = (data.dir_size + data.item_count + data.attribute_count + data.request_count).toFixed(decimals);
+                  return $('div').append(
+                    $('div').class('row').append(
+                      $('span').text(data.periode),
+                      $('small').style('margin-left:auto;').text(`${tot} MB van ${data.max_count} MB gebruikt`),
+                    ),
+                    $('div').style(`height:20px;border-radius:5px;`+bar([
+                      ['var(--red)', data.dir_size/data.max_count*100],
+                      ['var(--blue)', data.item_count/data.max_count*100],
+                      ['var(--green)', data.attribute_count/data.max_count*100],
+                      ['var(--yellow)', data.request_count/data.max_count*100],
+                    ])),
+                  );
+                }
+                $(detailsEvent.target.lastChild).text('').append(
+                  ...data.periode.map(
+                    periode => [
+                      meter({
+                        periode: periode.periode,
+                        dir_size: Number(periode.dir_size/1024/1024),
+                        item_count: Number(periode.item_count/1000),
+                        attribute_count: Number(periode.attribute_count/1000),
+                        request_count: Number(periode.request_count/1000),
+                        max_count: data.max_count,
+                      }),
+                    ]
+                  ),
+                  $('div').append(
+                    $('span').style(blockString+'background:var(--red);'),$('small').text(`Opslag`),
+                    $('span').style(blockString+'background:var(--blue);'),$('small').text(`Items`),
+                    $('span').style(blockString+'background:var(--green);'),$('small').text(`Attributes`),
+                    $('span').style(blockString+'background:var(--yellow);'),$('small').text(`Traffic`),
+                  ),
+                )
+              })
+            }
+          }),
+          $('details')
+          .append(
+            $('summary').append($('h1').text('Domain accounts')),
+            $('div').text('Gegevens worden verzameld'),
+          )
+          .on('toggle', detailsEvent => {
+            if (detailsEvent.target.open) {
+              aimClient.api('/?request_type=account_beheer').get().then(body => {
+                console.log(body);
+                $(detailsEvent.target.lastChild).text('').append(
+                  // $('h1').text('Domain accounts'),
+                  ...body.domain_accounts.map(row => $('li').text(row.host_keyname))
+                )
+              });
+            }
+            // $('p').text('Domain accounts'),
+          }),
+          aimClient.config.contract && aimClient.config.contract.verantwoordelijke ? [
+            $('h1').text('Verantwoordelijke'),
+            $('h1').text('Verwerkingsregister'),
+            $('a').text('Verwerkingsregister').href('#').on('click', e => {
+              $().url('https://aliconnect.nl/sdk/wiki/Verwerkingsregister.md').get().then(e => {
+                var content = e.target.responseText;
+                const gdpr = {};
+                const list = ['gdpr_type', 'category', 'involved', 'basis', 'target', 'processor', 'processor_location', 'term_days', 'encrypt'];
+                for (let [schemaName,schema] of $().schemas()) {
+                  for (let [propertyName,property] of Object.entries(schema.properties)) {
+                    if (property.gdpr_type) {
+                      var obj = gdpr;
+                      list.forEach(name => {
+                        // console.log(name);
+                        obj = obj[property[name]] = obj[property[name]] || {};
+                      })
                     }
                   }
-                  function listitem ([name,obj], level) {
-                    // console.log(level);
-                    content += '  '.repeat(level) + `- ${list[level]}: ${name}\n`;
-                    if (obj) Object.entries(obj).forEach(entry => listitem(entry, level+1))
-                  }
-                  for (let [name,obj] of Object.entries(gdpr)) {
-                    content += `# Verwerkingsactiviteiten van ${name}\n`;
-                    Object.entries(obj).forEach(entry => listitem(entry, 0))
-                  }
-                  // console.log(content);
-                  const elem = $('div').parent(promptElem).class('col abs').append(
-                    $('div').class('row top abs btnbar').append(
-                      $('span').class('aco'),
-                      $('button').class('abtn close').on('click', e => elem.remove()),
-                    ),
-                    $('main').class('aco oa doc-content counter').md(content),
+                }
+                function listitem ([name,obj], level) {
+                  // console.log(level);
+                  content += '  '.repeat(level) + `- ${list[level]}: ${name}\n`;
+                  if (obj) Object.entries(obj).forEach(entry => listitem(entry, level+1))
+                }
+                for (let [name,obj] of Object.entries(gdpr)) {
+                  content += `# Verwerkingsactiviteiten van ${name}\n`;
+                  Object.entries(obj).forEach(entry => listitem(entry, 0))
+                }
+                // console.log(content);
+                const elem = $('div').parent(promptElem).class('col abs').append(
+                  $('div').class('row top abs btnbar').append(
+                    $('span').class('aco'),
+                    $('button').class('abtn close').on('click', e => elem.remove()),
+                  ),
+                  $('main').class('aco oa doc-content counter').md(content),
+                );
+              })
+            }),
+          ] : null,
+          aimClient.config.contract && aimClient.config.contract.verwerker ? [
+            $('h1').text('Verwerkers'),
+            aimClient.config.contract.verwerker.map((verwerker, i) => [
+              $('h2').text(verwerker.bedrijfsnaam),
+              $('a').text('Verwerkers contract').href('#').on('click', e => {
+                $().url('https://aliconnect.nl/sdk/wiki/Verwerkers-overeenkomst.md').get().then(e => {
+                  const content = e.target.responseText.replace(/-0-/, `-${i}-`);
+                  $().document(
+                    $('main').md(content)
                   );
                 })
               }),
-            ] : null,
-            $().contract && $().contract.verwerker ? [
-              $('h1').text('Verwerkers'),
-              $().contract.verwerker.map((verwerker, i) => [
-                $('h2').text(verwerker.bedrijfsnaam),
-                $('a').text('Verwerkers contract').href('#').on('click', e => {
-                  $().url('https://aliconnect.nl/sdk/wiki/Verwerkers-overeenkomst.md').get().then(e => {
-                    const content = e.target.responseText.replace(/-0-/, `-${i}-`);
-                    $().document(
-                      $('main').md(content)
-                    );
-                  })
-                }),
-              ]),
-            ] : null,
-          )
+            ]),
+          ] : null,
         )
+      )
 
 
-        // this.elCode = $('pre').parent($(document.body).text('')).editor();
+      // this.elCode = $('pre').parent($(document.body).text('')).editor();
 
-        $()
-        .api(`/../config/${app.account.sub}/config.yaml`)
-        .get()
-        .then(e => this.elCode.text(e.target.responseText.trim().replace(/\n\n/gs, '\n')));
-      },
-      account_profile() {},
-      contact_profile() {},
-      account_page() {},
-      share_item() {
-        const item = ItemSelected;
-        if (!item) return $().prompt('');
-        this.is.text('').append(
-          $('h1').ttext('prompt-share_item-title'),
-          $('div').ttext('prompt-share_item-description'),
-          $('form').class('col').properties({
-            accountname: { },
-            accountname: { value: 'test.alicon@alicon.nl'},
-            readonly: { format: 'checkbox', title: 'Alleen lezen', checked: true },
-            // scope_granted: { value: (item.schemaName + '.read').toLowerCase() },
-            scope_requested: { type: 'hidden', value: ($().scope||[]).join(' ') },
-            tag: { type: 'hidden', value: item.tag },
-          }).btns({
-            next: { type:'submit', default: true, tabindex: 2 },
-          }).on('submit', e => app.api('/' + item.tag).query('prompt', 'share_item').post(e).then(e => {
-            // return console.log(e.body);
+      // $()
+      // .api(`/../config/${aimClient.account.idToken.sub}/config.yaml`)
+      // .get()
+      // .then(e => this.elCode.text(e.target.responseText.trim().replace(/\n\n/gs, '\n')));
+    },
+    account_profile() {},
+    contact_profile() {},
+    account_page() {},
+    share_item() {
+      const item = ItemSelected;
+      if (!item) return $().prompt('');
+      this.is.text('').append(
+        $('h1').ttext('prompt-share_item-title'),
+        $('div').ttext('prompt-share_item-description'),
+        $('form').class('col').properties({
+          accountname: { },
+          accountname: { value: 'test.alicon@alicon.nl'},
+          readonly: { format: 'checkbox', title: 'Alleen lezen', checked: true },
+          // scope_granted: { value: (item.schemaName + '.read').toLowerCase() },
+          scope_requested: { type: 'hidden', value: ($().scope||[]).join(' ') },
+          tag: { type: 'hidden', value: item.tag },
+        }).btns({
+          next: { type:'submit', default: true, tabindex: 2 },
+        }).on('submit', e => aimClient.api('/' + item.tag).query('prompt', 'share_item').post(e).then(body => {
+          // return console.log(e.body);
+          this.is.text('').append(
+            $('h1').ttext('prompt-share_item-done-title'),
+            $('ol').append(
+              body.msg.map(msg => $('li').ttext(msg)),
+            ),
+            $('form').class('col').btns({
+              close: { type:'submit', default: true, tabindex: 2 },
+            }).on('submit', e => {
+              $().prompt('');
+              return false;
+            }),
+          )
+        }))
+      );
+    },
+    account_delete() {
+      this.is.text('').append(
+        $('h1').ttext('prompt-account_delete-title'),
+        $('div').ttext('prompt-account_delete-description'),
+        $('form').class('col').properties({
+          password: {
+            autocomplete: 'new-password',
+            type: 'password',
+            required: true,
+            title: 'Current password'
+          },
+        }).btns({
+          next: { type:'submit', default:1 },
+        }).on('submit', e => aimClient.api('/').query('prompt', 'account_delete').post(e).then(body => {
+          console.log(e);
+          if (body === 'code_send') {
             this.is.text('').append(
-              $('h1').ttext('prompt-share_item-done-title'),
-              $('ol').append(
-                e.body.msg.map(msg => $('li').ttext(msg)),
-              ),
-              $('form').class('col').btns({
-                close: { type:'submit', default: true, tabindex: 2 },
-              }).on('submit', e => {
-                $().prompt('');
-                return false;
-              }),
+              $('h1').ttext('prompt-sms_verification_code-title'),
+              $('div').ttext('prompt-sms_verification_code-description'),
+              $('form').class('col').properties({
+                code: {
+                  required: true,
+                  title: 'code'
+                },
+              }).btns({
+                next: { type:'submit', default: true, tabindex: 2 },
+              }).on('submit', e => aimClient.api('/').query('prompt', 'account_delete').post(e).then(e => {
+                $().logout();
+                document.location.href = '/';
+                return;
+                this.is.text('').append(
+                  $('h1').ttext('prompt-account_delete-done-title'),
+                  $('div').ttext('prompt-account_delete-done-description'),
+                  body.msg.map(msg => $('li').ttext(msg)),
+                  $('form').class('col').btns({
+                    next: { type:'submit', default: true, tabindex: 2 },
+                  }).on('submit', e => {
+                    $().prompt('');
+                    return false;
+                  }),
+                )
+              }))
             )
-          }))
-        );
-      },
-      account_delete() {
+          }
+        }))
+      )
+    },
+    account_delete_domain() {
+      this.is.text('').append(
+        $('h1').ttext('prompt-account_delete_domain-title'),
+        $('div').ttext('prompt-account_delete_domain-description'),
+        $('form').class('col').properties({
+          password: {
+            autocomplete: 'new-password',
+            type: 'password',
+            required: true,
+            title: 'Current password'
+          },
+        }).btns({
+          next: { type:'submit', default:1 },
+        }).on('submit', e => aimClient.api('/').query('prompt', 'account_delete_domain').post(e).then(body => {
+          console.log(e);
+          if (body === 'code_send') {
+            this.is.text('').append(
+              $('h1').ttext('prompt-sms_verification_code-title'),
+              $('div').ttext('prompt-sms_verification_code-description'),
+              $('form').class('col').properties({
+                code: {
+                  required: true,
+                  title: 'code'
+                },
+              }).btns({
+                next: { type:'submit', default: true, tabindex: 2 },
+              }).on('submit', e => aimClient.api('/' + item.tag).query('prompt', 'account_delete_domain').post(e).then(body => {
+                this.is.text('').append(
+                  $('h1').ttext('prompt-account_delete_domain-done-title'),
+                  $('div').ttext('prompt-account_delete_domain-done-description'),
+                  body.msg.map(msg => $('li').ttext(msg)),
+                  $('form').class('col').btns({
+                    next: { type:'submit', default: true, tabindex: 2 },
+                  }).on('submit', e => {
+                    $().prompt('');
+                    return false;
+                  }),
+                )
+              }))
+            )
+          }
+        }))
+      )
+    },
+    account_domain() {
+      const searchParams = new URLSearchParams(document.location.search);
+      this.is.text('').append(
+        $('h1').ttext('Account domain'),
+        $('p').ttext(`The domain ${searchParams.get('domain')||''} is not registered.`),
+      );
+      if (aimClient.account.idToken.sub) {
         this.is.text('').append(
-          $('h1').ttext('prompt-account_delete-title'),
-          $('div').ttext('prompt-account_delete-description'),
+          $('p').ttext(`If you want to register this domain select next?`),
+          $('p').ttext(`You agree our ...?`),
+          this.elemMessage = $('div').class('msg'),
           $('form').class('col').properties({
-            password: {
-              autocomplete: 'new-password',
-              type: 'password',
-              required: true,
-              title: 'Current password'
-            },
+            domain_name: { value: (searchParams.get('domain')||'').split(/\./)[0]},
           }).btns({
             next: { type:'submit', default:1 },
-          }).on('submit', e => app.api('/').query('prompt', 'account_delete').post(e).then(e => {
-            console.log(e.body);
-            if (e.body === 'code_send') {
-              this.is.text('').append(
-                $('h1').ttext('prompt-sms_verification_code-title'),
-                $('div').ttext('prompt-sms_verification_code-description'),
-                $('form').class('col').properties({
-                  code: {
-                    required: true,
-                    title: 'code'
-                  },
-                }).btns({
-                  next: { type:'submit', default: true, tabindex: 2 },
-                }).on('submit', e => app.api('/').query('prompt', 'account_delete').post(e).then(e => {
-                  $().logout();
-                  document.location.href = '/';
-                  return;
-                  this.is.text('').append(
-                    $('h1').ttext('prompt-account_delete-done-title'),
-                    $('div').ttext('prompt-account_delete-done-description'),
-                    e.body.msg.map(msg => $('li').ttext(msg)),
-                    $('form').class('col').btns({
-                      next: { type:'submit', default: true, tabindex: 2 },
-                    }).on('submit', e => {
-                      $().prompt('');
-                      return false;
-                    }),
-                  )
-                }))
-              )
+          }).on('submit', e => aimClient.api('/account/account_domain').post(e).then(data => {
+            this.elemMessage.html(data.msg || '');
+            if (data.url) {
+              // return console.error(data.url, data);
+              const url = $()
+              .url('https://login.aliconnect.nl/')
+              .query({
+                prompt: 'login',
+                response_type: 'code',
+                client_id: data.client_id,
+                redirect_uri: data.url,
+                // state: state,
+                scope: $().scope,//('all'),
+                // socket_id: data.socket_id,
+              });
+              return document.location.href = url.toString();
+              // return document.location.href = data.url;
             }
+            console.log('DONE', data);
+            // this.is.text('').append(
+            //   $('h1').ttext('Domain created')
+            // );
           }))
         )
-      },
-      account_delete_domain() {
+      }
+    },
+    account_domain_delete() {
+      const searchParams = new URLSearchParams(document.location.search);
+      this.is.text('').append(
+        $('h1').ttext('Account domain delete'),
+        $('p').ttext(`Delete the domain ${searchParams.get('domain')||''}.`),
+      );
+      if (aimClient.account.idToken.sub) {
         this.is.text('').append(
-          $('h1').ttext('prompt-account_delete_domain-title'),
-          $('div').ttext('prompt-account_delete_domain-description'),
+          $('p').ttext(`If you want to delete this domain select next?`),
+          this.elemMessage = $('div').class('msg'),
           $('form').class('col').properties({
-            password: {
-              autocomplete: 'new-password',
-              type: 'password',
-              required: true,
-              title: 'Current password'
-            },
-          }).btns({
+            // domain_name: { value: (searchParams.get('domain')||'').split(/\./)[0]},
+          })
+          .btns({
             next: { type:'submit', default:1 },
-          }).on('submit', e => app.api('/').query('prompt', 'account_delete_domain').post(e).then(e => {
-            console.log(e.body);
-            if (e.body === 'code_send') {
-              this.is.text('').append(
-                $('h1').ttext('prompt-sms_verification_code-title'),
-                $('div').ttext('prompt-sms_verification_code-description'),
-                $('form').class('col').properties({
-                  code: {
-                    required: true,
-                    title: 'code'
-                  },
-                }).btns({
-                  next: { type:'submit', default: true, tabindex: 2 },
-                }).on('submit', e => app.api('/' + item.tag).query('prompt', 'account_delete_domain').post(e).then(e => {
-                  this.is.text('').append(
-                    $('h1').ttext('prompt-account_delete_domain-done-title'),
-                    $('div').ttext('prompt-account_delete_domain-done-description'),
-                    e.body.msg.map(msg => $('li').ttext(msg)),
-                    $('form').class('col').btns({
-                      next: { type:'submit', default: true, tabindex: 2 },
-                    }).on('submit', e => {
-                      $().prompt('');
-                      return false;
-                    }),
-                  )
-                }))
-              )
+          })
+          .on('submit', e => aimClient.api('/account/account_domain_delete').post(e).then(data => {
+            if (data.url) {
+              return document.location.href = data.url;
             }
+            return console.error(data);
           }))
         )
-      },
-      account_domain() {
-        const searchParams = new URLSearchParams(document.location.search);
-        this.is.text('').append(
-          $('h1').ttext('Account domain'),
-          $('p').ttext(`The domain ${searchParams.get('domain')||''} is not registered.`),
+      }
+    },
+    account_overview() {
+      $().prompt('');
+      const panel = $('div').panel();
+      console.log('account_overview', panel);
+      aimClient.api('/').query('prompt', 'account_overview').get().then(account => {
+        console.log('ACCOUNT OVERVIEW', account);
+        panel.elemMain.append(
+          $('h1').text([].concat(account.Name).shift().Value),
         );
-        if (app.account.sub) {
-          this.is.text('').append(
-            $('p').ttext(`If you want to register this domain select next?`),
-            $('p').ttext(`You agree our ...?`),
-            this.elemMessage = $('div').class('msg'),
-            $('form').class('col').properties({
-              domain_name: { value: (searchParams.get('domain')||'').split(/\./)[0]},
-            }).btns({
-              next: { type:'submit', default:1 },
-            }).on('submit', e => app.api('/account/account_domain').post(e).then(e => {
-              const data = e.body;
-              this.elemMessage.html(data.msg || '');
-              if (data.url) {
-                // return console.error(data.url, data);
-                const url = $()
-                .url('https://login.aliconnect.nl/')
-                .query({
-                  prompt: 'login',
-                  response_type: 'code',
-                  client_id: data.client_id,
-                  redirect_uri: data.url,
-                  // state: state,
-                  scope: $().scope,//('all'),
-                  // socket_id: data.socket_id,
-                });
-                return document.location.href = url.toString();
-                // return document.location.href = data.url;
-              }
-              console.log('DONE', data);
-              // this.is.text('').append(
-              //   $('h1').ttext('Domain created')
-              // );
-            }))
-          )
-        }
-      },
-      account_domain_delete() {
-        const searchParams = new URLSearchParams(document.location.search);
-        this.is.text('').append(
-          $('h1').ttext('Account domain delete'),
-          $('p').ttext(`Delete the domain ${searchParams.get('domain')||''}.`),
-        );
-        if (app.account.sub) {
-          this.is.text('').append(
-            $('p').ttext(`If you want to delete this domain select next?`),
-            this.elemMessage = $('div').class('msg'),
-            $('form').class('col').properties({
-              // domain_name: { value: (searchParams.get('domain')||'').split(/\./)[0]},
-            })
-            .btns({
-              next: { type:'submit', default:1 },
-            })
-            .on('submit', e => app.api('/account/account_domain_delete').post(e).then(e => {
-              const data = e.body;
-              if (data.url) {
-                return document.location.href = data.url;
-              }
-              return console.error(data);
-            }))
-          )
-        }
-      },
-      account_overview() {
-        $().prompt('');
-        const panel = $('div').panel();
-        console.log('account_overview', panel);
-        app.api('/').query('prompt', 'account_overview').get().then(e => {
-          const account = e.body;
-          console.log('ACCOUNT OVERVIEW', account);
-          panel.elemMain.append(
-            $('h1').text([].concat(account.Name).shift().Value),
-          );
-        })
-      },
-      account_config() {
-        $()
-        .prompt('')
-        .api('/')
-        .query('account','')
-        .accept('yaml')
-        .get().then(e => $().account_config(e.body))
-      },
-      set_customer(e) {
-        $('a').ttext('set_customer').on('click', $().shop.setCustomer());
-      },
-      account_password() {
-        this.is.text('').append(
-          $('h1').ttext('Change password'),
-          // $('div').ttext('Create account description'),
+      })
+    },
+    account_config() {
+      $()
+      .prompt('')
+      .api('/')
+      .query('account','')
+      .accept('yaml')
+      .get().then(body => $().account_config(body))
+    },
+    set_customer(e) {
+      $('a').ttext('set_customer').on('click', $().shop.setCustomer());
+    },
+    account_password() {
+      this.is.text('').append(
+        $('h1').ttext('Change password'),
+        // $('div').ttext('Create account description'),
+        $('form').class('col').properties({
+          accountname: {
+            type: 'text',
+            autocomplete: 'username',
+            pattern: '[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}$',
+            // required: true,
+            autofocus: true,
+            title: 'Username'
+          },
+          password: {
+            autocomplete: 'current-password',
+            autocomplete: 'new-password',
+            type: 'password',
+            // required: true,
+            title: 'Current password'
+          },
+          password1: {
+            autocomplete: 'new-password',
+            type: 'password',
+            // required: true,
+            title: 'New password'
+          },
+          password2: {
+            autocomplete: 'new-password',
+            type: 'password',
+            // required: true,
+            title: 'New password repeat'
+          },
+        }).btns({
+          next: { type:'submit', default:1 },
+        }).on('submit', e => $().url('/api/account/password').post(e).then(e => this.is.text('').append(
+          $('h1').ttext('Password changed')
+        )))
+      )
+    },
+    account_mobile() {
+      this.is.text('').append(
+        $('h1').ttext('Account mobile'),
+        $('form').class('col').properties({
+          mobilenumber: {
+            title: 'Mobile_number',
+            required: true,
+            type: 'tel',
+            min:1000000000,
+            max:9999999999,
+          },
+        }).btns({
+          next: { type:'submit', default:1 },
+        }).on('submit', e => $().url('/api/account/phone').post(e).then(e => this.is.text('').append(
+          $('h1').ttext('SMS verification code'),
           $('form').class('col').properties({
-            accountname: {
-              type: 'text',
-              autocomplete: 'username',
-              pattern: '[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}$',
-              // required: true,
-              autofocus: true,
-              title: 'Username'
-            },
-            password: {
-              autocomplete: 'current-password',
-              autocomplete: 'new-password',
-              type: 'password',
-              // required: true,
-              title: 'Current password'
-            },
-            password1: {
-              autocomplete: 'new-password',
-              type: 'password',
-              // required: true,
-              title: 'New password'
-            },
-            password2: {
-              autocomplete: 'new-password',
-              type: 'password',
-              // required: true,
-              title: 'New password repeat'
-            },
-          }).btns({
-            next: { type:'submit', default:1 },
-          }).on('submit', e => $().url('/api/account/password').post(e).then(e => this.is.text('').append(
-            $('h1').ttext('Password changed')
-          )))
-        )
-      },
-      account_mobile() {
-        this.is.text('').append(
-          $('h1').ttext('Account mobile'),
-          $('form').class('col').properties({
-            mobilenumber: {
-              title: 'Mobile_number',
-              required: true,
-              type: 'tel',
-              min:1000000000,
-              max:9999999999,
+            code: {
+              type: 'number',
             },
           }).btns({
             next: { type:'submit', default:1 },
           }).on('submit', e => $().url('/api/account/phone').post(e).then(e => this.is.text('').append(
-            $('h1').ttext('SMS verification code'),
-            $('form').class('col').properties({
-              code: {
-                type: 'number',
-              },
-            }).btns({
-              next: { type:'submit', default:1 },
-            }).on('submit', e => $().url('/api/account/phone').post(e).then(e => this.is.text('').append(
-              $('h1').ttext('Email changed')
-            )))
+            $('h1').ttext('Email changed')
           )))
-        )
-      },
-      account_email() {
-        this.is.text('').append(
-          $('h1').ttext('Account email'),
+        )))
+      )
+    },
+    account_email() {
+      this.is.text('').append(
+        $('h1').ttext('Account email'),
+        $('form').class('col').properties({
+          email: {
+            required: true,
+            type: 'email',
+          },
+        }).btns({
+          next: { type:'submit', default:1 },
+        }).on('submit', e => $().url('/api/account/email').post(e).then(e => this.is.text('').append(
+          $('h1').ttext('Email verification code'),
           $('form').class('col').properties({
-            email: {
-              required: true,
-              type: 'email',
+            code: {
+              type: 'number',
             },
           }).btns({
             next: { type:'submit', default:1 },
           }).on('submit', e => $().url('/api/account/email').post(e).then(e => this.is.text('').append(
-            $('h1').ttext('Email verification code'),
-            $('form').class('col').properties({
-              code: {
-                type: 'number',
-              },
-            }).btns({
-              next: { type:'submit', default:1 },
-            }).on('submit', e => $().url('/api/account/email').post(e).then(e => this.is.text('').append(
-              $('h1').ttext('Password changed')
-            )))
+            $('h1').ttext('Password changed')
           )))
-        )
-      },
-      login_consent() {
-        app.login({
-          scope: 'name email phone_number',
-          prompt: 'consent',
-        });
-        // $().nav().reload(app.loginUrl('consent'))
-      },
-      login() {
-        document.location.href = $().loginUrl().toString();
-        return;
-        console.log('PROMPT LOGIN', $())
-        app.login({
-          scope: $.config.scope || "",//'name email phone_number',
-          redirect_uri: document.location.origin+document.location.pathname,
-        });
-        // $().nav().reload(app.loginUrl())
-      },
-      logout() {
-        app.logout();
-        return;
-        e = e || window.event;
-        if ($.his.cookie.id_token) {
-          if (e.type !== 'message') {
-            new $.WebsocketRequest({
-              to: {
-                nonce: $.auth.id.nonce,
-              },
-              path: '/?prompt=logout',
-            });
-          }
-          // $().emit('logout');
-        }
-        // alert('LOGOUT');
-        $.his.cookie = {
-          id_token: $.auth.id_token = null,
-          access_token: $.auth.access_token = null,
-          refresh_token: $.auth.refresh_token = null,
-        };
-        if (document.location.protocol === 'file:') {
-          $.his.replaceUrl( '#');
-          return $.reload();
-        }
-        // let url = 'https://login.aliconnect.nl/api/oauth?' + new URLSearchParams({
-        //   prompt: 'logout',
-        //   redirect_uri: document.location.origin + document.location.pathname,
-        // }).toString();
-        // $.reload(url);
-      },
-      login_msa() {
-        $().msa().signIn(msaRequest)
-      },
-      terms_of_use() {
-        // ['termsOfUse', 'https://aliconnect.aliconnect.nl/docs/index/1-Explore/9-TermsOfUse'],
-      },
-      privacy_policy() {
-        // ['Privacy policy', 'https://aliconnect.nl/docs/index/1-Explore/9-TermsOfUse/Privacypolicy'],
-      },
-      cookie_policy() {
-        // ['Cookie policy', 'https://aliconnect.nl/docs/index/1-Explore/9-TermsOfUse/Cookiepolicy'],
-      },
-      upload_datafile() {
-        // $('a').ttext('Upload datafile').href('#/Upload/show()'),
-      },
-      import_outlook_mail() {
-        // $('a').ttext('Importeer geselcteerde mail uit outlook').href('#/outlook/import/mail()'),
-      },
-      import_outlook_contact() {
-        // $('a').ttext('Importeer contacten uit outlook').href('#/outlook/import/mail()'),
-      },
-      sitemap() {
-      },
-      get_api_key() {
-      },
-      get_aliconnector_key() {
-        $.clipboard.copyToClipboard({
-          sid: $().ws().socket_id,
-        });
-        $().prompt('');
-      },
-      shop() {
-        $('form').parent(this.is.text('')).append(
-          $('h1').text('Shop'),
-        )
-      },
-      task() {
-        $('form').parent(this.is.text('')).append(
-          $('h1').text('Tasks'),
-        )
-      },
-      msg() {
-        $('form').parent(this.is.text('')).append(
-          $('h1').text('Messages'),
-        )
-      },
-      chat() {
-        $('form').parent(this.is.text('')).append(
-          $('h1').text('Chat'),
-        )
-      },
-      lang() {
-        $('form').parent(this.is.text('')).append(
-          $('h1').text('Language'),
-        )
-      },
-      scope_accept() {
-        // this.n='ooo';
-        $('form')
-        .class('col')
-        .parent(this.is.text(''))
-        .append(
-          $('h1').text('JA', document.location.search),
-        );
-        // this.on('open', e => {
-        //   alert('OPEN');
-        // });
-        // this.show = par => {
-        //   alert('SHOW');
-        // };
-        // return;
-      },
-
-      // DEBUG: verwijderen, is opgenomen in account_admin
-      verwerkingsregister() {
-        $().prompt();
-        $('list').load('https://aliconnect.nl/sdk/wiki/Verwerkingsregister.md', content => {
-          const gdpr = {};
-          const list = ['gdpr_type', 'category', 'involved', 'basis', 'target', 'processor', 'processor_location', 'term_days', 'encrypt'];
-          for (let [schemaName,schema] of $().schemas()) {
-            for (let [propertyName,property] of Object.entries(schema.properties)) {
-              if (property.gdpr_type) {
-                var obj = gdpr;
-                list.forEach(name => {
-                  // console.log(name);
-                  obj = obj[property[name]] = obj[property[name]] || {};
-                })
-              }
-            }
-          }
-          function listitem ([name,obj], level) {
-            console.log(level);
-            content += '  '.repeat(level) + `- ${list[level]}: ${name}\n`;
-            if (obj) Object.entries(obj).forEach(entry => listitem(entry, level+1))
-          }
-          for (let [name,obj] of Object.entries(gdpr)) {
-            content += `# Verwerkingsactiviteiten van ${name}\n`;
-            Object.entries(obj).forEach(entry => listitem(entry, 0))
-          }
-          console.log(gdpr);
-          return content;
-        });
-      },
-      async schema_design() {
-        $().prompt();
-        // await $('list').load('https://aliconnect.nl/sdk/wiki/Verwerkingsregister.md');
-        $('list').docElem.text('').append(
-          ...Array.from($().schemas()).map(([schemaName,schema]) => [].concat(
-            $('h1').text(schemaName),
-            $('h2').text('Properties'),
-            ...Object.entries(schema.properties).map(([propertyName,property]) => [
-              $('div').text(propertyName),
-              $('ul').append(
-                ...Object.entries(property).map(([metaName,meta]) => $('li').append(
-                  $('code').text(metaName),
-                  $('span').text(`: ${meta}`),
-                )),
-              )
-            ]),
-          ))
-        )
-        // console.log('aaaaaa', $('list').docElem.text());
-
-      },
-
-
-      // accept() {
-      //   return;
-      //   const searchParams = new URLSearchParams(document.location.search);
-      //   // const redirect_uri = searchParams.get('redirect_uri');
-      //   // const url = new URL(redirect_uri);
-      //   const scope = searchParams.get('scope').split(' ');
-      //   const properties = Object.fromEntries(scope.map(val => [val, {
-      //     name: val,
-      //     format: 'checkbox',
-      //     checked: 1,
-      //   }]))
-      //   properties.expire_time = {format: 'number', value: 3600};
-      //   const form = newform(this, arguments.callee.name, {
-      //     properties: properties,
-      //     btns: {
-      //       deny: { name: 'accept', value:'deny', type:'button' },
-      //       allow: { name: 'accept', value:'allow', type:'submit', default: true },
-      //     }
-      //   }).append(qr())
-      // },
-      ws_socket_id() {
-        //console.log('ws_socket_id', $.WebsocketClient.responseBody, $.auth.request);
-        // return;
-        if (!$.WebsocketClient.responseBody || !$.WebsocketClient.responseBody.from_id) {
-          //console.warn('No websocket data in last received websocket response');
-          $.request('?prompt=init');
-          return;
-        }
-        if ($.auth.request) {
+        )))
+      )
+    },
+    login_consent() {
+      aimClient.login({
+        scope: 'name email phone_number',
+        prompt: 'consent',
+      });
+      // $().nav().reload(aimClient.loginUrl('consent'))
+    },
+    login() {
+      this.aimClient.login({});
+      return;
+      document.location.href = $().loginUrl().toString();
+      console.log('PROMPT LOGIN', $())
+      aimClient.login({
+        scope: $.config.scope || "",//'name email phone_number',
+        redirect_uri: document.location.origin+document.location.pathname,
+      });
+      // $().nav().reload(aimClient.loginUrl())
+    },
+    logout() {
+      aimClient.logout();
+      return;
+      e = e || window.event;
+      if ($.his.cookie.id_token) {
+        if (e.type !== 'message') {
           new $.WebsocketRequest({
-            to: { sid: $.WebsocketClient.responseBody.from_id },
-            path: '/?prompt=accept&client_id=' + $().client_id,
-            body: {
-              scope: $.auth.request,
-              url: document.location.href,
+            to: {
+              nonce: $.auth.id.nonce,
             },
-          });
-        } else {
-          new $.WebsocketRequest({
-            to: { sid: $.WebsocketClient.responseBody.from_id },
-            path: '/?prompt=ws_get_id_token&client_id=' + $().client_id,
+            path: '/?prompt=logout',
           });
         }
-      },
-      ws_set_id_token() {
-        if (!$.WebsocketClient.responseBody || !$.WebsocketClient.responseBody.from_id) {
-          return $.request('?prompt=init');
+        // $().emit('logout');
+      }
+      // alert('LOGOUT');
+      $.his.cookie = {
+        id_token: $.auth.id_token = null,
+        access_token: $.auth.access_token = null,
+        refresh_token: $.auth.refresh_token = null,
+      };
+      if (document.location.protocol === 'file:') {
+        $.his.replaceUrl( '#');
+        return $.reload();
+      }
+      // let url = 'https://login.aliconnect.nl/api/oauth?' + new URLSearchParams({
+      //   prompt: 'logout',
+      //   redirect_uri: document.location.origin + document.location.pathname,
+      // }).toString();
+      // $.reload(url);
+    },
+    login_msa() {
+      $().msa().signIn(msaRequest)
+    },
+    terms_of_use() {
+      // ['termsOfUse', 'https://aliconnect.aliconnect.nl/docs/index/1-Explore/9-TermsOfUse'],
+    },
+    privacy_policy() {
+      // ['Privacy policy', 'https://aliconnect.nl/docs/index/1-Explore/9-TermsOfUse/Privacypolicy'],
+    },
+    cookie_policy() {
+      // ['Cookie policy', 'https://aliconnect.nl/docs/index/1-Explore/9-TermsOfUse/Cookiepolicy'],
+    },
+    upload_datafile() {
+      // $('a').ttext('Upload datafile').href('#/Upload/show()'),
+    },
+    import_outlook_mail() {
+      // $('a').ttext('Importeer geselcteerde mail uit outlook').href('#/outlook/import/mail()'),
+    },
+    import_outlook_contact() {
+      // $('a').ttext('Importeer contacten uit outlook').href('#/outlook/import/mail()'),
+    },
+    sitemap() {
+    },
+    get_api_key() {
+    },
+    get_aliconnector_key() {
+      $.clipboard.copyToClipboard({
+        sid: $().ws().socket_id,
+      });
+      $().prompt('');
+    },
+    shop() {
+      $('form').parent(this.is.text('')).append(
+        $('h1').text('Shop'),
+      )
+    },
+    task() {
+      $('form').parent(this.is.text('')).append(
+        $('h1').text('Tasks'),
+      )
+    },
+    msg() {
+      $('form').parent(this.is.text('')).append(
+        $('h1').text('Messages'),
+      )
+    },
+    chat() {
+      $('form').parent(this.is.text('')).append(
+        $('h1').text('Chat'),
+      )
+    },
+    lang() {
+      $('form').parent(this.is.text('')).append(
+        $('h1').text('Language'),
+      )
+    },
+    scope_accept() {
+      // this.n='ooo';
+      $('form')
+      .class('col')
+      .parent(this.is.text(''))
+      .append(
+        $('h1').text('JA', document.location.search),
+      );
+      // this.on('open', e => {
+      //   alert('OPEN');
+      // });
+      // this.show = par => {
+      //   alert('SHOW');
+      // };
+      // return;
+    },
+
+    // DEBUG: verwijderen, is opgenomen in account_admin
+    verwerkingsregister() {
+      $().prompt();
+      $('list').load('https://aliconnect.nl/sdk/wiki/Verwerkingsregister.md', content => {
+        const gdpr = {};
+        const list = ['gdpr_type', 'category', 'involved', 'basis', 'target', 'processor', 'processor_location', 'term_days', 'encrypt'];
+        for (let [schemaName,schema] of $().schemas()) {
+          for (let [propertyName,property] of Object.entries(schema.properties)) {
+            if (property.gdpr_type) {
+              var obj = gdpr;
+              list.forEach(name => {
+                // console.log(name);
+                obj = obj[property[name]] = obj[property[name]] || {};
+              })
+            }
+          }
         }
-        $.auth.login({scope: $.auth.scope, id_token: $.WebsocketClient.responseBody.body.id_token  });
-      },
-      ws_login_code() {
-        // return //console.log($.WebsocketClient.responseBody.body, $.auth.login.callback);
-        // let body = $.WebsocketClient.responseBody.body;
-        $.WebsocketClient.responseBody.body.client_id = $().client_id;
-        $.WebsocketClient.responseBody.body.redirect_uri = document.location.origin + document.location.pathname;
-        // return //console.debug('https://login.aliconnect.nl/api/oauth?' + new URLSearchParams($.WebsocketClient.responseBody.body).toString());
-        document.location.href = 'https://login.aliconnect.nl/api/oauth?' + new URLSearchParams($.WebsocketClient.responseBody.body).toString();
-      },
-      ws_auth_code() {
-        // return //console.log($.WebsocketClient.responseBody.body, $.auth.login.callback);
-        $.auth.get_access_token($.WebsocketClient.responseBody.body, $.auth.login.callback);
-      },
-      app_response_access_token() {
-        if (!$.WebsocketClient.responseBody || !$.WebsocketClient.responseBody.from_id) {
-          //console.warn('No websocket data in last received websocket response');
-          $.request('?prompt=init');
-          return;
+        function listitem ([name,obj], level) {
+          console.log(level);
+          content += '  '.repeat(level) + `- ${list[level]}: ${name}\n`;
+          if (obj) Object.entries(obj).forEach(entry => listitem(entry, level+1))
         }
-        //console.log('app_response_access_token', $.WebsocketClient.responseBody);
-        $().emit('access_token', $.WebsocketClient.responseBody.body.access_token);
-      },
-      qrscan() {
-        const video = $('video').elem;
-        const state = $('div');
-        this.is.text('').append(
-          state,
-          video.is,
-        ).btns({
-          back: { href: '#?prompt=login'}
+        for (let [name,obj] of Object.entries(gdpr)) {
+          content += `# Verwerkingsactiviteiten van ${name}\n`;
+          Object.entries(obj).forEach(entry => listitem(entry, 0))
+        }
+        console.log(gdpr);
+        return content;
+      });
+    },
+    async schema_design() {
+      $().prompt();
+      // await $('list').load('https://aliconnect.nl/sdk/wiki/Verwerkingsregister.md');
+      $('list').docElem.text('').append(
+        ...Array.from($().schemas()).map(([schemaName,schema]) => [].concat(
+          $('h1').text(schemaName),
+          $('h2').text('Properties'),
+          ...Object.entries(schema.properties).map(([propertyName,property]) => [
+            $('div').text(propertyName),
+            $('ul').append(
+              ...Object.entries(property).map(([metaName,meta]) => $('li').append(
+                $('code').text(metaName),
+                $('span').text(`: ${meta}`),
+              )),
+            )
+          ]),
+        ))
+      )
+      // console.log('aaaaaa', $('list').docElem.text());
+
+    },
+
+
+    // accept() {
+    //   return;
+    //   const searchParams = new URLSearchParams(document.location.search);
+    //   // const redirect_uri = searchParams.get('redirect_uri');
+    //   // const url = new URL(redirect_uri);
+    //   const scope = searchParams.get('scope').split(' ');
+    //   const properties = Object.fromEntries(scope.map(val => [val, {
+    //     name: val,
+    //     format: 'checkbox',
+    //     checked: 1,
+    //   }]))
+    //   properties.expire_time = {format: 'number', value: 3600};
+    //   const form = newform(this, arguments.callee.name, {
+    //     properties: properties,
+    //     btns: {
+    //       deny: { name: 'accept', value:'deny', type:'button' },
+    //       allow: { name: 'accept', value:'allow', type:'submit', default: true },
+    //     }
+    //   }).append(qr())
+    // },
+    ws_socket_id() {
+      //console.log('ws_socket_id', $.WebsocketClient.responseBody, $.auth.request);
+      // return;
+      if (!$.WebsocketClient.responseBody || !$.WebsocketClient.responseBody.from_id) {
+        //console.warn('No websocket data in last received websocket response');
+        $.request('?prompt=init');
+        return;
+      }
+      if ($.auth.request) {
+        new $.WebsocketRequest({
+          to: { sid: $.WebsocketClient.responseBody.from_id },
+          path: '/?prompt=accept&client_id=' + $().client_id,
+          body: {
+            scope: $.auth.request,
+            url: document.location.href,
+          },
         });
-        (async function () {
-          // console.log($.config.apiPath + '/js/qrscan.js');
-          // console.log(1,window.jsQR);
-          await $.script.import($.config.apiPath + '/js/qrscan.js');
-          // console.log(2,window.jsQR);
-          // return;
-          video.is.attr('playsinline', '');
-          const canvasElement = $('canvas').style('display:none').elem;
-          const canvas = canvasElement.getContext("2d");
-          function drawLine(begin, end, color) {
-            canvas.beginPath();
-            canvas.moveTo(begin.x, begin.y);
-            canvas.lineTo(end.x, end.y);
-            canvas.lineWidth = 4;
-            canvas.strokeStyle = color;
-            canvas.stroke();
+      } else {
+        new $.WebsocketRequest({
+          to: { sid: $.WebsocketClient.responseBody.from_id },
+          path: '/?prompt=ws_get_id_token&client_id=' + $().client_id,
+        });
+      }
+    },
+    ws_set_id_token() {
+      if (!$.WebsocketClient.responseBody || !$.WebsocketClient.responseBody.from_id) {
+        return $.request('?prompt=init');
+      }
+      $.auth.login({scope: $.auth.scope, id_token: $.WebsocketClient.responseBody.body.id_token  });
+    },
+    ws_login_code() {
+      // return //console.log($.WebsocketClient.responseBody.body, $.auth.login.callback);
+      // let body = $.WebsocketClient.responseBody.body;
+      $.WebsocketClient.responseBody.body.client_id = $().client_id;
+      $.WebsocketClient.responseBody.body.redirect_uri = document.location.origin + document.location.pathname;
+      // return //console.debug('https://login.aliconnect.nl/api/oauth?' + new URLSearchParams($.WebsocketClient.responseBody.body).toString());
+      document.location.href = 'https://login.aliconnect.nl/api/oauth?' + new URLSearchParams($.WebsocketClient.responseBody.body).toString();
+    },
+    ws_auth_code() {
+      // return //console.log($.WebsocketClient.responseBody.body, $.auth.login.callback);
+      $.auth.get_access_token($.WebsocketClient.responseBody.body, $.auth.login.callback);
+    },
+    app_response_access_token() {
+      if (!$.WebsocketClient.responseBody || !$.WebsocketClient.responseBody.from_id) {
+        //console.warn('No websocket data in last received websocket response');
+        $.request('?prompt=init');
+        return;
+      }
+      //console.log('app_response_access_token', $.WebsocketClient.responseBody);
+      $().emit('access_token', $.WebsocketClient.responseBody.body.access_token);
+    },
+    qrscan() {
+      const video = $('video').elem;
+      const state = $('div');
+      this.is.text('').append(
+        state,
+        video.is,
+      ).btns({
+        back: { href: '#?prompt=login'}
+      });
+      (async function () {
+        // console.log($.config.apiPath + '/js/qrscan.js');
+        // console.log(1,window.jsQR);
+        await importScript('qrscan.js');
+        // console.log(2,window.jsQR);
+        // return;
+        video.is.attr('playsinline', '');
+        const canvasElement = $('canvas').style('display:none').elem;
+        const canvas = canvasElement.getContext("2d");
+        function drawLine(begin, end, color) {
+          canvas.beginPath();
+          canvas.moveTo(begin.x, begin.y);
+          canvas.lineTo(end.x, end.y);
+          canvas.lineWidth = 4;
+          canvas.strokeStyle = color;
+          canvas.stroke();
+        }
+        navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "environment",
+            frameRate: {
+              ideal: 5,
+              max: 10
+            }
           }
-          navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: "environment",
-              frameRate: {
-                ideal: 5,
-                max: 10
+        }).then(function (stream) {
+          // navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (stream) {
+          videostream = video.srcObject = stream;
+          video.is.attr("playsinline", true); // required to tell iOS safari we don't want fullscreen
+          video.play();
+          requestAnimationFrame(tick);
+        });
+        function tick() {
+          if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvasElement.hidden = false;
+            canvasElement.height = video.videoHeight;
+            canvasElement.width = video.videoWidth;
+            canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+            var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+            var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert", });
+            if (code && code.data) {
+              if (code.data.includes('aliconnect.nl')) {
+                videostream.getTracks().forEach(track => track.stop());
+                canvas.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                canvasElement.hidden = true;
+                canvasElement.style.display = 'none';
+                $().ws().sendto(code.data.split('s=').pop(), {
+                  path: '/?prompt=mobile',
+                }).then(body => {
+                  if (body === 'request_id_token') {
+                    $().ws().reply({
+                      id_token: localStorage.getItem('id_token'),
+                    }).then(body => {
+                      if (body.prompt) {
+                        panel = $().prompt(body.prompt);//.show(body.par);
+                        panel.append(
+                          $('div').text('JA NU LUKT HET, VRAAG OM ACCEPT'),
+                        )
+                      } else {
+                        $().prompt('');
+                      }
+                    });
+                  }
+                });
               }
             }
-          }).then(function (stream) {
-            // navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (stream) {
-            videostream = video.srcObject = stream;
-            video.is.attr("playsinline", true); // required to tell iOS safari we don't want fullscreen
-            video.play();
-            requestAnimationFrame(tick);
-          });
-          function tick() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-              canvasElement.hidden = false;
-              canvasElement.height = video.videoHeight;
-              canvasElement.width = video.videoWidth;
-              canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
-              var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
-              var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert", });
-              if (code && code.data) {
-                if (code.data.includes('aliconnect.nl')) {
-                  videostream.getTracks().forEach(track => track.stop());
-                  canvas.clearRect(0, 0, canvasElement.width, canvasElement.height);
-                  canvasElement.hidden = true;
-                  canvasElement.style.display = 'none';
-                  $().ws().sendto(code.data.split('s=').pop(), {
-                    path: '/?prompt=mobile',
-                  }).then(body => {
-                    if (body === 'request_id_token') {
-                      $().ws().reply({
-                        id_token: window.localStorage.getItem('id_token'),
-                      }).then(body => {
-                        if (body.prompt) {
-                          panel = $().prompt(body.prompt);//.show(body.par);
-                          panel.append(
-                            $('div').text('JA NU LUKT HET, VRAAG OM ACCEPT'),
-                          )
-                        } else {
-                          $().prompt('');
-                        }
-                      });
-                    }
-                  });
-                }
-              }
-            }
-            requestAnimationFrame(tick);
           }
-        }())
-      },
-    }
-  });
+          requestAnimationFrame(tick);
+        }
+      }())
+    },
+  };
 
   $(window)
   .on('afterprint', e => {
@@ -8967,7 +8650,7 @@ eol = '\n';
     //
     //
     // $.activeElement = e.path ? e.path.shift() : e.target;
-    // if ($.activeElement.item && $.activeElement.item.focus) $.activeElement.item.focus(e);//app.selection.cancel();
+    // if ($.activeElement.item && $.activeElement.item.focus) $.activeElement.item.focus(e);//aimClient.selection.cancel();
     // //Element.Pulldown.el.innerText = '';
   })
   .on('copy', e => $.clipboard.copy(e))
@@ -9054,7 +8737,7 @@ eol = '\n';
       // $.send();
       // setTimeout(function() { $.auth.setstate('focus'); }, 100);
       // if ($.user.sub) $.auth.check_state();
-      ////if (!$.app.user) return;
+      ////if (!aimClient.user) return;
       //var data = { activestate: 'focus', accountID: $.client.account.id, userID: $.auth.sub, to: [$.key] };
       //ItemSetAttribute(data.userID, 'activestate', data.activestate);
       //ItemSetAttribute(data.accountID, 'activestate', data.activestate);
@@ -9063,10 +8746,10 @@ eol = '\n';
       ////msg.check(true); HOEFT NIET GEBEURD VIA EVENT RT SERVER
       //new $.HttpRequest({
       //    api: 'window/focus/' + aliconnect.deviceUID,
-      //    //post: { exec: 'onfocus', deviceUID: $.app.user ? aliconnect.deviceUID : '', },
+      //    //post: { exec: 'onfocus', deviceUID: aimClient.user ? aliconnect.deviceUID : '', },
       //    onload: function() {
       //        //// //console.debug('onfocus done', this.post, this.responseText);
-      //        //if ($.app.user && $.auth.sub && this.data.UserID != $.auth.sub) $.show({ wv: 1, apnl: 'login' });//document.location.href = '?wv=1&apnl=login';
+      //        //if (aimClient.user && $.auth.sub && this.data.UserID != $.auth.sub) $.show({ wv: 1, apnl: 'login' });//document.location.href = '?wv=1&apnl=login';
       //    }
       //});
     }
@@ -9475,7 +9158,7 @@ eol = '\n';
   .on('paste', e => handleData($.clipboard.itemFocussed, e))
   .on('popstate', e => {
     e.preventDefault();
-    console.log('POPSTATE', document.location.href);
+    // console.log('POPSTATE', document.location.href);
     $().execUrl(document.location.href, true);
   })
   .on('resize', e => {
@@ -9491,43 +9174,44 @@ eol = '\n';
   })
   .on('scroll', e => {
 
-    const lastdoc = $('doc').elem.lastChild;
-    if (lastdoc && lastdoc.doc) {
-      const docelem = lastdoc.doc.docElem;
-      // console.log(docelem, docelem.findAll);
-      if (!$.toScroll) {
-        // const div = Math.abs(lastScrollTop - docelem.elem.scrollTop);
-        // clearTimeout(to);
-        $.toScroll = setTimeout(() => {
-          // console.log('re');
-          $.toScroll = null;
-          // if (div > 50) {
-          lastScrollTop = document.body.scrollTop;
-          let elem = docelem.findAll.find(elem => elem.getBoundingClientRect().top < docelem.elemTop) || docelem.topItem;
-          // console.log(docelem.findAll);
-          // let elem = all.find(elem => elem.offsetParent );
-          // console.log(elem.innerText, elemTop, elem.getBoundingClientRect().top, elem.getBoundingClientRect().height, all.indexOf(elem));
-          // return;
-          // elem = all[all.indexOf(elem)-1];
-          docelem.allmenu.forEach(a => a.attr('open', '0').attr('select', null));
-          const path = [];
-          for (var p = elem.a.elem; p.tagName === 'A' && p.parentElement && p.parentElement.parentElement; p=p.parentElement.parentElement.parentElement.firstChild) {
-            p.setAttribute('select', '');
-            p.setAttribute('open', '1');
-            path.push(p);
-          }
-          $(elem.a.elem).scrollIntoView();
-          if ($('navDoc')) {
-            $('navDoc').text('').append(...path.reverse().map(elem => ['/', $('a').text(elem.innerText)]))
-          }
-          // elem.li.select();
-          // $()
-          // let elem = all.forEach(elem => //console.log(elem.getBoundingClientRect().top));
-          // //console.log(elem, elem.li);
-          // }
-        }, 500);
+    if ($('doc')) {
+      const lastdoc = $('doc').elem.lastChild;
+      if (lastdoc && lastdoc.doc) {
+        const docelem = lastdoc.doc.docElem;
+        // console.log(docelem, docelem.findAll);
+        if (!$.toScroll) {
+          // const div = Math.abs(lastScrollTop - docelem.elem.scrollTop);
+          // clearTimeout(to);
+          $.toScroll = setTimeout(() => {
+            // console.log('re');
+            $.toScroll = null;
+            // if (div > 50) {
+            lastScrollTop = document.body.scrollTop;
+            let elem = docelem.findAll.find(elem => elem.getBoundingClientRect().top < docelem.elemTop) || docelem.topItem;
+            // console.log(docelem.findAll);
+            // let elem = all.find(elem => elem.offsetParent );
+            // console.log(elem.innerText, elemTop, elem.getBoundingClientRect().top, elem.getBoundingClientRect().height, all.indexOf(elem));
+            // return;
+            // elem = all[all.indexOf(elem)-1];
+            docelem.allmenu.forEach(a => a.attr('open', '0').attr('select', null));
+            const path = [];
+            for (var p = elem.a.elem; p.tagName === 'A' && p.parentElement && p.parentElement.parentElement; p=p.parentElement.parentElement.parentElement.firstChild) {
+              p.setAttribute('select', '');
+              p.setAttribute('open', '1');
+              path.push(p);
+            }
+            $(elem.a.elem).scrollIntoView();
+            if ($('navDoc')) {
+              $('navDoc').text('').append(...path.reverse().map(elem => ['/', $('a').text(elem.innerText)]))
+            }
+            // elem.li.select();
+            // $()
+            // let elem = all.forEach(elem => //console.log(elem.getBoundingClientRect().top));
+            // //console.log(elem, elem.li);
+            // }
+          }, 500);
+        }
       }
-
     }
     // console.error(docelem, docelem.doc);
 
@@ -9597,12 +9281,9 @@ eol = '\n';
     //Element.iv.style.paddingTop = Math.min(Element.iv.clientHeight - Element.iv.firstChild.clientHeight - 300, Math.max(0, document.documentElement.scrollTop - 300)) + 'px';
   })
   .on('unload', e => {
-    // app.api.setactivestate('offline');
+    // aimClient.api.setactivestate('offline');
   });
 
-  require = function () {};
-  let localAttr = window.localStorage.getItem('attr');
-  $.localAttr = localAttr = localAttr ? JSON.parse(localAttr) : {};
   $().on({
     connect: handleEvent,
     message(e){
@@ -10346,8 +10027,12 @@ eol = '\n';
               ),
             ),
           ),
-					$('button').class('abtn refresh').on('click', e => app.api(document.location.pathname.replace(/\/id\/.*/,'')).query(document.location.search).get().then(e => $().list(e.body))),
-					$('button').class('abtn download').append(
+          $('button').class('abtn refresh').on(
+            'click', e => aimClient
+            .api(document.location.pathname.replace(/\/id\/.*/,''))
+            .query(document.location.search).get().then(item => $().list(item))
+          ),
+          $('button').class('abtn download').append(
 						$('ul').append(
 							$('li').class('abtn toexcel').text('Excel').on('click', e => {
                 const properties = this.getProperties();
@@ -10542,7 +10227,7 @@ eol = '\n';
       return properties;
     },
     rewrite(viewType) {
-      window.localStorage.setItem('viewType', viewType = this.viewType = viewType || window.localStorage.getItem('viewType'));
+      localStorage.setItem('viewType', viewType = this.viewType = viewType || localStorage.getItem('viewType'));
 			const itemsVisible = this.itemsVisible;
 			itemsVisible.forEach(row => {
 				for (var attributeName in this.filterAttributes) {
@@ -10751,8 +10436,8 @@ eol = '\n';
           //   row.stateColor = properties.state.options[row.state].color;
           // }
 					//this.iconsrc = (this.files && this.files.avalue && this.files.avalue[0]) ? this.iconsrc = files.avalue[0].src : (this.class && this.class.className ? apiroot + 'img/icon/' + this.class.className + '.png' : '');
-					//$.app.listitem.call(row);
-					// var cfgclass = $.config.components.schemas[app.api.find(row.classID)], filterfields = {};
+					//aimClient.listitem.call(row);
+					// var cfgclass = $.config.components.schemas[aimClient.api.find(row.classID)], filterfields = {};
 					$.config.components = $.config.components || {};
 					$.config.components.schemas = $.config.components.schemas || {};
 					var cfgclass = $.config.components.schemas[row.schema] || {};
@@ -11105,7 +10790,7 @@ eol = '\n';
               if (aim().menuChildren) {
                 $().tree(...aim().menuChildren);
               }
-              // await $(`/Contact(${app.sub})`).details().then(item => $().tree($.user = item));
+              // await $(`/Contact(${aimClient.sub})`).details().then(item => $().tree($.user = item));
               // console.log(aim.user.data);
               $().tree(aim.user.data);
             })()
@@ -11666,13 +11351,13 @@ eol = '\n';
       }).then(item => item.elemTreeLi.elemTreeDiv.scrollIntoView());
 		},
     openItemsSave() {
-			window.localStorage.setItem(
+			localStorage.setItem(
 				'openItems',
 				[...this.elem.getElementsByTagName('details')]
 				.filter(e => e.item && e.open)
 				.map(e => e.item.tag).join()
 			)
-			// //console.log([...this.elem.getElementsByTagName('details')], window.localStorage.getItem('openItems'));
+			// //console.log([...this.elem.getElementsByTagName('details')], localStorage.getItem('openItems'));
 		},
     on(selector, context) {
 			this[selector] = context;
@@ -13863,7 +13548,7 @@ eol = '\n';
         checked: 1,
       }]));
       properties.expire_time = {format: 'number', value: 3600};
-      const form = $().promptform(app.api('/oauth').query('socket_id', socket_id), this.elem, arguments.callee.name, {
+      const form = $().promptform(aimClient.api('/oauth').query('socket_id', socket_id), this.elem, arguments.callee.name, {
         properties: properties,
         btns: {
           deny: { name: 'accept', value:'deny', type:'button' },
@@ -14068,7 +13753,8 @@ eol = '\n';
       ];
     },
     class(className) {
-			this.elem.className = [].concat(this.elem.className.split(' '), [...arguments]).unique().join(' ').trim();
+      // this.elem.className = [].concat(this.elem.className.split(' '), [...arguments]).unique().join(' ').trim();
+      this.elem.className = [...arguments].join(' ').trim();
 			return this;
 		},
     code(content, format) {
@@ -14224,10 +13910,10 @@ eol = '\n';
 					css.push(`${selector}:${value}`);
 					// let id = elem === document.body ? '_body' : elem.id;
 					// if (id) {
-					// 	let css = window.localStorage.getItem('css');
+					// 	let css = localStorage.getItem('css');
 					// 	css = css ? JSON.parse(css) : {};
 					// 	(css[id] = css[id] || {})[selector] = value;
-					// 	window.localStorage.setItem('css', JSON.stringify(css));
+					// 	localStorage.setItem('css', JSON.stringify(css));
 					// }
 				}
         elem.style.cssText = css.join(';');
@@ -14708,7 +14394,7 @@ eol = '\n';
       if (!Array.isArray(this.files)) this.files = [];
       this.appendFile = file => $.promise( 'appendFile', callback => {
         console.log(file, file.type, file.name);
-        app.api(`/${this.item.tag}/file`)
+        aimClient.api(`/${this.item.tag}/file`)
         .query({
           uid: this.item.data.UID,
           name: file.name,
@@ -14718,15 +14404,15 @@ eol = '\n';
           type: file.type,
         })
         .post(file)
-        .then(e => {
-          this.files.push(e.body);
-          if (e.body.type === 'application/pdf') {
+        .then(file => {
+          this.files.push(file);
+          if (file.type === 'application/pdf') {
             $().pdfpages(e.body.src).then(pages => {
               const textpages = pages.map(lines => lines.map(line => line.str).join("\n"));
               let words = [].concat(textpages.map(page => page.match(/\b\w+\b/gs))).map(words => words.map(word => word.toLowerCase()).unique().sort());
               console.log('PDF PAGES', words);
-              app.api(`/${this.item.tag}/?request_type=words`).patch(words).then(e => {
-                console.log('WORDS', e.target.responseText);
+              aimClient.api(`/${this.item.tag}/?request_type=words`).patch(words).then(body => {
+                console.log('WORDS', body);
               })
             })
           }
@@ -14735,7 +14421,7 @@ eol = '\n';
           item[attributeName] = JSON.stringify(this.files);
           // console.log(item[attributeName]);
           this.emit('change');
-          callback(e.body);
+          callback(file);
         })
       });
       this.removeElem = (elem, e) => {
@@ -15028,609 +14714,6 @@ eol = '\n';
 		},
     html(content, format) {
 			const elem = this.elem;
-			function removeIdent(content) {
-				content = content.split(/\n/);
-				const ident = content.filter(line => line.trim());
-				if (ident.length) {
-					ident = ident[0].search(/\S/);
-					content = content.map(line => line.substr(ident));
-				}
-				content = content.join('\n').trim();
-			}
-			param = {
-				replaceLines(content, params, modifier) {
-					return content.split(/\n/).map(line =>{
-						return param.replace(line, params, modifier);
-					}).join('\n');
-				},
-				replace(line, replace, modifier) {
-					for (let [exp, s] of Object.entries(replace)) {
-						// line = line.replace(new RegExp('(?<!<[^>]*?)(?!<span[^>]*?>)(?!.*<)' + exp + '(?![^<]*?<\\/span>)', modifier), s);
-						// line = line.replace(new RegExp('(?!<span[^>]*?>)(?!.*<)' + exp + '(?![^<]*?<\\/span>)', modifier), s);
-						line = line.replace(new RegExp('(?!<span[^>]*?>)' + exp + '(?![^<]*?<\\/span>)', modifier), s);
-						// line = line.replace(new RegExp('(?<!<[^>]*?)(?!<span[^>]*?>)' + exp + '(?![^<]*?<\/span>)', modifier), s);
-						// line = line.replace(new RegExp('(?!.*<)(?!<span[^>]*?>)' + exp + '(?![^<]*?<\/span>)', modifier), s);
-						// line = line.replace(new RegExp('(?!.*<)' + exp, modifier), s);
-						// line = line.replace(new RegExp('(?!.*<)' + exp, modifier), s);
-						// line = line.replace(new RegExp(exp, modifier), s);
-					}
-					return line;
-				},
-				keywords: {
-					js: {
-						reserved: {
-							class: '',
-							abstract: '',
-							arguments: '',
-							await: '',
-							boolean: '',
-							break: '',
-							byte: '',
-							case: '',
-							catch: '',
-							char: '',
-							const: '',
-							continue: '',
-							debugger: '',
-							default: '',
-							delete: '',
-							do: '',
-							double: '',
-							else: '',
-							enum: '',
-							eval: '',
-							export: '',
-							extends: '',
-							false: '',
-							final: '',
-							finally: '',
-							float: '',
-							for: '',
-							function: '',
-							goto: '',
-							if: '',
-							implements: '',
-							import: '',
-							in: '',
-							instanceof: '',
-							int: '',
-							interface: '',
-							let: '',
-							long: '',
-							native: '',
-							new: '',
-							null: '',
-							package: '',
-							private: '',
-							protected: '',
-							public: '',
-							return: '',
-							short: '',
-							static: '',
-							super: '',
-							switch: '',
-							synchronized: '',
-							this: '',
-							throw: '',
-							throws: '',
-							transient: '',
-							true: '',
-							try: '',
-							typeof: '',
-							var: '',
-							void: '',
-							volatile: '',
-							while: '',
-							with: '',
-							yield: '',
-							// Removed
-							abstract: '',
-							boolean: '',
-							byte: '',
-							char: '',
-							double: '',
-							final: '',
-							float: '',
-							goto: '',
-							int: '',
-							long: '',
-							native: '',
-							short: '',
-							synchronized: '',
-							throws: '',
-							transient: '',
-							volatile: '',
-						},
-						methods: {
-							Array: '',
-							Date: '',
-							eval: '',
-							function: '',
-							hasOwnProperty: '',
-							Infinity: '',
-							isFinite: '',
-							isNaN: '',
-							isPrototypeOf: '',
-							length: '',
-							Math: '',
-							NaN: '',
-							name: '',
-							Number: '',
-							Object: '',
-							prototype: '',
-							String: '',
-							toString: '',
-							undefined: '',
-							valueOf: '',
-						},
-						properties: {
-							alert: '',
-							all: '',
-							anchor: '',
-							anchors: '',
-							area: '',
-							assign: '',
-							blur: '',
-							button: '',
-							checkbox: '',
-							clearInterval: '',
-							clearTimeout: '',
-							clientInformation: '',
-							close: '',
-							closed: '',
-							confirm: '',
-							constructor: '',
-							crypto: '',
-							decodeURI: '',
-							decodeURIComponent: '',
-							defaultStatus: '',
-							document: '',
-							elem: '',
-							elements: '',
-							embed: '',
-							embeds: '',
-							encodeURI: '',
-							encodeURIComponent: '',
-							escape: '',
-							e: '',
-							fileUpload: '',
-							focus: '',
-							form: '',
-							forms: '',
-							frame: '',
-							innerHeight: '',
-							innerWidth: '',
-							layer: '',
-							layers: '',
-							link: '',
-							location: '',
-							mimeTypes: '',
-							navigate: '',
-							navigator: '',
-							frames: '',
-							frameRate: '',
-							hidden: '',
-							history: '',
-							image: '',
-							images: '',
-							offscreenBuffering: '',
-							open: '',
-							opener: '',
-							option: '',
-							outerHeight: '',
-							outerWidth: '',
-							packages: '',
-							pageXOffset: '',
-							pageYOffset: '',
-							parent: '',
-							parseFloat: '',
-							parseInt: '',
-							password: '',
-							pkcs11: '',
-							plugin: '',
-							prompt: '',
-							propertyIsEnum: '',
-							radio: '',
-							reset: '',
-							screenX: '',
-							screenY: '',
-							scroll: '',
-							secure: '',
-							select: '',
-							self: '',
-							setInterval: '',
-							setTimeout: '',
-							status: '',
-							submit: '',
-							taint: '',
-							text: '',
-							textarea: '',
-							top: '',
-							unescape: '',
-							untaint: '',
-						},
-						events: {
-							onblur: '',
-							onclick: '',
-							onerror: '',
-							onfocus: '',
-							onkeydown: '',
-							onkeypress: '',
-							onkeyup: '',
-							onmouseover: '',
-							onload: '',
-							onmouseup: '',
-							onmousedown: '',
-							onsubmit: '',
-						}
-					},
-					php: {
-						reserved: {
-							class: '',
-							if: '',
-							isset: '',
-						},
-						// methods: {
-						// },
-						// properties: {
-						// },
-						// events: {
-						// }
-					},
-					st: {
-						reserved: {
-							PROGRAM: '',
-							END_PROGRAM: '',
-							VAR: '',
-							END_VAR: '',
-							IF: 'Provides one or more options and selects one (or none) of its statement components for execution. ELEIF and ELSE are optional.',
-							THEN: '',
-							ELSEIF: '',
-							ELSIF: '',
-							ELSE: '',
-							END_IF: '',
-							CASE: 'Select one of several alternative program sections. ELSE are optional.',
-							OF: '',
-							END_CASE: '',
-							FOR: 'Repeat a sequence of statements as long as a control variable is within the specified range of values',
-							TO: '',
-							BY: '',
-							DO: '',
-							END_FOR: '',
-							REPEAT: 'Repeat a sequence of statements until condition(S) is true. Note minimum one execution.',
-							UNTIL: '',
-							END_REPEAT: '',
-							WHILE: 'Repeat a sequence of statements as long as condition(S) is true.',
-							// DO: '',
-							END_WHILE: '',
-							EXIT: 'Terminates the FOR, WHILE or REPEAT loop in which it resides without regard to any condition',
-							RETURN: 'Terminates Program, Function block call',
-							ADD: '',
-							SQRT: '',
-							SIN: '',
-							COS: '',
-							GT: '',
-							MIN: '',
-							MAX: '',
-							AND: '',
-							OR: '',
-							BYTE: '8 bit (1 byte)',
-							WORD: '16 bit (2 byte)',
-							DWORD: '32 bit (4 byte)',
-							LWORD: '64 bit (8 byte)',
-							INTEGER: 'whole numbers (Considering byte size 8 bits)',
-							SINT: 'signed short integer (1 byte)',
-							INT: 'signed integer (2 byte)',
-							DINT: 'signed double integer (4 byte)',
-							LINT: 'signed long integer (8 byte)',
-							USINT: 'Unsigned short integer (1 byte)',
-							UINT: 'Unsigned integer (2 byte)',
-							UDINT: 'Unsigned double integer (4 byte)',
-							ULINT: 'Unsigned long integer (8 byte)',
-							REAL: 'floating point IEC 60559 (same as IEEE 754-2008)',
-							REAL: '(4 byte)',
-							LREAL: '(8 byte)',
-							TIME: '(4 byte). Literals in the form of T#5m90s15ms',
-							LTIME: '(8 byte). Literals extend to nanoseconds in the form of T#5m90s15ms542us15ns',
-							DATE: 'calendar date (Size is not specified)',
-							LDATE: 'calendar date (Size is not specified)',
-							TIME_OF_DAY: 'clock time(Size is not specified)',
-							TOD: 'clock time(Size is not specified)',
-							LTIME_OF_DAY: 'clock time (8 byte)',
-							LTOD: 'clock time (8 byte)',
-							DATE_AND_TIME: 'time and date(Size is not specified)',
-							DT: 'time and date(Size is not specified)',
-							LDATE_AND_TIME: 'time and date(8 byte)',
-							LDT: 'time and date(8 byte)',
-							CHAR: 'Single-byte character (1 byte)',
-							WCHAR: 'Double-byte character (2 byte)',
-							STRING: 'Variable-length single-byte character string. Literals specified with single quote, This is a STRING Literal',
-							WSTRING: 'Variable-length double-byte character string. Literals specified with a double quote, "This is a WSTRING Literal"',
-							STRING: 'escape sequences',
-							ANY: '',
-							ANY_DERIVED: '',
-							ANY_ELEMENTARY: '',
-							ANY_MAGNITUDE: '',
-							ANY_NUM: '',
-							ANY_REAL: 'LREAL, REAL',
-							ANY_INT: '',
-							ANY_UNSIGNED: 'ULINT, UDINT, UINT, USINT',
-							ANY_SIGNED: 'LINT, DINT, INT, SINT',
-							ANY_DURATION: 'TIME, LTIME',
-							ANY_BIT: 'LWORD, DWORD, WORD, BYTE, BOOL',
-							ANY_CHARS: '',
-							ANY_STRING: 'STRING, WSTRING',
-							ANY_CHAR: 'CHAR, WCHAR',
-							ANY_DATE: 'DATE_AND_TIME (DT), DATE_AND_TIME(LDT), DATE, TIME_OF_DAY (TOD), LTIME_OF_DAY(LTOD)',
-						},
-						methods: {
-							LEN: 'Length of string',
-							CONCAT: 'Connect two strings',
-							LEFT: 'Returns N characters from the left',
-							RIGHT: 'Returns N characters from the right',
-							MID: 'Returns N1 characters from N2',
-							INSERT: 'Insert string at N',
-							DELETE: 'Delete a substring',
-							REPLACE: 'Replace a substring',
-							FIND: 'Find a substring in a string',
-							SEL: 'Select',
-							MAX: 'Maximum',
-							MIN: 'Minimum',
-							LIMIT: 'Limit',
-							MUX: 'Select from N',
-							TP: 'Pulse timer',
-							TON: 'On delay timer',
-							TOF: 'Off delay timer',
-							R_TRIG: 'Rising edge',
-							F_TRIG: 'Falling edge',
-							TRUNC: 'Returns hole number as DINT',
-							TRUNC_INT: 'Returns hole number as INT',
-							ROL: 'Rotate left by N',
-							ROR: 'Rotate right by N',
-							SHL: 'Shift left by N',
-							SHR: 'Shift right by N',
-							CTU: 'Counter up',
-							CTD: 'Counter down',
-							CTUD: 'Counter up and down',
-							ABS: 'Number',
-							SQR: 'Square root',
-							LN: 'Natural logarithm',
-							LOG: 'Common logarithm',
-							EXP: 'E to the power of IN',
-							SIN: 'Sine',
-							COS: 'Cosine',
-							TAN: 'Tangent',
-							ASIN: 'Arc sine',
-							ACOS: 'Arc Cosine',
-							ATAN: 'Arc Tangent',
-							EXPT: 'IN1 to the power of IN2',
-							'<': 'Less than',
-							'>': 'Greather than',
-							'<=': 'Less than or equal to',
-							'>=': 'Greater than or equal to',
-							'=': 'Equal to',
-							'<>': 'Not equal to',
-							NOT: 'Negation',
-							AND: 'And',
-							XOR: 'Exclusive or',
-							OR: 'Or',
-							':=': 'Assignment',
-							'\\*': 'Multiplication',
-							'/': 'Division',
-							'MOD': 'Modolo division',
-							'\\+': 'Addition',
-							'-': 'Subtraction',
-							BOOL_TO_INT:'',
-							WORD_TO_DINT:'',
-							BYTE_TO_REAL:'',
-							REAL_TO_LREAL:'',
-							TIME_TO_DINT:'',
-						}
-					},
-					sql: {
-						methods: {
-							'ADD': 'Adds a column in an existing table',
-							'ADD CONSTRAINT': 'Adds a constraint after a table is already created',
-							'ALTER': 'Adds, deletes, or modifies columns in a table, or changes the data type of a column in a table',
-							'ALTER COLUMN': 'Changes the data type of a column in a table',
-							'ALTER TABLE': 'Adds, deletes, or modifies columns in a table',
-							'ALL': 'Returns true if all of the subquery values meet the condition',
-							'AND': 'Only includes rows where both conditions is true',
-							'ANY': 'Returns true if any of the subquery values meet the condition',
-							'AS': 'Renames a column or table with an alias',
-							'ASC': 'Sorts the result set in ascending order',
-							'BACKUP DATABASE': 'Creates a back up of an existing database',
-							'BETWEEN': 'Selects values within a given range',
-							'CASE': 'Creates different outputs based on conditions',
-							'CHECK': 'A constraint that limits the value that can be placed in a column',
-							'COLUMN': 'Changes the data type of a column or deletes a column in a table',
-							'CONSTRAINT': 'Adds or deletes a constraint',
-							'CREATE': 'Creates a database, index, view, table, or procedure',
-							'CREATE DATABASE': 'Creates a new SQL database',
-							'CREATE INDEX': 'Creates an index on a table (allows duplicate values)',
-							'CREATE OR REPLACE VIEW': 'Updates a view',
-							'CREATE TABLE': 'Creates a new table in the database',
-							'CREATE PROCEDURE': 'Creates a stored procedure',
-							'CREATE UNIQUE INDEX': 'Creates a unique index on a table (no duplicate values)',
-							'CREATE VIEW': 'Creates a view based on the result set of a SELECT statement',
-							'DATABASE': 'Creates or deletes an SQL database',
-							'DEFAULT': 'A constraint that provides a default value for a column',
-							'DELETE': 'Deletes rows from a table',
-							'DESC': 'Sorts the result set in descending order',
-							'DISTINCT': 'Selects only distinct (different) values',
-							'DROP': 'Deletes a column, constraint, database, index, table, or view',
-							'DROP COLUMN': 'Deletes a column in a table',
-							'DROP CONSTRAINT': 'Deletes a UNIQUE, PRIMARY KEY, FOREIGN KEY, or CHECK constraint',
-							'DROP DATABASE': 'Deletes an existing SQL database',
-							'DROP DEFAULT': 'Deletes a DEFAULT constraint',
-							'DROP INDEX': 'Deletes an index in a table',
-							'DROP TABLE': 'Deletes an existing table in the database',
-							'DROP VIEW': 'Deletes a view',
-							'EXEC': 'Executes a stored procedure',
-							'EXISTS': 'Tests for the existence of any record in a subquery',
-							'FOREIGN KEY': 'A constraint that is a key used to link two tables together',
-							'FROM': 'Specifies which table to select or delete data from',
-							'FULL OUTER JOIN': 'Returns all rows when there is a match in either left table or right table',
-							'GROUP BY': 'Groups the result set (used with aggregate functions: COUNT, MAX, MIN, SUM, AVG)',
-							'HAVING': 'Used instead of WHERE with aggregate functions',
-							'IN': 'Allows you to specify multiple values in a WHERE clause',
-							'INDEX': 'Creates or deletes an index in a table',
-							'INNER JOIN': 'Returns rows that have matching values in both tables',
-							'INSERT INTO': 'Inserts new rows in a table',
-							'INSERT INTO SELECT': 'Copies data from one table into another table',
-							'IS NULL': 'Tests for empty values',
-							'IS NOT NULL': 'Tests for non-empty values',
-							'JOIN': 'Joins tables',
-							'LEFT JOIN': 'Returns all rows from the left table, and the matching rows from the right table',
-							'LIKE': 'Searches for a specified pattern in a column',
-							'LIMIT': 'Specifies the number of records to return in the result set',
-							'NOT': 'Only includes rows where a condition is not true',
-							'NOT NULL': 'A constraint that enforces a column to not accept NULL values',
-							'OR': 'Includes rows where either condition is true',
-							'ORDER BY': 'Sorts the result set in ascending or descending order',
-							'OUTER JOIN': 'Returns all rows when there is a match in either left table or right table',
-							'PRIMARY KEY': 'A constraint that uniquely identifies each record in a database table',
-							'PROCEDURE': 'A stored procedure',
-							'RIGHT JOIN': 'Returns all rows from the right table, and the matching rows from the left table',
-							'ROWNUM': 'Specifies the number of records to return in the result set',
-							SELECT: 'Selects data from a database',
-							'SELECT DISTINCT': 'Selects only distinct (different) values',
-							'SELECT INTO': 'Copies data from one table into a new table',
-							'SELECT TOP': 'Specifies the number of records to return in the result set',
-							SET: 'Specifies which columns and values that should be updated in a table',
-							TABLE: 'Creates a table, or adds, deletes, or modifies columns in a table, or deletes a table or data inside a table',
-							TOP: 'Specifies the number of records to return in the result set',
-							'TRUNCATE TABLE': 'Deletes the data inside a table, but not the table itself',
-							UNION: 'Combines the result set of two or more SELECT statements (only distinct values)',
-							'UNION ALL': 'Combines the result set of two or more SELECT statements (allows duplicate values)',
-							UNIQUE: 'A constraint that ensures that all values in a column are unique',
-							UPDATE: 'Updates existing rows in a table',
-							VALUES: 'Specifies the values of an INSERT INTO statement',
-							VIEW: 'Creates, updates, or deletes a view',
-							WHERE: 'Filters a result set to include only records that fulfill a specified condition',
-						},
-					},
-					css: {
-						reserved: {
-							div: '',
-						},
-						properties: {
-							class: '',
-						},
-					},
-				},
-				prg(line, lang, modifier) {
-					modifier = modifier || 'g';
-					let groups = {};
-					let keywords = {
-						// '(")([^"]*)("=&gt;)': '$1<span class="hl-attr">$2</span>$3',
-						// '(\')([^\']*)(\'=&gt;)': '$1<span class="hl-attr">$2</span>$3',
-						// '("[^"]+")(:)': '<span class="hl-attr">$1</span>$2',
-						// '(\'[^\']+\')(:)': '<span class="hl-attr">$1</span>$2',
-						// 'function\\s(\\w+)(\\s|)\\(': 'function <span class="hl-title">$1</span>$2(',
-						// '(&lt;)([^\\s|^&]+)(\\s|&)': '$1<span class="hl-tag">$2</span>$3',
-						// '&quot;(.*?)&quot;': '&quot;<span class="hl-string">$1</span>&quot;',
-						// '&apos;(.*?)&apos;': '&apos;<span class="hl-string">$1</span>&apos;',
-						'`(.*?)`': '`<span class="hl-string">$1</span>`',
-						'(\\/\\/[^\n<]+)': '<span class="hl-comt">$1</span>',
-					};
-					lang.forEach(lang => {
-						if (param.keywords[lang]) {
-							for (let [groupName, group] of Object.entries(param.keywords[lang])) {
-								groups[groupName] = groups[groupName] || [];
-								groups[groupName] = groups[groupName].concat(Object.keys(group));
-								// var s = Object.keys(group).join('|');
-								// if (s) {
-								//   keywords[ '\\b(' + s + ')\\b'] = `<span class="hl-${groupName}">$1</span>`;
-								// }
-							}
-						};
-					});
-					for (let [groupName, group] of Object.entries(groups)) {
-						keywords[ '\\b(' + group.join('|') + ')\\b'] = `<span class="hl-${groupName}">$1</span>`;
-					};
-					// //console.log(keywords);
-					// return;
-					line = line.
-					replace(/</gs, '&lt;')
-					.replace(/>/g, '&gt;')
-					// .replace(/"/g, '&quot;')
-					// .replace(/'/g, '&apos;')
-					.replace(/=/g, '&#61;')
-					.replace(/\t/g, '  ')
-					;
-					chars = line.split('');
-					line = [];
-					for (var i=0, specialChar;i<chars.length;i++) {
-						specialChar = chars[i];
-						if (['"','`',"'"].includes(specialChar)) {
-							line.push(chars[i] + '<span class="hl-string">');
-							for (i++;i<chars.length;i++) {
-								if (chars[i] === specialChar && chars[i-1] !== '\\') break;
-								line.push(chars[i]);
-							}
-							line.push('</span>');
-						} else if (specialChar === '/') {
-							if (chars[i+1] === '/') {
-								line.push('<span class="hl-comt">');
-								for (i;i<chars.length;i++) {
-									if (chars[i] === "\n") break;
-									line.push(chars[i]);
-								}
-								line.push('</span>');
-							}
-						}
-						line.push(chars[i]);
-					}
-					line = line.join('');
-					// //console.log(line);
-					// return line;
-					// //console.log('CHARS', chars);
-					// line = line.replace(/\r/g,'');
-					// line = createHtml.replace(line, keywords);
-					line = line
-					.replace(/\r/g,'')
-					.replace(/(&lt;!--)/g, '<span class="hl-comt">$1')
-					.replace(/(--&gt;)/g, '$1</span>')
-					.replace(/(\/\*.*)/g, '<span class="hl-comt">$1')
-					.replace(/(.*\*\/)/g, '$1</span>')
-					;
-					line = param.replace(
-						line,
-						Object.assign(keywords, {
-							'(&lt;)(\\w+)': '$1<span class="hl-tag">$2</span>',
-							'(&lt;\\/)(\\w+)': '$1<span class="hl-tag">$2</span>',
-							// '([$\\w]+)\\b': '<span class="hl-obju">$1</span>',
-							// '(\'[^\']*\')': '<span class="hl-string">$1</span>',
-							//
-							'(\\w+)(&#61;)': '<span class="hl-attr">$1</span>$2',
-							//
-							'(\\w+)(\\s|)\\(': '<span class="hl-fn">$1</span>$2(',
-							// '\\b([A-Z]+)\\b': '<span class="hl-obju">$1</span>',
-							'(\\w+)::': '<span class="hl-class">$1</span>::',
-							// '(\\w+)-&gt;': '<span class="hl-obj">$1</span>-&gt;',
-							// '\\.(\\w+)\\.': '.<span class="hl-obj">$1</span>.',
-							// '(\\w+)\\.': '<span class="hl-obju">$1</span>.',
-							'\\.(\\w+)': '.<span class="hl-attr">$1</span>',
-							'([\\w-]+)(?=:)': '<span class="hl-attr">$1</span>',
-							'([\\w-]+)(?=&#61;)': '<span class="hl-attr">$1</span>',
-							//
-							// '(\\[)("[^"]+")(\\])': '$1<span class="hl-attr">$2</span>$3',
-							// '(\\[)(\'[^\']+\')(\\])': '$1<span class="hl-attr">$2</span>$3',
-							// '(\\[)(\\w+)(\\])': '$1<span class="hl-attr">$2</span>$3',
-							'([^&#61;])([\\d\\.]+)': '$1<span class="hl-nr">$2</span>',
-						}),
-						modifier
-					);
-					return line;
-				},
-				js: content => {
-					//console.log(content, this);
-					this.elem.innerHTML = this.prg (content, ['js']);
-					return this;
-				},
-			};
-      // [...arguments].forEach(content => this.elem.innerHTML += typeof content === 'function' ? this.prg (String(content).replace(/^(.*?)\{|\}$/g,''), ['js']) : content );
       [].concat(content).forEach(content => {
         if (typeof content === 'function') {
           format = 'js';
@@ -16184,6 +15267,7 @@ eol = '\n';
           // src = src.replace(/\/main|\/aliconnect/g, '');
         }
         src = src.replace(/\/tree|\/glob|\/README.md/g, '');
+        src = new URL(src, document.location).href;
         return src;
       }
       const elem = this;
@@ -16195,8 +15279,11 @@ eol = '\n';
       src = rawSrc(src);
       this.loadMenu = async function (src) {
         var wikiPath = rawSrc(src).replace(/[\w\.-]*$/,'');
+        console.log(wikiPath);
+        wikiPath = wikiPath.match(/wiki/) ? wikiPath : new URL(wikiPath).origin + '/wiki/';
+        console.log(wikiPath);
         if (!elem.paths.includes(wikiPath)) {
-          console.log('loadMenu', wikiPath, this.links);
+          // console.log('loadMenu', wikiPath, this.links);
           elem.paths.push(wikiPath);
           await $().url(rawSrc(wikiPath+'_Sidebar.md')).accept('text/markdown').get().catch(console.error)
           .then(e => {
@@ -16204,20 +15291,23 @@ eol = '\n';
             [...this.doc.leftElem.elem.getElementsByTagName('A')].forEach(elem => $(elem).href(hrefSrc(elem.getAttribute('href'), linksrc)));
           });
           [...this.doc.leftElem.elem.getElementsByTagName('LI')].forEach(li => {
-            if (li.childNodes[0].nodeValue) {
-              li.replaceChild($('span').text(li.childNodes[0].nodeValue.trim()).elem, li.childNodes[0]);
+            if (li.childNodes.length) {
+              if (li.childNodes[0].nodeValue) {
+                li.replaceChild($('span').text(li.childNodes[0].nodeValue.trim()).elem, li.childNodes[0]);
+              }
+              const nodeElem = li.firstChild;
+              if (!nodeElem.hasAttribute('open') && nodeElem.nextElementSibling) {
+                nodeElem.setAttribute('open', '0');
+                $(nodeElem).attr('open', '0').on('click', e => {
+                  nodeElem.setAttribute('open', nodeElem.getAttribute('open') ^ 1);
+                });
+              }
             }
-            const nodeElem = li.firstChild;
-            if (!nodeElem.hasAttribute('open')) {
-              nodeElem.setAttribute('open', '0');
-              $(nodeElem).attr('open', '0').on('click', e => {
-                nodeElem.setAttribute('open', nodeElem.getAttribute('open') ^ 1);
-              });
-            }
+            // console.log(li.childNodes);
           })
-          this.links = [...this.doc.leftElem.elem.getElementsByTagName('LI')].map(elem => elem.firstChild).filter(Boolean);
+          this.links = [...this.doc.leftElem.elem.getElementsByTagName('A')];
         }
-        console.log('loadMenu2', src, wikiPath, this.links);
+        // console.log('loadMenu2', src, wikiPath, this.links);
       }
       if (!this.doc) {
         this.doc = $().document(
@@ -16226,33 +15316,23 @@ eol = '\n';
         await this.loadMenu($.config.ref.home);
 
       }
-      this.link = this.links.find(link => link.getAttribute('href') && link.getAttribute('href').toLowerCase() === linksrc);
-
+      (this.findlink = () => {
+        this.link = this.links.find(link => link.getAttribute('href') && link.getAttribute('href').toLowerCase() === linksrc);
+      })();
+      if (!this.link) {
+        await this.loadMenu(src);
+        this.findlink();
+      }
       if (src.match(/wiki/)) {
-        if (!this.link) {
-          await this.loadMenu(src);
-          console.log('LOADMENU', src);
-          this.link = this.links.find(link => link.getAttribute('href') && link.getAttribute('href').toLowerCase() === linksrc);
-        }
       } else if (!src.match(/\.md$/)) {
         src += '/README';
       }
-
-
       if (!src.match(/\.md$/)) {
         src += '.md';
       }
       this.src = src;
-
-      // console.log(111, this.link, this.links);
-
       this.scrollTop = this.scrollTop || new Map();
       (this.url = $().url(src).accept('text/markdown').get()).then(async e => {
-        // const url = new URL(document.location);
-        // url.searchParams.set('p', startsrc);
-        // $.his.replaceUrl(url.toString());
-        // window.history.pushState('page', 'test1', '?md='+startsrc);
-        // console.error(src, this.wikiPath);
         if (elem.pageElem && elem.pageElem.elem.parentElement) {
           elem.loadIndex = false;
           // console.log('elem.docElem', elem, elem.docElem && elem.docElem.elem.parentElement);
@@ -16291,6 +15371,25 @@ eol = '\n';
         )
         .md(content)
         .mdAddCodeButtons();
+        [...this.doc.docElem.elem.getElementsByTagName('code')].forEach(elem => {
+          if (elem.hasAttribute('source')) {
+            $().url(hrefSrc(elem.getAttribute('source'), responseURL)).get()
+            .then(e => {
+              var content = e.target.responseText.replace(/\r/g, '');
+              if (elem.hasAttribute('id')) {
+                var id = elem.getAttribute('id');
+                var content = content.replace(new RegExp(`.*?<${id}>.*?\n(.*?)\n(\/\/|<\!--) <\/${id}.*`, 's'), '$1').trim();
+              }
+              if (elem.hasAttribute('function')) {
+                var id = elem.getAttribute('function');
+                var content = content.replace(/\r/g, '').replace(new RegExp(`.*?((async |)function ${id}.*?\n\})\n.*`, 's'), '$1').trim();
+              }
+              elem.innerHTML = elem.hasAttribute('language') ? $.string[elem.getAttribute('language')](content) : content;
+              // console.log(content);
+              // $(elem).html(content, elem.getAttribute('language'));
+            });
+          }
+        });
         [...this.doc.docElem.elem.getElementsByTagName('A')].forEach(elem => $(elem).href(hrefSrc(elem.getAttribute('href'), responseURL)));
         [...this.doc.docElem.elem.getElementsByTagName('IMG')].forEach(elem => {
           // let imgsrc = elem.getAttribute('src')||'';
@@ -16311,113 +15410,57 @@ eol = '\n';
           elem.setAttribute('src', new URL(elem.getAttribute('src'), new URL(src, document.location)).href.replace(/^.*?\//,'/'));
         });
         setTimeout(() => this.doc.indexElem.index(this.doc.docElem));
-        this.doc.docElem.elem.scrollTop = this.scrollTop.get(src);
-        // return;
-        // if (callback) callback(this.docElem);
-        // this.indexElem.index(this.docElem);
-        // [...this.docElem.elem.getElementsByClassName('code')].forEach(elem => {
-        //   $(elem.previousElementSibling).class('row').append(
-        //     $('button').class('abtn copy').css('margin-left: auto'),
-        //     $('button').class('abtn edit').on('click', e => $(elem).editor()),
-        //     $('button').class('abtn view').on('click', e => {
-        //       const block = {
-        //         html: '',
-        //         css: '',
-        //         js: '',
-        //       };
-        //       for (let codeElem of this.docElem.elem.getElementsByClassName('code')) {
-        //         const type = codeElem.previousElementSibling.innerText.toLowerCase();
-        //         if (type === 'html') {
-        //           block[type] = block[type].includes('<!-- html -->') ? block[type].replace('<!-- html -->', codeElem.innerText) : codeElem.innerText;
-        //         } else if (type === 'js') {
-        //           block.html = block.html.replace(
-        //             /\/\*\* js start \*\*\/.*?\/\*\* js end \*\*\//s, codeElem.innerText
-        //           );
-        //         } else if (type === 'yaml') {
-        //           block.html = block.html.replace(
-        //             /`yaml`/s, '`'+codeElem.innerText + '`',
-        //           );
-        //         } else if (type === 'css') {
-        //           block.html = block.html.replace(
-        //             /\/\*\* css start \*\*\/.*?\/\*\* css end \*\*\//s, codeElem.innerText
-        //           );
-        //         }
-        //         if (codeElem === elem) break;
-        //       }
-        //       var html = block.html
-        //       .replace('/** css **/', block.css)
-        //       .replace('/** js **/', block.js);
-        //       // console.log(html);
-        //       const win = window.open('about:blank', 'sample');
-        //       const doc = win.document;
-        //       doc.open();
-        //       doc.write(html);
-        //       doc.close();
-        //     }),
-        //   )
-        // });
-        // // console.error(wikiPath);
-        // this.links = this.links || [];
-        // if (src.match(/wiki/)) {
-        //   console.log(src);
-        //   this.link = this.links.find(link => {
-        //     console.log(link.getAttribute('href'));
-        //     return link.getAttribute('href') === src;
-        //   });
-        //   if (!this.link) {
-        //     var wikiPath = src.replace(/wiki.*/,'wiki');
-        //     await $().url(wikiPath+'/_Sidebar.md').accept('text/markdown').get()
-        //     .then(e => mdRewriteRef(e, this.leftElem.md(e.target.responseText)))
-        //     .catch(console.error);
-        //
-        //     [...this.leftElem.elem.getElementsByTagName('A')].forEach(link => {
-        //       if (!link.hasAttribute('open')) {
-        //         link.setAttribute('open', '0');
-        //         $(link).attr('open', '0').on('click', e => link.hasAttribute('selected') ? link.setAttribute('open', link.getAttribute('open') ^ 1) : null);
-        //       }
-        //       // $(link).attr('open', '0');
-        //     })
-        //     await $().url(wikiPath+'/_Footer.md').accept('text/markdown').get()
-        //     .then(e => mdRewriteRef(e, $('section').class('footer').parent(this.docElem).md(e.target.responseText)))
-        //     .catch(console.error);
-        //   }
-        //   this.links = [...this.leftElem.elem.getElementsByTagName('A')];
-        //   this.links.forEach(link => link.removeAttribute('selected'));
-        //   if (this.link = this.links.find(link => link.getAttribute('href') === src)) {
-        //     $(this.link).attr('selected', '');
-        //     for (var link = this.link; link; link = link.parentElement.parentElement.previousElementSibling) {
-        //       $(link).attr('open', '1');
-        //     }
-        //   }
-        // }
-        return this;
-			});
 
-      this.links.forEach(link => link.removeAttribute('selected'));
-      if (this.link) {
-        $(this.link).attr('selected', '');
-        for (var link = this.link; link; link = link.parentElement.parentElement ? link.parentElement.parentElement.previousElementSibling : null) {
-          $(link).attr('open', '1');
-        }
-        this.doc.docNavTop.text('');
-        if (this.link.parentElement.previousElementSibling) {
-          this.doc.docNavTop.append(
-            $('a').class('row prev').href(this.link.parentElement.previousElementSibling.firstChild.getAttribute('href')).append(
+        this.links.forEach(link => link.removeAttribute('selected'));
+        if (this.link) {
+          $(this.link).attr('selected', '');
+          for (var link = this.link; link; link = link.parentElement.parentElement ? link.parentElement.parentElement.previousElementSibling : null) {
+            if (link.hasAttribute('open')) {
+              link.setAttribute('open', '1');
+            }
+          }
+          const children = Array.from(this.link.parentElement.parentElement.children);
+          const total = children.length;
+          const index = children.indexOf(this.link.parentElement) + 1;
+          var elemPrevious;
+          var elemNext;
+          this.doc.docNavTop.text('');
+          if (this.link.parentElement.previousElementSibling) {
+            elemPrevious=$('a').class('row prev').href(this.link.parentElement.previousElementSibling.firstChild.getAttribute('href')).append(
               $('span').text('←'),
-              $('small').text(this.link.parentElement.previousElementSibling.firstChild.innerText),
+              $('small').class('aco').text('Previous'),
+            );
+            this.doc.docNavTop.append(
+              $('a').class('row prev').href(this.link.parentElement.previousElementSibling.firstChild.getAttribute('href')).append(
+                $('span').text('←'),
+                $('small').text(this.link.parentElement.previousElementSibling.firstChild.innerText),
+              )
             )
-          )
-        }
-        if (this.link.parentElement.nextElementSibling) {
-          this.doc.docNavTop.append(
-            $('a').class('row next').href(this.link.parentElement.nextElementSibling.firstChild.getAttribute('href')).append(
-              $('small').class('aco').text(this.link.parentElement.nextElementSibling.firstChild.innerText),
+          }
+          if (this.link.parentElement.nextElementSibling) {
+            elemNext=$('a').class('row next').href(this.link.parentElement.nextElementSibling.firstChild.getAttribute('href')).append(
+              $('small').class('aco').text('Next'),
               $('span').text('→'),
+            );
+            this.doc.docNavTop.append(
+              $('a').class('row next').href(this.link.parentElement.nextElementSibling.firstChild.getAttribute('href')).append(
+                $('small').class('aco').text(this.link.parentElement.nextElementSibling.firstChild.innerText),
+                $('span').text('→'),
+              )
             )
-          )
+          }
+          $('div').parent(this.doc.docElem).class('row').append(
+            $('span').append(elemPrevious),
+            $('span').class('aco').align('center').text(`${index} van ${total}`),
+            $('span').append(elemNext),
+          );
         }
-      }
 
+        this.doc.docElem.elem.scrollTop = this.scrollTop.get(src);
+
+        return this;
+
+			});
       return this.url;
     },
     async maps(selector, referenceNode) {
@@ -16467,7 +15510,7 @@ eol = '\n';
 			// new $.his.maps(el, par.maps);
 		},
     md(content) {
-      console.log($.his.api_parameters);
+      // console.log($.his.api_parameters);
       for (let [key,value] of Object.entries($.his.api_parameters)) {
         content = content.replace(key,value);
       }
@@ -16583,11 +15626,11 @@ eol = '\n';
     },
     media: new Media(),
     menuitems: {
-			copy: { Title: 'Kopieren', key: 'Ctrl+C', onclick: function() { app.selection.copy(); } },
-			cut: { Title: 'Knippen', key: 'Ctrl+X', onclick: function() { app.selection.cut(); } },
-			paste: { Title: 'Plakken', key: 'Ctrl+V', onclick: function() { app.selection.paste(); } },
-			hyperlink: { Title: 'Hyperlink plakken', key: 'Ctrl+K', onclick: function() { app.selection.link(); } },
-			del: { Title: 'Verwijderen', key: 'Ctrl+Del', onclick: function() { app.selection.delete(); } },
+			copy: { Title: 'Kopieren', key: 'Ctrl+C', onclick: function() { aimClient.selection.copy(); } },
+			cut: { Title: 'Knippen', key: 'Ctrl+X', onclick: function() { aimClient.selection.cut(); } },
+			paste: { Title: 'Plakken', key: 'Ctrl+V', onclick: function() { aimClient.selection.paste(); } },
+			hyperlink: { Title: 'Hyperlink plakken', key: 'Ctrl+K', onclick: function() { aimClient.selection.link(); } },
+			del: { Title: 'Verwijderen', key: 'Ctrl+Del', onclick: function() { aimClient.selection.delete(); } },
 			//add: {
 			//    Title: 'Nieuw',
 			//    click: function() { // //console.debug(this); },
@@ -16793,7 +15836,8 @@ eol = '\n';
     modelLinks(data){
 			(async () => {
         // $.amcharts4core = $.amcharts4core = await this.script('/api/lib/amcharts4/core.js');
-				$.script.importGraph = $.script.importGraph = await this.script('https://aliconnect.nl/v1/api/js/graph.js');
+        await importScript('graph.js');
+				// $.importGraph = $.importGraph = await this.script('https://aliconnect.nl/v1/api/js/graph.js');
         // return;
 				const make = go.GraphObject.make;  // for conciseness in defining templates
 				const diagram = make(go.Diagram, this.elem, {
@@ -17010,7 +16054,7 @@ eol = '\n';
 			login: function() {
 				return;
 				if (!$.paths || !$.paths['/mse/login']) return $.mse.loggedin = null;
-				app.api.request ({ path: '/mse/login' }, function(e) {
+				aimClient.api.request ({ path: '/mse/login' }, function(e) {
 					if (!e.body || !e.body.access_token) return $.mse.loggedin = false;
 					$.mse.loggedin = true;
 					this.userdata = e.body;
@@ -17988,12 +17032,12 @@ eol = '\n';
                     clearTimeout(this.timeout);
                     this.timeout = setTimeout(() => {
                       return;
-                      this.request = $.$().app.api(`/${attribute.schema}`)
+                      this.request = $().api(`/${attribute.schema}`)
                       .select('Title')
                       .search(inputElement.value)
                       .top(20)
                       .get()
-                      .then(e => {
+                      .then(result => {
                         $.his.listElement.updateList(property.schema, value, this.request = null);
                       });
                     },500);
@@ -18070,7 +17114,7 @@ eol = '\n';
                   .on('click', e => {
                     console.log(this.property.item.tag);
                     $().send({
-                      // to: { aud: app.access.aud },
+                      // to: { aud: aimClient.access.aud },
                       path: `/${this.property.item.tag}/${this.name}()`,
                       method: 'post',
                       // forward: $.forward || $.WebsocketClient.socket_id,
@@ -18097,7 +17141,7 @@ eol = '\n';
                   .on('click', e => {
                     console.log(this.property.item.tag);
                     $().send({
-                      // to: { aud: app.access.aud },
+                      // to: { aud: aimClient.access.aud },
                       path: `/${this.property.item.tag}/${this.name}()`,
                       method: 'post',
                       // forward: $.forward || $.WebsocketClient.socket_id,
@@ -18124,7 +17168,7 @@ eol = '\n';
                   .on('click', e => {
                     console.log(this.property.item.tag);
                     $().send({
-                      // to: { aud: app.access.aud },
+                      // to: { aud: aimClient.access.aud },
                       path: `/${this.property.item.tag}/${this.name}()`,
                       method: 'post',
                       // forward: $.forward || $.WebsocketClient.socket_id,
@@ -18226,18 +17270,18 @@ eol = '\n';
 			return this;
 		},
     qr(selector, context) {
-			const elem = this.elem;
+      const elem = this.elem;
       (async function(){
         if (!window.QRCode) {
-          await $.script.import($.config.apiPath + '/js/qrcode.js');
+          await importScript('qrcode.js');
         }
         new QRCode(elem, selector);
         if (elem.tagName === 'IMG') {
-				elem.src = elem.firstChild.toDataURL("image/png");
-				elem.firstChild.remove();
-			}
+          elem.src = elem.firstChild.toDataURL("image/png");
+          elem.firstChild.remove();
+        }
       })()
-			return this;
+      return this;
 		},
     remove(selector) {
       if (selector) {
@@ -18518,7 +17562,7 @@ eol = '\n';
           if (item.data.ID) {
             clearTimeout($.his.viewTimeout);
             $.his.viewTimeout = setTimeout(() => {
-              app.api('/').query('request_type','visit').query('id',item.data.ID).get().then(e => {
+              aimClient.api('/').query('request_type','visit').query('id',item.data.ID).get().then(result => {
                 $.his.items[item.data.ID] = new Date().toISOString();
               })
             },1000);
@@ -18601,22 +17645,22 @@ eol = '\n';
           let date;
           let time;
           let author;
-          app.api(`/${item.tag}/Messages`)
+          aimClient.api(`/${item.tag}/Messages`)
           .top(100)
           .select('schemaPath,BodyHTML,CreatedDateTime,CreatedByID,CreatedByTitle,files')
           .get()
-          .then(e => {
-            console.log(e.body, app.access.sub);
+          .then(body => {
+            console.log(body, aimClient.access.sub);
             let el;
             this.messagesElem.text('').append(
               $('summary').text('Messages'),
               $('div').class('oa').append(
-                e.body.value.map(message => {
+                body.value.map(message => {
                   const dt = new Date(message.data.CreatedDateTime);
                   const messageDate = dt.toLocaleDateString();
                   const messageTime = dt.toLocaleTimeString().substr(0,5);
                   const messageAuthor = message.data.CreatedByID;
-                  return el = $('div').class('msgbox row', app.access.sub == message.data.CreatedByID ? 'me' : '').append(
+                  return el = $('div').class('msgbox row', aimClient.access.sub == message.data.CreatedByID ? 'me' : '').append(
                     $('div').append(
                       $('div').class('small').append(
                         author === messageAuthor ? null : $('span').class('author').text(author = messageAuthor),
@@ -18640,8 +17684,8 @@ eol = '\n';
         const itemdata = {};
         let properties;
         function breakdown_data() {
-          return app.api(`/${item.tag}`).query('request_type', 'build_breakdown').get().then(e => {
-            const data = e.body.value;
+          return aimClient.api(`/${item.tag}`).query('request_type', 'build_breakdown').get().then(body => {
+            const data = body.value;
             let items = [];
             (function row(item, level) {
               item.level = level;
@@ -18675,8 +17719,8 @@ eol = '\n';
             setTimeout(() => fn(itemdata.build_map));
           } else {
             $('list').text('').append($('div').text('Loading data'));
-            app.api(`/${item.tag}`).query('request_type', 'build_breakdown').get().then(e => {
-              const data = e.body.value;
+            aimClient.api(`/${item.tag}`).query('request_type', 'build_breakdown').get().then(body => {
+              const data = body.value;
               let items = [];
               (function row(item, level) {
                 item.level = level;
@@ -18737,7 +17781,7 @@ eol = '\n';
                     $('button').class('abtn icn close').on('click', e => elem.remove()),
                   ),
                   this.three = $('div').class('col aco').three(
-                    this.init = three => (this.rebuild = e => app.api('/'+item.tag).query('three', '').get().then(three.build))()
+                    this.init = three => (this.rebuild = e => aimClient.api('/'+item.tag).query('three', '').get().then(three.build))()
                   ),
                 );
               }),
@@ -18752,8 +17796,8 @@ eol = '\n';
                       $('button').class('abtn icn close').on('click', e => elem.remove()),
                     ),
                   );
-                  app.api(`/${item.tag}`).query('request_type','build_link_data').get().then(
-                    e => $('div').class('col aco').parent(elem).style('background:white;').modelDigraph(e.body)
+                  aimClient.api(`/${item.tag}`).query('request_type','build_link_data').get().then(
+                    body => $('div').class('col aco').parent(elem).style('background:white;').modelDigraph(body)
                   );
                 })();
               }),
@@ -18767,20 +17811,20 @@ eol = '\n';
               // $('li').class('abtn sbs').text('SBS').on('click', e => {}),
               // $('li').class('abtn').text('Api key').href(`api/?request_type=api_key&sub=${item.ID}`),
               $('li').class('abtn').text('Api key').on('click', e => {
-                app.api('/').query('request_type', 'api_key').query('expires_after', 30).post({
+                aimClient.api('/').query('request_type', 'api_key').query('expires_after', 30).post({
                   sub: item.ID,
                   aud: item.ID
-                }).get().then(e => {
-                  $('dialog').open(true).parent(document.body).text(e.target.responseText);
-                  console.log(e.target.responseText);
+                }).get().then(body => {
+                  $('dialog').open(true).parent(document.body).text(body);
+                  console.log(body);
                 })
               }),
               // $('li').class('abtn').text('Secret JSON Unlimited').attr('href', `api/?request_type=secret_json&release&sub=${this.ID}&aud=${$.auth.access.aud}`),
               // $('li').class('abtn doc').text('Breakdown').click(e => build_map(items => $().list(items))),
               $('li').class('abtn doc').text('Breakdown').on('click', e => {
                 $().list([]);
-                app.api(`/${item.tag}`).query('request_type', 'build_breakdown').get().then(e => {
-                  const data = e.body.value;
+                aimClient.api(`/${item.tag}`).query('request_type', 'build_breakdown').get().then(body => {
+                  const data = body.value;
                   console.log(data);
                   const topitem = data.find(child => child.ID == item.data.ID);
                   const items = [];
@@ -18958,7 +18002,7 @@ eol = '\n';
             if (!html) return;
             e.target.BodyHTML.value = html;
             this.msgElem.elem.innerHTML = '<p><br></p>';
-            app.api(`/${item.tag}/Messages`).post(e.target).then(e => this.showMessages());
+            aimClient.api(`/${item.tag}/Messages`).post(e.target).then(body => this.showMessages());
             return false;
           })
           .append(
@@ -18990,8 +18034,8 @@ eol = '\n';
           this.main.append(link.map(link => link.item.schemaName).unique().map(
             schemaName => $('details')
             .class('col')
-            .open(window.localStorage.getItem('detailsLink'))
-            .on('toggle', e => window.localStorage.setItem('detailsLink', e.target.open))
+            .open(localStorage.getItem('detailsLink'))
+            .on('toggle', e => localStorage.setItem('detailsLink', e.target.open))
             .append(
               $('summary').text(schemaName),
               $('div')
@@ -19031,8 +18075,8 @@ eol = '\n';
             $('div').html(item.BodyHTML||''),
           )
         );
-        app.api(`/${item.tag}/children`).select('*').get().then(async e => {
-          console.log(e);
+        aimClient.api(`/${item.tag}/children`).select('*').get().then(async body => {
+          console.log(body);
           this.elemDiv.append(
             (await item.children).map(item => $('div').append(
               $('h2').text(item.header0),
@@ -19046,7 +18090,7 @@ eol = '\n';
     async showMenuTop(item) {
       const children = await item.children;
       if (this.webpage = children.find(item => item instanceof Webpage)) {
-        app.api(`/${this.webpage.tag}/children`).query('level', 3).get().then(async e => {
+        aimClient.api(`/${this.webpage.tag}/children`).query('level', 3).get().then(async body => {
           $.his.elem.menuList = $('ul').parent(this.elem);
           function addChildren(elem, item, level) {
             if (Array.isArray(item.data.Children)) {
@@ -19070,7 +18114,7 @@ eol = '\n';
       }
     },
     showLinks(item) {
-			app.api(`/${item.tag}`).query('request_type','build_link_data').get().then(e => {
+			aimClient.api(`/${item.tag}`).query('request_type','build_link_data').get().then(body => {
 				//console.log(e.body);
 				$('div').style('display:block;width:100%;height:400px;background:white;border:solid 1px red;')
 				.attr('height',400)
@@ -19078,7 +18122,7 @@ eol = '\n';
 				.parent(this.main)
 				// .modelLinks(e.body)
 				// .modelTraverse(e.body)
-				.modelDigraph(e.body)
+				.modelDigraph(body)
 			});
 		},
     sort: {
@@ -19326,8 +18370,8 @@ eol = '\n';
             // this.objectList = $.threeObjects = [];
       (async () => {
         var url = new URL($.config.apiPath);
-        await $.script.import(url.origin + '/lib/three/build/three.js');
-        await $.script.import(url.origin + '/lib/three/examples/js/controls/OrbitControls.js');
+        await importScript('three/build/three.js');
+        await importScript('three/examples/js/controls/OrbitControls.js');
         var textureLoader = new THREE.TextureLoader();
         renderer = new THREE.WebGLRenderer( { antialias: true } );
         renderer.setClearColor(0xcfcfcf, .5);
@@ -19716,9 +18760,9 @@ eol = '\n';
       const height = this.height() || container.offsetHeight;
       // console.log([...document.getElementsByTagName('SCRIPT')].find(s => s.src === '/lib/three/examples/js/controls/TrackballControls.js'));
       (async () => {
-        await $.script.import('/lib/three/build/three.js');
-        await $.script.import('/lib/three/examples/js/controls/TrackballControls.js');
-        await $.script.import('/lib/three/examples/js/loaders/TDSLoader.js');
+        await importScript('three/build/three.js');
+        await importScript('three/examples/js/controls/TrackballControls.js');
+        await importScript('three/examples/js/loaders/TDSLoader.js');
         console.log(container.offsetWidth, container.offsetHeight);
         camera = new THREE.PerspectiveCamera( 60, width / height, 0.1, 10 );
         camera.position.z = 2;
@@ -19915,17 +18959,28 @@ eol = '\n';
     },
 	});
 
-  $.his.openItems = window.localStorage.getItem('openItems');
-	apiorigin = $.httpHost === 'localhost' && $().storage === 'api' ? 'http://localhost' : $.origin;
-  (function () {
-    const config = {
-      apiPath: document.currentScript.src.split('/js')[0],
-    };
-    (new URL(document.currentScript.src)).searchParams.forEach((value, key)=>$.extend(config, minimist([key,value])));
-    [...document.currentScript.attributes].forEach(attribute => $.extend(config, minimist(['--'+attribute.name.replace(/^--/, ''), attribute.value])));
-    (new URLSearchParams(document.location.search)).forEach((value,key)=>$.extend(config, minimist([key,value])));
-    $.extend({config:config});
-  })()
+  // (function () {
+  //   const config = {
+  //     apiPath: document.currentScript.src.split('/js')[0],
+  //   };
+  //   if (document.currentScript.attributes)
+  //   (new URL(document.currentScript.src)).searchParams.forEach((value, key)=>$.extend(config, minimist([key,value])));
+  //   [...document.currentScript.attributes].forEach(attribute => $.extend(config, minimist(['--'+attribute.name.replace(/^--/, ''), attribute.value])));
+  //   (new URLSearchParams(document.location.search)).forEach((value,key)=>$.extend(config, minimist([key,value])));
+  //   $.extend({config:config});
+  // })()
+
+  $.his.openItems = localStorage.getItem('openItems');
+  let localAttr = localStorage.getItem('attr');
+  $.localAttr = localAttr = localAttr ? JSON.parse(localAttr) : {};
+  const currentScript = document.currentScript;
+
+	const apiorigin = $.httpHost === 'localhost' && $().storage === 'api' ? 'http://localhost' : $.origin;
+  aim = $.aim = $('aim');
+  require = function () {};
+
+
+
   window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent the mini-infobar from appearing on mobile
     e.preventDefault();
@@ -19934,14 +18989,20 @@ eol = '\n';
     // Update UI notify the user they can install the PWA
     // showInstallPromotion();
     // Optionally, send analytics e that PWA install promo was shown.
-    console.error(`LETOP 'beforeinstallprompt' e was fired.`);
+    // console.error(`LETOP 'beforeinstallprompt' e was fired.`);
     // alert('install');
   });
-  if ($.config.libraries){
-    $.config.libraries.split(',').forEach(selector => $.libraries[selector] ? $.libraries[selector]() : null);
-  }
-  const aim = $.aim = $('aim');
-  window.addEventListener('load', e => {
+  // console.log(1, document.currentScript.attributes.libraries.value);
+  window.addEventListener('load', async e => {
+    if (currentScript.attributes.url) {
+      await $().url('config.json', currentScript.attributes.url.value).get().catch(console.error).then(e => $.extend({config: e.body}));
+    }
+    if (currentScript.attributes.libraries){
+      currentScript.attributes.libraries.value.split(',').forEach(selector => $.libraries[selector] ? $.libraries[selector]() : null);
+    }
+    // (new URL(document.currentScript.src)).searchParams.forEach((value, key)=>$.extend(config, minimist([key,value])));
+    [...currentScript.attributes].forEach(attribute => $.extend({config: minimist(['--'+attribute.name.replace(/^--/, ''), attribute.value])}));
+    (new URLSearchParams(document.location.search)).forEach((value,key)=>$.extend({config: minimist([key,value])}));
     $().emit('load').then(e => {
       $().emit('ready').then(e => {
         $(window).emit('popstate');
